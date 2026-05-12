@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { watchDebounced } from '@vueuse/core'
+import { EMPTY_TIPTAP_DOC_JSON } from '#shared/tiptap-empty-doc'
 
 type FolderRow = {
   id: string
@@ -141,7 +142,7 @@ function openNoteFromRow(n: NoteDetail) {
     selectedNoteId.value = n.id
     currentNote.value = n
     title.value = n.title
-    content.value = n.content || '{}'
+    content.value = n.content || EMPTY_TIPTAP_DOC_JSON
     excerpt.value = n.excerpt || ''
   }
   finally {
@@ -186,7 +187,7 @@ async function selectNote(id: string, opts?: { signal?: AbortSignal }) {
     selectedNoteId.value = id
     currentNote.value = n
     title.value = n.title
-    content.value = n.content || '{}'
+    content.value = n.content || EMPTY_TIPTAP_DOC_JSON
     excerpt.value = n.excerpt || ''
   }
   finally {

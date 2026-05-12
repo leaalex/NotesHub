@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { EMPTY_TIPTAP_DOC_JSON } from '#shared/tiptap-empty-doc'
+
 definePageMeta({ layout: false })
 
 const route = useRoute()
@@ -44,7 +46,7 @@ watch(token, () => refresh())
           <ClientOnly>
             <NotesLexicalNoteEditor
               :note-key="`share-${token}-${data.updatedAt}`"
-              :model-value="data.content"
+              :model-value="data.content || EMPTY_TIPTAP_DOC_JSON"
               read-only
               placeholder=""
             />

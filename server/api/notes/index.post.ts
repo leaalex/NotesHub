@@ -1,11 +1,10 @@
 import { randomUUID } from 'node:crypto'
 import { eq } from 'drizzle-orm'
+import { EMPTY_TIPTAP_DOC_JSON } from '../../../shared/tiptap-empty-doc'
 import { folders, notes } from '../../database/schema'
 import { db } from '../../utils/db'
 import { withDbTimeout } from '../../utils/db-timeout'
 import { requireUserSession } from '../../utils/session'
-
-const emptyDoc = JSON.stringify({ root: { children: [{ children: [], direction: null, format: '', indent: 0, type: 'paragraph', version: 1 }], direction: null, format: '', indent: 0, type: 'root', version: 1 } })
 
 const DB_STEP_MS = 15_000
 
@@ -58,7 +57,7 @@ export default defineEventHandler(async (event) => {
       userId: session.user.id,
       folderId: body.folderId ?? null,
       title,
-      content: emptyDoc,
+      content: EMPTY_TIPTAP_DOC_JSON,
       excerpt: '',
       createdAt: new Date(now),
       updatedAt: new Date(now),

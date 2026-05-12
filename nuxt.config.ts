@@ -23,7 +23,15 @@ export default defineNuxtConfig({
       },
     },
     optimizeDeps: {
-      include: ['lexical', 'lexical-vue', '@lexical/rich-text', '@lexical/list', '@lexical/link'],
+      include: [
+        '@vueuse/core',
+        '@vue/devtools-core',
+        '@vue/devtools-kit',
+        'better-auth/vue',
+        'better-auth/client/plugins',
+        '@tiptap/vue-3',
+        '@tiptap/starter-kit',
+      ],
     },
   },
 

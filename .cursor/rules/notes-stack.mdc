@@ -1,5 +1,5 @@
 ---
-description: Notes app stack — SQLite, Drizzle, Better Auth, Nuxt, pnpm
+description: Notes app stack — SQLite, Drizzle, Better Auth, Nuxt, npm
 alwaysApply: true
 ---
 
@@ -8,5 +8,5 @@ alwaysApply: true
 - **База данных:** только **SQLite** через локальный `file:` URL и `@libsql/client` + Drizzle (`dialect: sqlite`). Dev и prod используют файлы на томе/диске (`docker-compose*.yml`, каталог `data/`). Не предлагать Postgres, MySQL или удалённый Turso как основную БД без явного запроса пользователя на смену архитектуры.
 - **Миграции:** каталог [server/database/migrations/](server/database/migrations/); применение при старте Nitro — [server/plugins/database-migrate.ts](server/plugins/database-migrate.ts). Prod-образ копирует миграции и задаёт `DRIZZLE_MIGRATIONS_PATH` ([Dockerfile](Dockerfile)).
 - **Единый URL БД:** `DATABASE_URL` и `NUXT_DATABASE_URL` резолвятся одинаково — [server/utils/database-url.ts](server/utils/database-url.ts).
-- **Пакетный менеджер:** **pnpm**; сохранять `pnpm-lock.yaml`.
-- **Проверка:** предпочитать прогон **`pnpm test`** и сборку **`pnpm run build`** в **Docker** ([docker-compose.test.yml](docker-compose.test.yml), [Dockerfile.dev](Dockerfile.dev)).
+- **Пакетный менеджер:** только **npm**; сохранять `package-lock.json`. Не использовать `pnpm`, `pnpm-lock.yaml`, `yarn` или `bun` без явного запроса на смену архитектуры.
+- **Проверка:** предпочитать прогон **`npm test`** и сборку **`npm run build`** в **Docker** ([docker-compose.test.yml](docker-compose.test.yml), [Dockerfile.dev](Dockerfile.dev)).

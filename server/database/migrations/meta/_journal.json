@@ -8,6 +8,13 @@
       "when": 1778590463124,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1747069200000,
+      "tag": "0001_reset_notes_for_tiptap",
+      "breakpoints": true
     }
   ]
 }

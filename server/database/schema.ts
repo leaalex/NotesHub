@@ -1,4 +1,4 @@
-// Tables filled by `pnpm exec better-auth generate` and extended with app models.
+// Tables filled by `npx better-auth generate` and extended with app models.
 import { relations, sql } from 'drizzle-orm'
 import { sqliteTable, text, integer, index } from 'drizzle-orm/sqlite-core'
 
