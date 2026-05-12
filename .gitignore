@@ -1,0 +1,30 @@
+# Nuxt dev/build outputs
+.output
+.data
+.nuxt
+.nitro
+.cache
+dist
+
+# Node dependencies
+node_modules
+.pnpm-store
+
+# Tool caches
+node-compile-cache
+
+# Logs
+logs
+*.log
+
+# SQLite working files
+data/*.sqlite
+data/*.sqlite-*
+
+.fleet
+.idea
+
+# Local env files
+.env
+.env.*
+!.env.example

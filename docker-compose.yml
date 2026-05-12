@@ -1,0 +1,26 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      CI: "true"
+      DATABASE_URL: file:/app/data/app.sqlite
+      NUXT_DATABASE_URL: file:/app/data/app.sqlite
+      # Must match the browser URL host (localhost vs 127.0.0.1 are different cookie origins).
+      NUXT_PUBLIC_SITE_URL: ${NUXT_PUBLIC_SITE_URL:-http://localhost:3000}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-please-change-me-32-char-secret-phrase}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
+      CHOKIDAR_USEPOLLING: "true"
+      DRIZZLE_MIGRATIONS_PATH: /app/server/database/migrations
+    volumes:
+      - ./:/app
+      # Native bindings (oxc-parser, esbuild, …) must be installed for Linux — not macOS host node_modules.
+      - notes_node_modules:/app/node_modules
+      - notes_data:/app/data
+
+volumes:
+  notes_data:
+  notes_node_modules:

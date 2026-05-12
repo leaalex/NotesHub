@@ -1,0 +1,12 @@
+---
+description: Notes app stack — SQLite, Drizzle, Better Auth, Nuxt, pnpm
+alwaysApply: true
+---
+
+# Notes — базовый стек
+
+- **База данных:** только **SQLite** через локальный `file:` URL и `@libsql/client` + Drizzle (`dialect: sqlite`). Dev и prod используют файлы на томе/диске (`docker-compose*.yml`, каталог `data/`). Не предлагать Postgres, MySQL или удалённый Turso как основную БД без явного запроса пользователя на смену архитектуры.
+- **Миграции:** каталог [server/database/migrations/](server/database/migrations/); применение при старте Nitro — [server/plugins/database-migrate.ts](server/plugins/database-migrate.ts). Prod-образ копирует миграции и задаёт `DRIZZLE_MIGRATIONS_PATH` ([Dockerfile](Dockerfile)).
+- **Единый URL БД:** `DATABASE_URL` и `NUXT_DATABASE_URL` резолвятся одинаково — [server/utils/database-url.ts](server/utils/database-url.ts).
+- **Пакетный менеджер:** **pnpm**; сохранять `pnpm-lock.yaml`.
+- **Проверка:** предпочитать прогон **`pnpm test`** и сборку **`pnpm run build`** в **Docker** ([docker-compose.test.yml](docker-compose.test.yml), [Dockerfile.dev](Dockerfile.dev)).

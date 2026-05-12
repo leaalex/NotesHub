@@ -1,0 +1,21 @@
+# Host artifacts — never ship into the image; deps come from lockfile inside Docker.
+node_modules
+.nuxt
+.output
+.nitro
+.cache
+dist
+
+# Local data / secrets
+.env
+.env.*
+!.env.example
+data/*.sqlite
+data/*.sqlite-*
+
+# Git / IDE
+.git
+.gitignore
+.DS_Store
+.idea
+.fleet

@@ -1,0 +1,16 @@
+services:
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    entrypoint: ["/bin/sh", "/app/docker/test-ci.sh"]
+    volumes:
+      - ./:/app
+      - notes_test_node_modules:/app/node_modules
+    environment:
+      CI: "true"
+      DATABASE_URL: file:/tmp/notes-test.sqlite
+      NUXT_DATABASE_URL: file:/tmp/notes-test.sqlite
+
+volumes:
+  notes_test_node_modules:

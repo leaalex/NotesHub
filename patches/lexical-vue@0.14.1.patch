@@ -1,0 +1,44 @@
+diff --git a/dist/LexicalContentEditable.vine.js b/dist/LexicalContentEditable.vine.js
+index ca441ab857ed7f275279688a180628abb4668837..f5b4e7c70ad3bd7150d57d829fb93b06dc50a94e 100644
+--- a/dist/LexicalContentEditable.vine.js
++++ b/dist/LexicalContentEditable.vine.js
+@@ -44,6 +44,15 @@ function _object_spread_props(target, source) {
+     });
+     return target;
+ }
++function omitUndefinedProps(props) {
++    const result = {};
++    for(const key in props){
++        if (Object.prototype.hasOwnProperty.call(props, key) && props[key] !== undefined) {
++            result[key] = props[key];
++        }
++    }
++    return result;
++}
+ const ContentEditable = (()=>{
+     const _hoisted_1 = {
+         key: 0,
+@@ -149,9 +158,7 @@ const ContentEditable = (()=>{
+             },
+             innerHTML: {},
+             class: {},
+-            style: {
+-                type: Boolean
+-            },
++            style: {},
+             accesskey: {},
+             contenteditable: {
+                 type: Boolean
+@@ -321,10 +330,10 @@ const ContentEditable = (()=>{
+                 return openBlock(), createElementBlock(Fragment, null, [
+                     createVNode(unref(ContentEditableElement), mergeProps({
+                         editor: unref(editor)
+-                    }, _object_spread_props(_object_spread({}, _ctx.$props), {
++                    }, omitUndefinedProps(_object_spread_props(_object_spread({}, _ctx.$props), {
+                         role: null != (_ctx_role = _ctx.role) ? _ctx_role : 'textbox',
+                         spellcheck: null != (_ctx_spellcheck = _ctx.spellcheck) ? _ctx_spellcheck : true
+-                    })), null, 16, [
++                    }))), null, 16, [
+                         "editor"
+                     ]),
+                     unref(showPlaceholder) ? (openBlock(), createElementBlock("div", _hoisted_1, [

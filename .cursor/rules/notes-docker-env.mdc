@@ -1,0 +1,13 @@
+---
+description: Docker, env и серверные пути для Notes
+globs: "**/{Dockerfile*,docker-compose*,Caddyfile,.env.example,server/**/*.ts}"
+alwaysApply: false
+---
+
+# Notes — Docker и переменные окружения
+
+- Любое изменение контракта env синхронизировать с [.env.example](.env.example) и таблицами в README.
+- Dev Compose: том данных и SQLite-путь — см. [docker-compose.yml](docker-compose.yml) (`notes_data`, `DATABASE_URL` / `NUXT_DATABASE_URL`).
+- Prod: [docker-compose.prod.yml](docker-compose.prod.yml), [Dockerfile](Dockerfile) — миграции в образе под `/app/migrations`, переменная `DRIZZLE_MIGRATIONS_PATH`.
+- Caddy: [Caddyfile](Caddyfile) использует `DOMAIN` и глобальный `email {$CADDY_EMAIL}`; для продакшена задайте `CADDY_EMAIL` в окружении сервиса `caddy`.
+- Не менять семантику `NUXT_PUBLIC_SITE_URL` / `BETTER_AUTH_URL` без проверки Better Auth ([server/utils/auth.ts](server/utils/auth.ts)).

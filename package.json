@@ -1,0 +1,49 @@
+{
+  "name": "notes",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.17.3",
+    "@peculiar/webcrypto": "^1.7.1",
+    "@vueuse/core": "^13.9.0",
+    "better-auth": "^1.4.7",
+    "drizzle-orm": "^0.45.1",
+    "lexical-vue": "^0.14.1",
+    "nuxt": "^4.4.5",
+    "uuid": "^14.0.0",
+    "vue": "^3.5.34",
+    "vue-router": "^5.0.6"
+  },
+  "devDependencies": {
+    "@iconify-json/lucide": "^1.2.60",
+    "@nuxt/ui": "^4.3.0",
+    "@tailwindcss/typography": "^0.5.19",
+    "drizzle-kit": "^0.31.8",
+    "tailwindcss": "^4.3.0",
+    "typescript": "^5.8.3",
+    "vitest": "^4.1.5"
+  },
+  "pnpm": {
+    "patchedDependencies": {
+      "lexical-vue@0.14.1": "patches/lexical-vue@0.14.1.patch"
+    },
+    "onlyBuiltDependencies": [
+      "@parcel/watcher",
+      "esbuild",
+      "vue-demi"
+    ]
+  }
+}
