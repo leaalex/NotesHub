@@ -25,10 +25,6 @@ type NoteDetail = NoteList & {
   shareEnabled: boolean
 }
 
-const auth = useNotesAuth()
-/** Ref to `{ data, error, isPending, … }` — см. better-auth/vue useSession */
-const sessionQuery = auth.useSession()
-
 /** Same-origin fetch с cookie сессии (надёжнее глобального `$fetch` при SSR/клиенте) */
 const apiFetch = useRequestFetch()
 const toast = useToast()
@@ -49,6 +45,20 @@ const creatingFolder = ref(false)
 
 /** Заголовки текущей заметки для Notion-like навигации (клиент-only). */
 const noteOutline = ref<NoteOutlineItem[]>([])
+
+type LinkedContact = {
+  contactId: string
+  displayName: string
+  type: string
+  source: string
+}
+
+const linkedContacts = ref<LinkedContact[]>([])
+const showLinkContact = ref(false)
+const linkContactQuery = ref('')
+
+const route = useRoute()
+const router = useRouter()
 
 /** Подавляет автосохранение при программной подстановке title/content/excerpt (иначе PATCH/DOM «дергаются» и редактор теряет фокус). */
 const hydratingNote = ref(false)
@@ -152,6 +162,7 @@ function openNoteFromRow(n: NoteDetail) {
   finally {
     nextTick(() => {
       hydratingNote.value = false
+      refreshLinkedContacts()
     })
   }
 }
@@ -170,6 +181,83 @@ async function refreshNotes(opts?: { signal?: AbortSignal }) {
   })
 }
 
+async function refreshLinkedContacts(opts?: { signal?: AbortSignal }) {
+  const id = selectedNoteId.value
+  if (!id) {
+    linkedContacts.value = []
+    return
+  }
+  try {
+    linkedContacts.value = await apiFetch<LinkedContact[]>(`/api/notes/${id}/contacts`, {
+      ...(opts?.signal ? { signal: opts.signal } : {}),
+    })
+  }
+  catch {
+    linkedContacts.value = []
+  }
+}
+
+async function linkContactPick(contactId: string) {
+  const id = selectedNoteId.value
+  if (!id) return
+  await apiFetch(`/api/notes/${id}/contacts/${contactId}`, { method: 'POST' })
+  await refreshLinkedContacts()
+  showLinkContact.value = false
+  linkContactQuery.value = ''
+}
+
+async function unlinkContact(contactId: string) {
+  const id = selectedNoteId.value
+  if (!id) return
+  await apiFetch(`/api/notes/${id}/contacts/${contactId}`, { method: 'DELETE' })
+  await refreshLinkedContacts()
+}
+
+type ContactChip = {
+  id: string
+  displayName: string
+  type: string
+}
+
+const contactPickerCandidates = ref<ContactChip[]>([])
+
+async function refreshContactPicker() {
+  const q = linkContactQuery.value.trim()
+  contactPickerCandidates.value = await apiFetch('/api/contacts', {
+    query: q ? { q } : {},
+  })
+}
+
+watch(showLinkContact, async v => {
+  if (v)
+    await refreshContactPicker()
+})
+
+watchDebounced(linkContactQuery, async () => {
+  if (!showLinkContact.value)
+    return
+  await refreshContactPicker()
+}, { debounce: 300 })
+
+const pickerContactsFiltered = computed(() => {
+  const linked = new Set(linkedContacts.value.map(l => l.contactId))
+  return contactPickerCandidates.value.filter(c => !linked.has(c.id))
+})
+
+watch(
+  () => route.query.note,
+  async (nid) => {
+    if (!nid || Array.isArray(nid))
+      return
+    const noteId = String(nid)
+    await selectNote(noteId)
+    const q = { ...route.query }
+    delete q.note
+    await router.replace({ path: '/', query: q })
+  },
+  { immediate: true },
+)
+
 async function load() {
   await Promise.all([refreshFolders(), refreshNotes()])
 }
@@ -179,6 +267,7 @@ onMounted(load)
 watch(folderFilter, async () => {
   selectedNoteId.value = null
   currentNote.value = null
+  linkedContacts.value = []
   await refreshNotes()
 })
 
@@ -197,6 +286,7 @@ async function selectNote(id: string, opts?: { signal?: AbortSignal }) {
   finally {
     await nextTick()
     hydratingNote.value = false
+    await refreshLinkedContacts()
   }
 }
 
@@ -212,6 +302,7 @@ async function createNote() {
     }
     upsertNoteInLocalList(row)
     openNoteFromRow(row)
+    await refreshLinkedContacts()
   }
   catch (e: unknown) {
     notifyApiError('Could not create note', e)
@@ -237,6 +328,7 @@ watchDebounced(
         },
       })
       upsertNoteInLocalList(row)
+      await refreshLinkedContacts()
       if (currentNote.value?.id === row.id)
         currentNote.value = { ...currentNote.value, ...row }
     }
@@ -298,12 +390,8 @@ async function deleteNote() {
   await apiFetch(`/api/notes/${selectedNoteId.value}`, { method: 'DELETE' })
   selectedNoteId.value = null
   currentNote.value = null
+  linkedContacts.value = []
   await refreshNotes()
-}
-
-async function signOut() {
-  await auth.signOut()
-  await navigateTo('/login')
 }
 
 async function enableShareLink() {
@@ -322,26 +410,16 @@ async function disableShareLink() {
   await refreshNotes()
 }
 
-const adminLink = computed(() => {
-  const u = sessionQuery.value?.data?.user as { role?: string } | undefined
-  return u?.role === 'admin'
-})
 </script>
 
 <template>
-  <div class="relative flex h-dvh overflow-hidden bg-gradient-to-br from-zinc-50 via-white to-zinc-100">
-    <!-- subtle vignette -->
-    <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(24,24,27,0.06),transparent)]" />
-
-    <aside class="relative z-10 flex w-[13.5rem] shrink-0 flex-col border-r border-white/60 bg-white/45 backdrop-blur-xl supports-[backdrop-filter]:bg-white/35">
+  <AppThreeColumn>
+    <template #folders>
       <div class="flex flex-col gap-4 border-b border-zinc-200/40 p-4 pb-3">
         <div class="flex items-start justify-between gap-2">
           <div class="min-w-0">
             <div class="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
               Notes
-            </div>
-            <div class="mt-0.5 truncate text-sm font-semibold tracking-tight text-zinc-900">
-              Workspace
             </div>
           </div>
           <UButton
@@ -364,7 +442,7 @@ const adminLink = computed(() => {
               : 'text-zinc-600 hover:bg-white/70'"
             @click="folderFilter = 'all'"
           >
-            <span class="i-lucide-layout-grid size-4 shrink-0 opacity-80" />
+            <Icon name="i-lucide-layout-grid" class="size-4 shrink-0 opacity-80" aria-hidden="true" />
             All notes
           </button>
           <button
@@ -375,7 +453,7 @@ const adminLink = computed(() => {
               : 'text-zinc-600 hover:bg-white/70'"
             @click="folderFilter = 'unfiled'"
           >
-            <span class="i-lucide-file-stack size-4 shrink-0 opacity-80" />
+            <Icon name="i-lucide-file-stack" class="size-4 shrink-0 opacity-80" aria-hidden="true" />
             Unfiled
           </button>
           <button
@@ -388,43 +466,14 @@ const adminLink = computed(() => {
               : 'text-zinc-600 hover:bg-white/70'"
             @click="folderFilter = f.id"
           >
-            <span class="i-lucide-folder size-4 shrink-0 opacity-80" />
+            <Icon name="i-lucide-folder" class="size-4 shrink-0 opacity-80" aria-hidden="true" />
             <span class="truncate">{{ f.name }}</span>
           </button>
         </nav>
       </div>
+    </template>
 
-      <div class="mt-auto border-t border-zinc-200/40 p-3">
-        <div v-if="sessionQuery?.data?.user" class="truncate text-xs font-medium text-zinc-600">
-          {{ sessionQuery.data.user.name || sessionQuery.data.user.email }}
-        </div>
-        <div class="mt-2 flex flex-col gap-1">
-          <UButton
-            v-if="adminLink"
-            to="/staff"
-            size="xs"
-            variant="outline"
-            color="neutral"
-            block
-            class="rounded-full ring-zinc-200/80"
-          >
-            Admin
-          </UButton>
-          <UButton
-            size="xs"
-            variant="ghost"
-            color="neutral"
-            block
-            class="rounded-full text-zinc-500 hover:text-zinc-800"
-            @click="signOut"
-          >
-            Sign out
-          </UButton>
-        </div>
-      </div>
-    </aside>
-
-    <section class="relative z-10 flex w-[17.5rem] shrink-0 flex-col border-r border-white/50 bg-white/30 backdrop-blur-md supports-[backdrop-filter]:bg-white/25">
+    <template #cards>
       <div class="flex items-center justify-between gap-2 px-4 pb-3 pt-4">
         <span class="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-400">
           Library
@@ -437,7 +486,7 @@ const adminLink = computed(() => {
           :loading="creatingNote"
           :on-click="createNote"
         >
-          <span class="i-lucide-plus mr-1 size-3.5" />
+          <Icon name="i-lucide-plus" class="mr-1 size-3.5" aria-hidden="true" />
           New
         </UButton>
       </div>
@@ -447,7 +496,7 @@ const adminLink = computed(() => {
             type="button"
             class="group flex w-full flex-col items-start rounded-2xl border px-3 py-3 text-left transition-all duration-200"
             :class="selectedNoteId === n.id
-              ? 'border-zinc-900/15 bg-white shadow-[0_1px_0_rgba(0,0,0,0.04),0_12px_40px_-18px_rgba(24,24,27,0.35)] ring-1 ring-zinc-900/[0.06]'
+              ? 'border-zinc-900/25 bg-white'
               : 'border-transparent bg-white/40 hover:border-zinc-200/80 hover:bg-white/70 hover:shadow-sm'"
             @click="selectNote(n.id)"
           >
@@ -455,9 +504,11 @@ const adminLink = computed(() => {
               <span class="line-clamp-1 flex-1 text-[13px] font-semibold tracking-tight text-zinc-900">
                 {{ n.title || 'Untitled' }}
               </span>
-              <span
+              <Icon
                 v-if="n.shareEnabled"
-                class="i-lucide-link2 mt-0.5 size-3.5 shrink-0 text-zinc-400 opacity-70 group-hover:opacity-100"
+                name="i-lucide-link-2"
+                class="mt-0.5 size-3.5 shrink-0 text-zinc-400 opacity-70 group-hover:opacity-100"
+                aria-hidden="true"
                 title="Shared"
               />
             </div>
@@ -472,9 +523,9 @@ const adminLink = computed(() => {
           </button>
         </li>
       </ul>
-    </section>
+    </template>
 
-    <main v-if="currentNote" class="relative z-10 flex min-w-0 flex-1 flex-col p-4 sm:p-6">
+    <main v-if="currentNote" class="flex min-w-0 flex-1 flex-col p-4 sm:p-6">
       <div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[1.35rem] border border-white/70 bg-white/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] backdrop-blur-md ring-1 ring-zinc-950/[0.04] supports-[backdrop-filter]:bg-white/45">
         <header class="flex shrink-0 flex-wrap items-center gap-2 border-b border-zinc-100/90 px-4 py-3 sm:px-6">
           <UInput
@@ -491,20 +542,42 @@ const adminLink = computed(() => {
               size="xs"
               variant="ghost"
               color="neutral"
+              icon="i-lucide-link"
               class="rounded-full px-3"
               @click="enableShareLink"
             >
               Share
             </UButton>
             <template v-else>
-              <UButton size="xs" variant="ghost" color="neutral" class="rounded-full px-3" @click="enableShareLink">
+              <UButton
+                size="xs"
+                variant="ghost"
+                color="neutral"
+                icon="i-lucide-copy"
+                class="rounded-full px-3"
+                @click="enableShareLink"
+              >
                 Copy link
               </UButton>
-              <UButton size="xs" color="error" variant="ghost" class="rounded-full px-3" @click="disableShareLink">
+              <UButton
+                size="xs"
+                color="error"
+                variant="ghost"
+                icon="i-lucide-link-2-off"
+                class="rounded-full px-3"
+                @click="disableShareLink"
+              >
                 Stop
               </UButton>
             </template>
-            <UButton size="xs" color="error" variant="ghost" class="rounded-full px-3" @click="deleteNote">
+            <UButton
+              size="xs"
+              color="error"
+              variant="ghost"
+              icon="i-lucide-trash-2"
+              class="rounded-full px-3"
+              @click="deleteNote"
+            >
               Delete
             </UButton>
           </div>
@@ -538,26 +611,69 @@ const adminLink = computed(() => {
           </div>
 
           <aside
-            class="notes-scrollbar hidden w-[13.5rem] shrink-0 overflow-y-auto border-l border-zinc-100/90 bg-white/20 px-3 py-5 xl:block"
+            class="notes-scrollbar hidden w-[17rem] shrink-0 overflow-y-auto border-l border-zinc-100/90 bg-white/20 px-3 py-5 xl:flex xl:flex-col xl:gap-0"
           >
-            <div class="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-400">
-              On this page
+            <div>
+              <div class="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-400">
+                On this page
+              </div>
+              <nav v-if="noteOutline.length" class="mt-3 space-y-0.5" aria-label="Outline">
+                <button
+                  v-for="item in noteOutline"
+                  :key="item.id"
+                  type="button"
+                  class="flex w-full max-w-full rounded-lg px-2 py-1.5 text-left text-[12px] leading-snug text-zinc-600 transition-colors hover:bg-white/85 hover:text-zinc-900"
+                  :style="{ paddingLeft: `${8 + (item.level - 1) * 12}px` }"
+                  @click="scrollNoteToHeading(item.id)"
+                >
+                  <span class="line-clamp-2">{{ item.text }}</span>
+                </button>
+              </nav>
+              <p v-else class="mt-3 text-[11px] leading-relaxed text-zinc-400">
+                Add headings to build navigation.
+              </p>
             </div>
-            <nav v-if="noteOutline.length" class="mt-3 space-y-0.5" aria-label="Outline">
-              <button
-                v-for="item in noteOutline"
-                :key="item.id"
-                type="button"
-                class="flex w-full max-w-full rounded-lg px-2 py-1.5 text-left text-[12px] leading-snug text-zinc-600 transition-colors hover:bg-white/85 hover:text-zinc-900"
-                :style="{ paddingLeft: `${8 + (item.level - 1) * 12}px` }"
-                @click="scrollNoteToHeading(item.id)"
-              >
-                <span class="line-clamp-2">{{ item.text }}</span>
-              </button>
-            </nav>
-            <p v-else class="mt-3 text-[11px] leading-relaxed text-zinc-400">
-              Add headings to build navigation.
-            </p>
+
+            <div class="mt-8 shrink-0 border-t border-zinc-100/80 pt-5">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-400">
+                  Linked contacts
+                </span>
+                <button
+                  type="button"
+                  class="rounded-full px-2 py-0.5 text-[11px] font-semibold text-zinc-600 hover:bg-white/85"
+                  @click="showLinkContact = true"
+                >
+                  + Link
+                </button>
+              </div>
+              <ul v-if="linkedContacts.length" class="mt-3 flex flex-col gap-1">
+                <li
+                  v-for="c in linkedContacts"
+                  :key="c.contactId"
+                  class="flex items-start justify-between gap-1 rounded-lg bg-white/50 px-2 py-1.5 ring-1 ring-zinc-950/[0.04]"
+                >
+                  <NuxtLink
+                    class="flex min-w-0 flex-col text-left hover:underline"
+                    :to="`/contacts/${c.contactId}`"
+                  >
+                    <span class="line-clamp-2 text-[12px] font-medium leading-snug text-zinc-800">{{ c.displayName }}</span>
+                    <span class="text-[10px] font-medium uppercase tracking-wide text-zinc-400">{{ c.type }}</span>
+                  </NuxtLink>
+                  <button
+                    type="button"
+                    class="shrink-0 rounded-full p-1 text-zinc-400 hover:bg-white hover:text-red-600"
+                    aria-label="Unlink contact"
+                    @click="unlinkContact(c.contactId)"
+                  >
+                    <Icon name="i-lucide-x" class="size-3.5" aria-hidden="true" />
+                  </button>
+                </li>
+              </ul>
+              <p v-else class="mt-3 text-[11px] leading-relaxed text-zinc-400">
+                No linked contacts. Use “+ Link” or <span class="font-medium text-zinc-500">@</span> in the note body.
+              </p>
+            </div>
           </aside>
         </div>
       </div>
@@ -565,13 +681,10 @@ const adminLink = computed(() => {
 
     <div
       v-else
-      class="relative z-10 flex min-w-0 flex-1 flex-col items-center justify-center px-8 py-12 text-center"
+      class="flex min-w-0 flex-1 flex-col items-center justify-center px-8 py-12 text-center"
     >
       <div class="max-w-sm rounded-[1.35rem] border border-white/70 bg-white/50 px-10 py-12 shadow-[0_24px_80px_-32px_rgba(24,24,27,0.35)] backdrop-blur-md ring-1 ring-zinc-950/[0.04] supports-[backdrop-filter]:bg-white/40">
-        <div class="mx-auto flex size-14 items-center justify-center rounded-2xl bg-zinc-900 text-white shadow-lg shadow-zinc-900/25">
-          <span class="i-lucide-pen-line size-7" />
-        </div>
-        <h2 class="mt-6 text-lg font-semibold tracking-tight text-zinc-900">
+        <h2 class="text-lg font-semibold tracking-tight text-zinc-900">
           Pick a note to write
         </h2>
         <p class="mt-2 text-sm leading-relaxed text-zinc-500">
@@ -581,6 +694,7 @@ const adminLink = computed(() => {
           class="mt-8 rounded-full px-6 shadow-md ring-1 ring-zinc-900/10"
           color="neutral"
           size="md"
+          icon="i-lucide-plus"
           :loading="creatingNote"
           :on-click="createNote"
         >
@@ -588,7 +702,7 @@ const adminLink = computed(() => {
         </UButton>
       </div>
     </div>
-  </div>
+  </AppThreeColumn>
 
   <Teleport to="body">
     <div
@@ -605,11 +719,48 @@ const adminLink = computed(() => {
         </UFormField>
         <template #footer>
           <div class="flex justify-end gap-2">
-            <UButton variant="ghost" color="neutral" class="rounded-full" @click="showNewFolder = false">
+            <UButton variant="ghost" color="neutral" icon="i-lucide-x" class="rounded-full" @click="showNewFolder = false">
               Cancel
             </UButton>
-            <UButton :loading="creatingFolder" class="rounded-full" :on-click="createFolder">
+            <UButton icon="i-lucide-check" :loading="creatingFolder" class="rounded-full" :on-click="createFolder">
               Create
+            </UButton>
+          </div>
+        </template>
+      </UCard>
+    </div>
+  </Teleport>
+
+  <Teleport to="body">
+    <div
+      v-if="showLinkContact"
+      class="fixed inset-0 z-[60] flex items-center justify-center bg-zinc-950/40 px-4 backdrop-blur-[2px]"
+      @click.self="showLinkContact = false"
+    >
+      <UCard class="max-h-[80vh] w-full max-w-md overflow-hidden rounded-2xl border border-white/60 bg-white/95 shadow-2xl ring-1 ring-zinc-950/[0.06] backdrop-blur-xl">
+        <template #header>
+          <span class="font-semibold text-zinc-900">Link a contact</span>
+        </template>
+        <UInput v-model="linkContactQuery" placeholder="Search…" icon="i-lucide-search" class="rounded-xl" />
+        <ul class="mt-3 space-y-1 overflow-y-auto" style="max-height:min(320px,50vh);">
+          <li v-if="pickerContactsFiltered.length === 0" class="px-3 py-6 text-center text-[13px] text-zinc-400">
+            Nothing to show yet.
+          </li>
+          <li v-for="c in pickerContactsFiltered" :key="c.id">
+            <button
+              type="button"
+              class="flex w-full items-center rounded-xl px-3 py-2.5 text-left text-[13px] hover:bg-zinc-50"
+              @click="linkContactPick(c.id)"
+            >
+              <span class="line-clamp-1 font-medium">{{ c.displayName }}</span>
+              <span class="ml-auto rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-zinc-500">{{ c.type }}</span>
+            </button>
+          </li>
+        </ul>
+        <template #footer>
+          <div class="flex justify-end">
+            <UButton variant="ghost" color="neutral" class="rounded-full" @click="showLinkContact = false">
+              Close
             </UButton>
           </div>
         </template>

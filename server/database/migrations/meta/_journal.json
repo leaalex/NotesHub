@@ -15,6 +15,13 @@
       "when": 1747069200000,
       "tag": "0001_reset_notes_for_tiptap",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1778648786876,
+      "tag": "0002_previous_black_panther",
+      "breakpoints": true
     }
   ]
 }

@@ -52,10 +52,10 @@ onMounted(load)
         </p>
       </div>
       <div class="flex gap-2">
-        <UButton variant="soft" @click="load">
+        <UButton variant="soft" icon="i-lucide-refresh-cw" @click="load">
           Refresh
         </UButton>
-        <UButton to="/cms" variant="soft">
+        <UButton to="/cms" variant="soft" icon="i-lucide-arrow-left">
           CMS home
         </UButton>
       </div>

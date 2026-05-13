@@ -54,7 +54,7 @@ async function submit() {
       <template #header>
         <div class="text-center">
           <div class="mx-auto flex size-11 items-center justify-center rounded-2xl bg-zinc-900 text-white shadow-lg shadow-zinc-900/20">
-            <span class="i-lucide-feather size-5" />
+            <Icon name="i-lucide-feather" class="size-5" aria-hidden="true" />
           </div>
           <h1 class="mt-5 text-xl font-semibold tracking-tight text-zinc-900">
             Notes

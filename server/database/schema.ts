@@ -1,6 +1,6 @@
 // Tables filled by `npx better-auth generate` and extended with app models.
 import { relations, sql } from 'drizzle-orm'
-import { sqliteTable, text, integer, index } from 'drizzle-orm/sqlite-core'
+import { sqliteTable, text, integer, index, primaryKey } from 'drizzle-orm/sqlite-core'
 
 export const user = sqliteTable('user', {
   id: text('id').primaryKey(),
@@ -149,6 +149,92 @@ export const notes = sqliteTable(
   ]
 )
 
+export const contacts = sqliteTable(
+  'contacts',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    folderId: text('folder_id').references(() => folders.id, {
+      onDelete: 'set null',
+    }),
+    type: text('type').notNull().default('person'),
+    firstName: text('first_name').notNull().default(''),
+    lastName: text('last_name').notNull().default(''),
+    orgName: text('org_name').notNull().default(''),
+    displayName: text('display_name').notNull().default(''),
+    note: text('note').notNull().default(''),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .default(sql`(strftime('%s','now') * 1000)`),
+    updatedAt: integer('updated_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .default(sql`(strftime('%s','now') * 1000)`),
+  },
+  (t) => [
+    index('contacts_user_idx').on(t.userId),
+    index('contacts_folder_idx').on(t.folderId),
+    index('contacts_type_idx').on(t.type),
+    index('contacts_display_idx').on(t.displayName),
+  ]
+)
+
+export const contactFieldTemplates = sqliteTable(
+  'contact_field_templates',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    contactType: text('contact_type').notNull(),
+    label: text('label').notNull(),
+    fieldType: text('field_type').notNull().default('text'),
+    position: integer('position').notNull().default(0),
+  },
+  (t) => [index('cft_user_type_idx').on(t.userId, t.contactType)]
+)
+
+export const contactFieldValues = sqliteTable(
+  'contact_field_values',
+  {
+    id: text('id').primaryKey(),
+    contactId: text('contact_id')
+      .notNull()
+      .references(() => contacts.id, { onDelete: 'cascade' }),
+    templateId: text('template_id').references(() => contactFieldTemplates.id, {
+      onDelete: 'set null',
+    }),
+    label: text('label').notNull(),
+    fieldType: text('field_type').notNull().default('text'),
+    value: text('value').notNull().default(''),
+    position: integer('position').notNull().default(0),
+  },
+  (t) => [index('cfv_contact_idx').on(t.contactId)]
+)
+
+export const noteContacts = sqliteTable(
+  'note_contacts',
+  {
+    noteId: text('note_id')
+      .notNull()
+      .references(() => notes.id, { onDelete: 'cascade' }),
+    contactId: text('contact_id')
+      .notNull()
+      .references(() => contacts.id, { onDelete: 'cascade' }),
+    source: text('source').notNull().default('manual'),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .default(sql`(strftime('%s','now') * 1000)`),
+  },
+  (t) => [
+    primaryKey({ columns: [t.noteId, t.contactId] }),
+    index('nc_note_idx').on(t.noteId),
+    index('nc_contact_idx').on(t.contactId),
+    index('nc_source_idx').on(t.source),
+  ]
+)
+
 export const folderRelations = relations(folders, ({ one, many }) => ({
   user: one(user, {
     fields: [folders.userId],
@@ -161,9 +247,10 @@ export const folderRelations = relations(folders, ({ one, many }) => ({
   }),
   children: many(folders, { relationName: 'folderHierarchy' }),
   notes: many(notes),
+  contacts: many(contacts),
 }))
 
-export const noteRelations = relations(notes, ({ one }) => ({
+export const noteRelations = relations(notes, ({ one, many }) => ({
   user: one(user, {
     fields: [notes.userId],
     references: [user.id],
@@ -171,5 +258,55 @@ export const noteRelations = relations(notes, ({ one }) => ({
   folder: one(folders, {
     fields: [notes.folderId],
     references: [folders.id],
+  }),
+  linkedContacts: many(noteContacts),
+}))
+
+export const contactRelations = relations(contacts, ({ one, many }) => ({
+  user: one(user, {
+    fields: [contacts.userId],
+    references: [user.id],
+  }),
+  folder: one(folders, {
+    fields: [contacts.folderId],
+    references: [folders.id],
+  }),
+  fieldValues: many(contactFieldValues),
+  linkedNotes: many(noteContacts),
+}))
+
+export const contactFieldTemplateRelations = relations(
+  contactFieldTemplates,
+  ({ one, many }) => ({
+    user: one(user, {
+      fields: [contactFieldTemplates.userId],
+      references: [user.id],
+    }),
+    values: many(contactFieldValues),
+  })
+)
+
+export const contactFieldValueRelations = relations(
+  contactFieldValues,
+  ({ one }) => ({
+    contact: one(contacts, {
+      fields: [contactFieldValues.contactId],
+      references: [contacts.id],
+    }),
+    template: one(contactFieldTemplates, {
+      fields: [contactFieldValues.templateId],
+      references: [contactFieldTemplates.id],
+    }),
+  })
+)
+
+export const noteContactRelations = relations(noteContacts, ({ one }) => ({
+  note: one(notes, {
+    fields: [noteContacts.noteId],
+    references: [notes.id],
+  }),
+  contact: one(contacts, {
+    fields: [noteContacts.contactId],
+    references: [contacts.id],
   }),
 }))

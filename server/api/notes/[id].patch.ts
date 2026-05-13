@@ -1,6 +1,7 @@
 import { and, eq } from 'drizzle-orm'
 import { folders, notes } from '../../database/schema'
 import { db } from '../../utils/db'
+import { reconcileNoteContactMentions } from '../../utils/note-contact-mentions'
 import { requireUserSession } from '../../utils/session'
 
 export default defineEventHandler(async (event) => {
@@ -44,6 +45,10 @@ export default defineEventHandler(async (event) => {
       updatedAt: new Date(),
     })
     .where(eq(notes.id, id))
+
+  if (body.content !== undefined) {
+    await reconcileNoteContactMentions(id, session.user.id, body.content)
+  }
 
   const [row] = await db.select().from(notes).where(eq(notes.id, id))
   return row

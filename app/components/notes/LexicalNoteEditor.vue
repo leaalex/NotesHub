@@ -9,6 +9,7 @@ import { EditorContent, useEditor } from '@tiptap/vue-3'
 import { useDebounceFn } from '@vueuse/core'
 import { nextTick, watch } from 'vue'
 import { BlockToolbar } from '~/extensions/tiptap-block-toolbar'
+import { ContactMention } from '~/extensions/tiptap-contact-mention'
 import { SlashCommands } from '~/extensions/tiptap-slash-commands'
 import { EMPTY_TIPTAP_DOC_JSON } from '#shared/tiptap-empty-doc'
 import type { NoteOutlineItem } from '#shared/note-outline'
@@ -105,6 +106,7 @@ const editor = useEditor({
     Placeholder.configure({
       placeholder: props.placeholder,
     }),
+    ContactMention,
     BlockToolbar,
     SlashCommands,
   ],
@@ -245,6 +247,10 @@ watch(
   margin: 1.75rem 0;
   border: none;
   border-top: 1px solid rgb(244 244 245);
+}
+:deep(.notes-prose-editor[contenteditable='true'] a.contact-mention-chip) {
+  pointer-events: none;
+  cursor: text;
 }
 :deep(.notes-prose-editor p.is-editor-empty:first-child::before) {
   content: attr(data-placeholder);
