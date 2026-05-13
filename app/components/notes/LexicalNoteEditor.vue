@@ -8,8 +8,10 @@ import StarterKit from '@tiptap/starter-kit'
 import { EditorContent, useEditor } from '@tiptap/vue-3'
 import { useDebounceFn } from '@vueuse/core'
 import { nextTick, watch } from 'vue'
+import { BlockToolbar } from '~/extensions/tiptap-block-toolbar'
 import { SlashCommands } from '~/extensions/tiptap-slash-commands'
 import { EMPTY_TIPTAP_DOC_JSON } from '#shared/tiptap-empty-doc'
+import type { NoteOutlineItem } from '#shared/note-outline'
 
 defineOptions({
   inheritAttrs: false,
@@ -31,6 +33,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   'update:modelValue': [value: string]
   'update:excerpt': [value: string]
+  'update:outline': [value: NoteOutlineItem[]]
 }>()
 
 /** Accept only Tiptap doc JSON; Lexical `{}` / invalid payloads fall back to empty doc. */
@@ -57,6 +60,32 @@ const debouncedEmit = useDebounceFn((ed: Editor) => {
   emit('update:excerpt', ed.getText().slice(0, 500))
 }, 450)
 
+/** Assign stable DOM ids for in-note navigation (Notion-style outline). */
+function flushHeadingOutline(ed: Editor) {
+  nextTick(() => {
+    if (!ed.view?.dom || ed.isDestroyed)
+      return
+    const dom = ed.view.dom as HTMLElement
+    const nodes = dom.querySelectorAll('h1, h2, h3')
+    const items: NoteOutlineItem[] = []
+    nodes.forEach((node, i) => {
+      const el = node as HTMLElement
+      const tag = el.tagName.toLowerCase()
+      const level = Number(tag.slice(1))
+      if (level !== 1 && level !== 2 && level !== 3)
+        return
+      const id = `nh-${i}`
+      el.dataset.noteHeadingId = id
+      items.push({
+        id,
+        level: level as 1 | 2 | 3,
+        text: el.textContent?.trim() || 'Untitled',
+      })
+    })
+    emit('update:outline', items)
+  })
+}
+
 const editor = useEditor({
   extensions: [
     StarterKit.configure({
@@ -69,12 +98,14 @@ const editor = useEditor({
       autolink: true,
       linkOnPaste: true,
       HTMLAttributes: {
-        class: 'text-blue-600 underline underline-offset-2',
+        class:
+          'font-medium text-zinc-700 underline decoration-zinc-300 underline-offset-[3px] transition-colors hover:text-zinc-900 hover:decoration-zinc-400',
       },
     }),
     Placeholder.configure({
       placeholder: props.placeholder,
     }),
+    BlockToolbar,
     SlashCommands,
   ],
   content: parseDoc(props.modelValue),
@@ -82,13 +113,20 @@ const editor = useEditor({
   editorProps: {
     attributes: {
       class:
-        'notes-prose-editor relative z-[1] min-h-[320px] w-full max-w-none px-3 py-2 text-base leading-relaxed text-zinc-800 outline-none focus:outline-none',
+        'notes-prose-editor relative z-[1] min-h-[min(60vh,28rem)] w-full max-w-none px-1 py-6 text-[17px] leading-[1.65] tracking-[-0.01em] text-zinc-800 antialiased outline-none focus:outline-none sm:text-[17px]',
     },
   },
   onUpdate: ({ editor: ed }) => {
     if (!ed.isEditable)
       return
     debouncedEmit(ed)
+  },
+  onCreate: ({ editor: ed }) => {
+    flushHeadingOutline(ed)
+  },
+  onTransaction: ({ editor: ed, transaction }) => {
+    if (transaction.docChanged)
+      flushHeadingOutline(ed)
   },
 })
 
@@ -97,6 +135,9 @@ watch(
   async () => {
     await nextTick()
     editor.value?.commands.setContent(parseDoc(props.modelValue), false)
+    await nextTick()
+    if (editor.value && !editor.value.isDestroyed)
+      flushHeadingOutline(editor.value)
   },
 )
 
@@ -116,30 +157,39 @@ watch(
 
 <style scoped>
 :deep(.notes-prose-editor h1) {
-  font-size: 1.75rem;
+  font-size: 2rem;
   font-weight: 600;
-  margin: 0.75rem 0 0.35rem;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  margin: 1.75rem 0 0.75rem;
+}
+:deep(.notes-prose-editor h1:first-child) {
+  margin-top: 0;
 }
 :deep(.notes-prose-editor h2) {
   font-size: 1.35rem;
   font-weight: 600;
-  margin: 0.65rem 0 0.3rem;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+  margin: 1.35rem 0 0.5rem;
 }
 :deep(.notes-prose-editor h3) {
-  font-size: 1.15rem;
+  font-size: 1.08rem;
   font-weight: 600;
-  margin: 0.5rem 0 0.25rem;
+  letter-spacing: -0.02em;
+  line-height: 1.35;
+  margin: 1.1rem 0 0.4rem;
 }
 :deep(.notes-prose-editor p) {
-  margin: 0.2rem 0;
+  margin: 0.45rem 0;
 }
 :deep(.notes-prose-editor ul),
 :deep(.notes-prose-editor ol) {
-  margin: 0.35rem 0 0.35rem 1.25rem;
+  margin: 0.5rem 0 0.5rem 1.35rem;
   padding: 0;
 }
 :deep(.notes-prose-editor li) {
-  margin: 0.15rem 0;
+  margin: 0.2rem 0;
 }
 :deep(.notes-prose-editor ul[data-type='taskList']) {
   list-style: none;
@@ -149,25 +199,30 @@ watch(
 :deep(.notes-prose-editor ul[data-type='taskList'] li) {
   display: flex;
   align-items: flex-start;
-  gap: 0.35rem;
+  gap: 0.45rem;
 }
 :deep(.notes-prose-editor ul[data-type='taskList'] li label) {
   flex-shrink: 0;
-  margin-top: 0.15rem;
+  margin-top: 0.28rem;
+}
+:deep(.notes-prose-editor ul[data-type='taskList'] li label input[type='checkbox']) {
+  accent-color: rgb(24 24 27);
+  border-radius: 4px;
 }
 :deep(.notes-prose-editor blockquote) {
-  border-left: 3px solid rgba(15, 23, 42, 0.15);
-  margin: 0.5rem 0;
-  padding-left: 0.75rem;
+  border-left: 2px solid rgb(228 228 231);
+  margin: 1rem 0;
+  padding: 0.15rem 0 0.15rem 1rem;
   color: rgb(82 82 91);
 }
 :deep(.notes-prose-editor pre) {
-  margin: 0.5rem 0;
-  border-radius: 0.375rem;
-  background: rgb(244 244 245);
-  padding: 0.75rem 1rem;
-  font-size: 0.875rem;
-  line-height: 1.45;
+  margin: 1rem 0;
+  border-radius: 0.75rem;
+  border: 1px solid rgb(244 244 245);
+  background: rgb(250 250 250);
+  padding: 1rem 1.15rem;
+  font-size: 0.8125rem;
+  line-height: 1.55;
   overflow-x: auto;
 }
 :deep(.notes-prose-editor code) {
@@ -175,15 +230,21 @@ watch(
 }
 :deep(.notes-prose-editor p code) {
   background: rgb(244 244 245);
-  padding: 0.1rem 0.35rem;
-  border-radius: 0.25rem;
-  font-size: 0.875em;
+  padding: 0.12rem 0.4rem;
+  border-radius: 0.375rem;
+  font-size: 0.88em;
+  border: 1px solid rgb(244 244 245);
 }
 :deep(.notes-prose-editor strong) {
-  font-weight: 700;
+  font-weight: 600;
 }
 :deep(.notes-prose-editor em) {
   font-style: italic;
+}
+:deep(.notes-prose-editor hr) {
+  margin: 1.75rem 0;
+  border: none;
+  border-top: 1px solid rgb(244 244 245);
 }
 :deep(.notes-prose-editor p.is-editor-empty:first-child::before) {
   content: attr(data-placeholder);
@@ -191,5 +252,6 @@ watch(
   height: 0;
   pointer-events: none;
   color: rgb(161 161 170);
+  font-weight: 400;
 }
 </style>

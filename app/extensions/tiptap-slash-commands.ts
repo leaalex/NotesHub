@@ -118,7 +118,7 @@ export const SlashCommands = Extension.create({
             root.style.minWidth = '240px'
             root.style.maxHeight = 'min(320px, 60vh)'
             root.style.overflowY = 'auto'
-            root.style.zIndex = '100'
+            root.style.zIndex = '200'
           }
 
           function renderButtons(next: SuggestionProps<SlashCommandItem>) {
@@ -135,10 +135,10 @@ export const SlashCommands = Extension.create({
               btn.type = 'button'
               btn.textContent = item.title
               btn.className = [
-                'flex w-full rounded-md px-3 py-2 text-left text-sm',
+                'flex w-full rounded-xl px-3 py-2.5 text-left text-[13px] font-medium tracking-tight transition-colors',
                 index === selectedIndex
-                  ? 'bg-zinc-100 text-zinc-900'
-                  : 'text-zinc-800 hover:bg-zinc-50',
+                  ? 'bg-zinc-900 text-white'
+                  : 'text-zinc-700 hover:bg-zinc-50',
               ].join(' ')
               btn.addEventListener('mousedown', e => {
                 e.preventDefault()
@@ -154,7 +154,7 @@ export const SlashCommands = Extension.create({
               selectedIndex = 0
               root = document.createElement('div')
               root.className
-                = 'slash-command-menu rounded-lg border border-zinc-200 bg-white py-1 shadow-lg'
+                = 'slash-command-menu rounded-2xl border border-zinc-200/90 bg-white/95 py-1.5 shadow-[0_22px_55px_-28px_rgba(24,24,27,0.55)] backdrop-blur-xl ring-1 ring-zinc-950/[0.04]'
               document.body.appendChild(root)
               renderButtons(props)
             },
