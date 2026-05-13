@@ -141,7 +141,7 @@ async function removeTpl(id: string) {
         </template>
         <div class="flex gap-2">
           <UInput v-model="newPersonLabel" class="flex-1 rounded-xl" placeholder="New label…" />
-          <UButton class="rounded-full" size="xs" icon="i-lucide-plus" @click="addTemplate('person')">
+          <UButton color="neutral" class="rounded-full" size="xs" icon="i-lucide-plus" @click="addTemplate('person')">
             Add
           </UButton>
         </div>
@@ -187,7 +187,7 @@ async function removeTpl(id: string) {
         </template>
         <div class="flex gap-2">
           <UInput v-model="newOrgLabel" class="flex-1 rounded-xl" placeholder="New label…" />
-          <UButton class="rounded-full" size="xs" icon="i-lucide-plus" @click="addTemplate('organization')">
+          <UButton color="neutral" class="rounded-full" size="xs" icon="i-lucide-plus" @click="addTemplate('organization')">
             Add
           </UButton>
         </div>

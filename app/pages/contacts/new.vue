@@ -115,7 +115,7 @@ function cancel() {
         <UButton variant="ghost" color="neutral" class="rounded-full" @click="cancel">
           Cancel
         </UButton>
-        <UButton class="rounded-full" :loading="creating" icon="i-lucide-check" @click="createContact">
+        <UButton color="neutral" class="rounded-full" :loading="creating" icon="i-lucide-check" @click="createContact">
           Create
         </UButton>
       </div>

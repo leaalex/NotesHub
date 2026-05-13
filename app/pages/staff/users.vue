@@ -67,7 +67,7 @@ async function setRole(id: string, role: string) {
       </div>
       <div class="flex gap-2">
         <UInput v-model="q" placeholder="Search…" icon="i-lucide-search" class="w-48" />
-        <UButton to="/staff" variant="soft" icon="i-lucide-arrow-left">
+        <UButton to="/staff" color="neutral" variant="soft" icon="i-lucide-arrow-left">
           Back
         </UButton>
       </div>

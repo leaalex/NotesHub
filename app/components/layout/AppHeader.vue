@@ -85,7 +85,7 @@ const menuItems = computed(() => {
   <header
     class="sticky top-0 z-40 border-b border-white/60 bg-white/55 backdrop-blur-xl ring-1 ring-zinc-950/[0.04] supports-[backdrop-filter]:bg-white/45"
   >
-    <div class="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4 sm:gap-6 sm:px-6">
+    <div class="flex h-14 w-full items-center gap-4 px-4 sm:gap-6 sm:px-6">
       <div v-if="showFoldersRailToggle" class="flex w-10 shrink-0 justify-start">
         <UButton
           variant="ghost"

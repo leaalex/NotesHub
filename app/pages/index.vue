@@ -722,7 +722,7 @@ async function disableShareLink() {
             <UButton variant="ghost" color="neutral" icon="i-lucide-x" class="rounded-full" @click="showNewFolder = false">
               Cancel
             </UButton>
-            <UButton icon="i-lucide-check" :loading="creatingFolder" class="rounded-full" :on-click="createFolder">
+            <UButton icon="i-lucide-check" color="neutral" :loading="creatingFolder" class="rounded-full" :on-click="createFolder">
               Create
             </UButton>
           </div>

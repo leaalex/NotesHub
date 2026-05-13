@@ -352,7 +352,7 @@ const kindLabel = computed(() =>
       <template #header>
         <div class="flex items-center justify-between gap-4">
           <span class="font-semibold text-zinc-900">Custom fields</span>
-          <UButton size="xs" icon="i-lucide-plus" class="rounded-full" @click="showAddField = true">
+          <UButton size="xs" color="neutral" icon="i-lucide-plus" class="rounded-full" @click="showAddField = true">
             Add field
           </UButton>
         </div>
@@ -409,7 +409,7 @@ const kindLabel = computed(() =>
       <template #header>
         <div class="flex items-center justify-between gap-4">
           <span class="font-semibold text-zinc-900">Linked notes</span>
-          <UButton size="xs" icon="i-lucide-plus" class="rounded-full" @click="openLinkNotes">
+          <UButton size="xs" color="neutral" icon="i-lucide-plus" class="rounded-full" @click="openLinkNotes">
             Link
           </UButton>
         </div>
@@ -487,10 +487,10 @@ const kindLabel = computed(() =>
               </select>
             </UFormField>
             <div class="flex justify-end gap-2 pt-2">
-              <UButton variant="ghost" class="rounded-full" @click="showAddField = false">
+              <UButton variant="ghost" color="neutral" class="rounded-full" @click="showAddField = false">
                 Close
               </UButton>
-              <UButton class="rounded-full" @click="addAdHocField">
+              <UButton color="neutral" class="rounded-full" @click="addAdHocField">
                 Add
               </UButton>
             </div>
@@ -521,7 +521,7 @@ const kindLabel = computed(() =>
           </ul>
           <template #footer>
             <div class="flex justify-end">
-              <UButton variant="ghost" class="rounded-full" @click="linkNoteModal = false">
+              <UButton variant="ghost" color="neutral" class="rounded-full" @click="linkNoteModal = false">
                 Cancel
               </UButton>
             </div>
