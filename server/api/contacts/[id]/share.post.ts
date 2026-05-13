@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto'
 import { and, eq } from 'drizzle-orm'
-import { files } from '../../../database/schema'
+import { contacts } from '../../../database/schema'
 import { db } from '../../../utils/db'
 import { requireUserSession } from '../../../utils/session'
 
@@ -11,34 +11,36 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Missing id' })
 
   const body = await readBody<{ expiresAt?: number | null }>(event).catch(() => ({}))
-  const [row] = await db
-    .select()
-    .from(files)
-    .where(and(eq(files.id, id), eq(files.userId, session.user.id)))
 
-  if (!row)
+  const [existing] = await db
+    .select()
+    .from(contacts)
+    .where(and(eq(contacts.id, id), eq(contacts.userId, session.user.id)))
+
+  if (!existing) {
     throw createError({ statusCode: 404, statusMessage: 'Not found' })
+  }
 
   const config = useRuntimeConfig()
   const base = (config.public.siteUrl as string).replace(/\/$/, '')
 
-  if (row.shareEnabled && row.shareToken) {
+  if (existing.shareEnabled && existing.shareToken) {
     return {
-      shareToken: row.shareToken,
-      url: `${base}/share/file/${row.shareToken}`,
+      shareToken: existing.shareToken,
+      url: `${base}/share/contact/${existing.shareToken}`,
     }
   }
 
   const token = randomBytes(24).toString('base64url')
   await db
-    .update(files)
+    .update(contacts)
     .set({
       shareToken: token,
       shareEnabled: true,
       shareExpiresAt: body.expiresAt != null ? new Date(body.expiresAt) : null,
       updatedAt: new Date(),
     })
-    .where(eq(files.id, id))
+    .where(eq(contacts.id, id))
 
-  return { shareToken: token, url: `${base}/share/file/${token}` }
+  return { shareToken: token, url: `${base}/share/contact/${token}` }
 })

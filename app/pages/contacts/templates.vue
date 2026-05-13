@@ -15,6 +15,9 @@ const orgRows = ref<TemplateRow[]>([])
 const loading = ref(true)
 const newPersonLabel = ref('')
 const newOrgLabel = ref('')
+const showDeleteTemplateConfirm = ref(false)
+const pendingTemplateId = ref<string | null>(null)
+const deletingTemplate = ref(false)
 
 const fieldOpts = [
   { value: 'text', label: 'Text' },
@@ -109,6 +112,26 @@ async function removeTpl(id: string) {
   await apiFetch(`/api/contact-field-templates/${id}`, { method: 'DELETE' })
   await reload()
 }
+
+function requestRemoveTpl(id: string) {
+  pendingTemplateId.value = id
+  showDeleteTemplateConfirm.value = true
+}
+
+async function confirmRemoveTpl() {
+  const id = pendingTemplateId.value
+  if (!id)
+    return
+  deletingTemplate.value = true
+  try {
+    await removeTpl(id)
+    showDeleteTemplateConfirm.value = false
+    pendingTemplateId.value = null
+  }
+  finally {
+    deletingTemplate.value = false
+  }
+}
 </script>
 
 <template>
@@ -175,7 +198,7 @@ async function removeTpl(id: string) {
               </select>
               <UButton variant="ghost" color="neutral" square size="xs" icon="i-lucide-chevron-up" @click="moveTpl(row, -1, personRows)" />
               <UButton variant="ghost" color="neutral" square size="xs" icon="i-lucide-chevron-down" @click="moveTpl(row, 1, personRows)" />
-              <UButton variant="ghost" color="error" square size="xs" icon="i-lucide-trash-2" @click="removeTpl(row.id)" />
+              <UButton variant="ghost" color="error" square size="xs" icon="i-lucide-trash-2" @click="requestRemoveTpl(row.id)" />
             </div>
           </li>
         </ul>
@@ -221,11 +244,19 @@ async function removeTpl(id: string) {
               </select>
               <UButton variant="ghost" color="neutral" square size="xs" icon="i-lucide-chevron-up" @click="moveTpl(row, -1, orgRows)" />
               <UButton variant="ghost" color="neutral" square size="xs" icon="i-lucide-chevron-down" @click="moveTpl(row, 1, orgRows)" />
-              <UButton variant="ghost" color="error" square size="xs" icon="i-lucide-trash-2" @click="removeTpl(row.id)" />
+              <UButton variant="ghost" color="error" square size="xs" icon="i-lucide-trash-2" @click="requestRemoveTpl(row.id)" />
             </div>
           </li>
         </ul>
       </UCard>
     </div>
+
+    <UiConfirmDeleteDialog
+      v-model:open="showDeleteTemplateConfirm"
+      title="Delete field template"
+      description="This template will be permanently removed and unavailable for new contacts."
+      :loading="deletingTemplate"
+      @confirm="confirmRemoveTpl"
+    />
   </div>
 </template>

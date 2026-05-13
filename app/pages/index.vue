@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { watchDebounced } from '@vueuse/core'
+import { debouncedSchedule } from '#shared/debounced-schedule'
 import { EMPTY_TIPTAP_DOC_JSON } from '#shared/tiptap-empty-doc'
 import type { NoteOutlineItem } from '#shared/note-outline'
 
@@ -29,6 +30,7 @@ type NoteDetail = NoteList & {
 /** Same-origin fetch с cookie сессии (надёжнее глобального `$fetch` при SSR/клиенте) */
 const apiFetch = useRequestFetch()
 const toast = useToast()
+const runtimeConfig = useRuntimeConfig()
 
 const folderFilter = ref<'all' | 'unfiled' | string>('all')
 const folders = ref<FolderRow[]>([])
@@ -40,6 +42,12 @@ const content = ref('')
 const excerpt = ref('')
 const shareUrl = ref('')
 const creatingNote = ref(false)
+const showDeleteNoteConfirm = ref(false)
+const deletingNote = ref(false)
+
+/** Default read-only until Edit; autosave только в режиме редактирования. */
+const isEditing = ref(false)
+const finishingEdit = ref(false)
 
 const {
   newFolderName,
@@ -167,25 +175,6 @@ function upsertNoteInLocalList(row: NoteDetail) {
     notes.value = [item, ...notes.value]
 }
 
-function openNoteFromRow(n: NoteDetail) {
-  hydratingNote.value = true
-  try {
-    shareUrl.value = ''
-    selectedNoteId.value = n.id
-    currentNote.value = n
-    title.value = n.title
-    content.value = n.content || EMPTY_TIPTAP_DOC_JSON
-    excerpt.value = n.excerpt || ''
-  }
-  finally {
-    nextTick(() => {
-      hydratingNote.value = false
-      refreshLinkedContacts()
-      refreshLinkedFiles()
-    })
-  }
-}
-
 async function refreshFolders(opts?: { signal?: AbortSignal }) {
   folders.value = await apiFetch<FolderRow[]>('/api/folders', opts?.signal ? { signal: opts.signal } : {})
 }
@@ -229,6 +218,77 @@ async function refreshLinkedFiles(opts?: { signal?: AbortSignal }) {
   }
   catch {
     linkedFiles.value = []
+  }
+}
+
+async function persistNoteImmediate(): Promise<boolean> {
+  const id = selectedNoteId.value
+  if (!id || hydratingNote.value)
+    return true
+  try {
+    const row = await apiFetch<NoteDetail>(`/api/notes/${id}`, {
+      method: 'PATCH',
+      body: {
+        title: title.value,
+        content: content.value,
+        excerpt: excerpt.value,
+      },
+    })
+    upsertNoteInLocalList(row)
+    await refreshLinkedContacts()
+    await refreshLinkedFiles()
+    if (currentNote.value?.id === row.id)
+      currentNote.value = { ...currentNote.value, ...row }
+    return true
+  }
+  catch (e: unknown) {
+    notifyApiError('Could not save note', e)
+    return false
+  }
+}
+
+const notePersistDebounce = debouncedSchedule(() => persistNoteImmediate(), 650)
+
+watch([title, content, excerpt], () => {
+  if (!isEditing.value || hydratingNote.value)
+    return
+  notePersistDebounce.schedule()
+})
+
+async function finishEditing() {
+  if (!selectedNoteId.value || !currentNote.value)
+    return
+  finishingEdit.value = true
+  try {
+    notePersistDebounce.cancel()
+    const ok = await persistNoteImmediate()
+    if (!ok)
+      return
+    isEditing.value = false
+  }
+  finally {
+    finishingEdit.value = false
+  }
+}
+
+function openNoteFromRow(n: NoteDetail) {
+  notePersistDebounce.cancel()
+  hydratingNote.value = true
+  try {
+    shareUrl.value = ''
+    selectedNoteId.value = n.id
+    currentNote.value = n
+    title.value = n.title
+    content.value = n.content || EMPTY_TIPTAP_DOC_JSON
+    excerpt.value = n.excerpt || ''
+    isEditing.value = false
+  }
+  finally {
+    nextTick(() => {
+      hydratingNote.value = false
+      refreshLinkedContacts()
+      refreshLinkedFiles()
+    })
   }
 }
 
@@ -355,6 +415,8 @@ async function load() {
 onMounted(load)
 
 watch(folderFilter, async () => {
+  notePersistDebounce.cancel()
+  isEditing.value = false
   selectedNoteId.value = null
   currentNote.value = null
   linkedContacts.value = []
@@ -363,6 +425,8 @@ watch(folderFilter, async () => {
 })
 
 async function selectNote(id: string, opts?: { signal?: AbortSignal }) {
+  notePersistDebounce.cancel()
+  isEditing.value = false
   shareUrl.value = ''
   hydratingNote.value = true
   try {
@@ -385,6 +449,7 @@ async function selectNote(id: string, opts?: { signal?: AbortSignal }) {
 async function createNote() {
   creatingNote.value = true
   try {
+    notePersistDebounce.cancel()
     const body: { title: string, folderId?: string | null } = { title: 'New note' }
     if (folderFilter.value === 'unfiled') body.folderId = null
     else if (folderFilter.value !== 'all') body.folderId = folderFilter.value
@@ -394,6 +459,8 @@ async function createNote() {
     }
     upsertNoteInLocalList(row)
     openNoteFromRow(row)
+    await nextTick()
+    isEditing.value = true
     await refreshLinkedContacts()
     await refreshLinkedFiles()
   }
@@ -404,34 +471,6 @@ async function createNote() {
     creatingNote.value = false
   }
 }
-
-watchDebounced(
-  [title, content, excerpt],
-  async () => {
-    const id = selectedNoteId.value
-    if (!id || hydratingNote.value)
-      return
-    try {
-      const row = await apiFetch<NoteDetail>(`/api/notes/${id}`, {
-        method: 'PATCH',
-        body: {
-          title: title.value,
-          content: content.value,
-          excerpt: excerpt.value,
-        },
-      })
-      upsertNoteInLocalList(row)
-      await refreshLinkedContacts()
-      await refreshLinkedFiles()
-      if (currentNote.value?.id === row.id)
-        currentNote.value = { ...currentNote.value, ...row }
-    }
-    catch (e: unknown) {
-      notifyApiError('Could not save note', e)
-    }
-  },
-  { debounce: 650 },
-)
 
 function onEditorUpdate(json: string) {
   content.value = json
@@ -457,30 +496,101 @@ watch(currentNote, v => {
     noteOutline.value = []
 })
 
-async function deleteNote() {
-  if (!selectedNoteId.value) return
-  await apiFetch(`/api/notes/${selectedNoteId.value}`, { method: 'DELETE' })
-  selectedNoteId.value = null
-  currentNote.value = null
-  linkedContacts.value = []
-  linkedFiles.value = []
-  await refreshNotes()
+function openDeleteNoteConfirm() {
+  if (!selectedNoteId.value)
+    return
+  showDeleteNoteConfirm.value = true
+}
+
+async function confirmDeleteNote() {
+  if (!selectedNoteId.value)
+    return
+  deletingNote.value = true
+  try {
+    await apiFetch(`/api/notes/${selectedNoteId.value}`, { method: 'DELETE' })
+    selectedNoteId.value = null
+    currentNote.value = null
+    isEditing.value = false
+    linkedContacts.value = []
+    linkedFiles.value = []
+    await refreshNotes()
+    showDeleteNoteConfirm.value = false
+  }
+  catch (e: unknown) {
+    notifyApiError('Could not delete note', e)
+  }
+  finally {
+    deletingNote.value = false
+  }
+}
+
+function currentNoteShareHref(): string {
+  const n = currentNote.value
+  if (!n?.shareEnabled || !n.shareToken)
+    return ''
+  const base = String(runtimeConfig.public.siteUrl ?? '').replace(/\/$/, '')
+  return base ? `${base}/share/${n.shareToken}` : ''
+}
+
+async function copyNoteShareLink() {
+  const href = currentNoteShareHref()
+  if (!href) {
+    toast.add({
+      title: 'No share link',
+      description: 'Enable sharing first.',
+      color: 'neutral',
+    })
+    return
+  }
+  try {
+    await navigator.clipboard.writeText(href)
+    shareUrl.value = href
+    toast.add({
+      title: 'Link copied',
+      color: 'success',
+    })
+  }
+  catch {
+    toast.add({
+      title: 'Could not copy',
+      description: 'Clipboard permission may be blocked.',
+      color: 'error',
+    })
+  }
 }
 
 async function enableShareLink() {
   if (!selectedNoteId.value) return
-  const r = await apiFetch<{ url: string }>(`/api/notes/${selectedNoteId.value}/share`, { method: 'POST', body: {} })
-  shareUrl.value = r.url
-  await refreshNotes()
-  if (currentNote.value) currentNote.value.shareEnabled = true
+  try {
+    const r = await apiFetch<{ url: string, shareToken?: string }>(`/api/notes/${selectedNoteId.value}/share`, { method: 'POST', body: {} })
+    shareUrl.value = r.url
+    await refreshNotes()
+    const id = selectedNoteId.value
+    if (currentNote.value?.id === id) {
+      currentNote.value.shareEnabled = true
+      if (r.shareToken)
+        currentNote.value.shareToken = r.shareToken
+    }
+  }
+  catch (e: unknown) {
+    notifyApiError('Could not enable share link', e)
+  }
 }
 
 async function disableShareLink() {
   if (!selectedNoteId.value) return
-  await apiFetch(`/api/notes/${selectedNoteId.value}/share`, { method: 'DELETE' })
-  shareUrl.value = ''
-  if (currentNote.value) currentNote.value.shareEnabled = false
-  await refreshNotes()
+  try {
+    await apiFetch(`/api/notes/${selectedNoteId.value}/share`, { method: 'DELETE' })
+    shareUrl.value = ''
+    if (currentNote.value) {
+      currentNote.value.shareEnabled = false
+      currentNote.value.shareToken = null
+    }
+    await refreshNotes()
+  }
+  catch (e: unknown) {
+    notifyApiError('Could not disable share link', e)
+  }
 }
 
 </script>
@@ -601,14 +711,23 @@ async function disableShareLink() {
     <main v-if="currentNote" class="flex min-w-0 flex-1 flex-col p-4 sm:p-6">
       <div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--ui-panel-radius)] border border-white/70 bg-white/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] backdrop-blur-md ring-1 ring-zinc-950/[0.04] supports-[backdrop-filter]:bg-white/45">
         <header class="flex shrink-0 flex-wrap items-center gap-2 border-b border-zinc-100/90 px-4 py-3 sm:px-6">
-          <UInput
-            v-model="title"
-            placeholder="Untitled"
-            variant="ghost"
-            size="lg"
-            class="min-w-[12rem] flex-1 font-semibold tracking-tight"
-            :ui="{ base: 'text-xl placeholder:text-zinc-300' }"
-          />
+          <div class="min-w-[12rem] flex-1">
+            <h1
+              v-if="!isEditing"
+              class="truncate text-xl font-semibold tracking-tight text-zinc-900 sm:text-[1.35rem]"
+            >
+              {{ title.trim() ? title : 'Untitled' }}
+            </h1>
+            <UInput
+              v-else
+              v-model="title"
+              placeholder="Untitled"
+              variant="ghost"
+              size="lg"
+              class="w-full font-semibold tracking-tight"
+              :ui="{ base: 'text-xl placeholder:text-zinc-300' }"
+            />
+          </div>
           <div class="flex shrink-0 flex-wrap items-center gap-1.5 rounded-[var(--ui-control-radius)] bg-zinc-50/90 p-1 ring-1 ring-zinc-950/[0.04]">
             <UButton
               v-if="!currentNote.shareEnabled"
@@ -628,7 +747,7 @@ async function disableShareLink() {
                 color="neutral"
                 icon="i-lucide-copy"
                 class="rounded-[var(--ui-control-radius)] px-3"
-                @click="enableShareLink"
+                @click="copyNoteShareLink"
               >
                 Copy link
               </UButton>
@@ -643,16 +762,46 @@ async function disableShareLink() {
                 Stop
               </UButton>
             </template>
+            <div
+              class="mx-0.5 hidden h-4 w-px shrink-0 bg-zinc-200/80 sm:block"
+              role="presentation"
+              aria-hidden="true"
+            />
             <UButton
-              size="xs"
-              color="error"
+              v-if="!isEditing"
+              icon="i-lucide-pencil"
+              color="neutral"
               variant="ghost"
-              icon="i-lucide-trash-2"
+              size="xs"
               class="rounded-[var(--ui-control-radius)] px-3"
-              @click="deleteNote"
+              @click="isEditing = true"
             >
-              Delete
+              Edit
             </UButton>
+            <template v-else>
+              <UButton
+                icon="i-lucide-check"
+                color="neutral"
+                variant="ghost"
+                size="xs"
+                class="rounded-[var(--ui-control-radius)] px-3"
+                :loading="finishingEdit"
+                @click="finishEditing"
+              >
+                Done
+              </UButton>
+              <UButton
+                size="xs"
+                color="error"
+                variant="ghost"
+                icon="i-lucide-trash-2"
+                class="rounded-[var(--ui-control-radius)] px-3"
+                :loading="deletingNote"
+                @click="openDeleteNoteConfirm"
+              >
+                Delete
+              </UButton>
+            </template>
           </div>
         </header>
 
@@ -670,6 +819,8 @@ async function disableShareLink() {
               <NotesLexicalNoteEditor
                 :note-key="selectedNoteId || 'none'"
                 :model-value="content"
+                :read-only="!isEditing"
+                :placeholder="isEditing ? 'Start writing…' : ''"
                 class="mx-auto min-h-full max-w-[42rem]"
                 @update:model-value="onEditorUpdate"
                 @update:excerpt="onExcerptUpdate"
@@ -719,6 +870,7 @@ async function disableShareLink() {
                   Linked contacts
                 </UiSectionLabel>
                 <button
+                  v-if="isEditing"
                   type="button"
                   class="rounded-[var(--ui-control-radius)] px-2 py-0.5 text-[11px] font-semibold text-zinc-600 hover:bg-white/85"
                   @click="showLinkContact = true"
@@ -740,6 +892,7 @@ async function disableShareLink() {
                     <span class="text-[10px] font-medium uppercase tracking-wide text-zinc-400">{{ c.type }}</span>
                   </NuxtLink>
                   <button
+                    v-if="isEditing"
                     type="button"
                     class="shrink-0 rounded-[var(--ui-control-radius)] p-1 text-zinc-400 hover:bg-white hover:text-red-600"
                     aria-label="Unlink contact"
@@ -760,6 +913,7 @@ async function disableShareLink() {
                   Linked files
                 </UiSectionLabel>
                 <button
+                  v-if="isEditing"
                   type="button"
                   class="rounded-[var(--ui-control-radius)] px-2 py-0.5 text-[11px] font-semibold text-zinc-600 hover:bg-white/85"
                   @click="openNoteFilePicker"
@@ -772,8 +926,9 @@ async function disableShareLink() {
                   v-for="f in linkedFiles"
                   :key="f.id"
                   :file="f"
-                  show-unlink
-                  show-delete
+                  :show-unlink="isEditing"
+                  :show-delete="isEditing"
+                  :show-share="isEditing"
                   @unlink="unlinkFileFromNote"
                   @delete="deleteFileEverywhere"
                   @toggle-share="(fileId, nextEnabled) => toggleFileShare(fileId, nextEnabled)"
@@ -817,6 +972,14 @@ async function disableShareLink() {
     v-model:name="newFolderName"
     :creating="creatingFolder"
     @submit="createFolder"
+  />
+
+  <UiConfirmDeleteDialog
+    v-model:open="showDeleteNoteConfirm"
+    title="Delete note"
+    description="This note will be permanently removed. This action cannot be undone."
+    :loading="deletingNote"
+    @confirm="confirmDeleteNote"
   />
 
   <Teleport to="body">

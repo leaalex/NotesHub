@@ -20,6 +20,16 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Not found' })
   }
 
+  const config = useRuntimeConfig()
+  const base = (config.public.siteUrl as string).replace(/\/$/, '')
+
+  if (existing.shareEnabled && existing.shareToken) {
+    return {
+      shareToken: existing.shareToken,
+      url: `${base}/share/${existing.shareToken}`,
+    }
+  }
+
   const token = randomBytes(24).toString('base64url')
   await db
     .update(notes)
@@ -31,9 +41,5 @@ export default defineEventHandler(async (event) => {
     })
     .where(eq(notes.id, id))
 
-  const config = useRuntimeConfig()
-  const base = config.public.siteUrl as string
-  const url = `${base.replace(/\/$/, '')}/share/${token}`
-
-  return { shareToken: token, url }
+  return { shareToken: token, url: `${base}/share/${token}` }
 })

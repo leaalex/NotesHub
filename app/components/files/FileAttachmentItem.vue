@@ -15,10 +15,16 @@ const props = withDefaults(defineProps<{
   showUnlink?: boolean
   showDelete?: boolean
   showShare?: boolean
+  deleteTitle?: string
+  deleteDescription?: string
+  deleteConfirmLabel?: string
 }>(), {
   showUnlink: false,
   showDelete: false,
   showShare: true,
+  deleteTitle: 'Delete file',
+  deleteDescription: 'This file will be removed everywhere it is linked. This action cannot be undone.',
+  deleteConfirmLabel: 'Delete',
 })
 
 const emit = defineEmits<{
@@ -40,6 +46,7 @@ function fileSizeLabel(size: number): string {
 }
 
 const isImage = computed(() => props.file.mimeType.startsWith('image/'))
+const showDeleteConfirm = ref(false)
 
 async function copyShareUrl() {
   if (!props.file.shareUrl)
@@ -50,6 +57,15 @@ async function copyShareUrl() {
   catch {
     // noop: clipboard may be blocked by browser policy
   }
+}
+
+function requestDelete() {
+  showDeleteConfirm.value = true
+}
+
+function confirmDelete() {
+  showDeleteConfirm.value = false
+  emit('delete', props.file.id)
 }
 </script>
 
@@ -126,10 +142,18 @@ async function copyShareUrl() {
         color="error"
         icon="i-lucide-trash-2"
         class="rounded-[var(--ui-control-radius)]"
-        @click="emit('delete', file.id)"
+        @click="requestDelete"
       >
         Delete
       </UButton>
     </div>
+
+    <UiConfirmDeleteDialog
+      v-model:open="showDeleteConfirm"
+      :title="deleteTitle"
+      :description="deleteDescription"
+      :confirm-label="deleteConfirmLabel"
+      @confirm="confirmDelete"
+    />
   </div>
 </template>

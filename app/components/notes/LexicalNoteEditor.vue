@@ -260,4 +260,7 @@ watch(
   color: rgb(161 161 170);
   font-weight: 400;
 }
+:deep(.notes-prose-editor[contenteditable='false'] p.is-editor-empty:first-child::before) {
+  content: none;
+}
 </style>

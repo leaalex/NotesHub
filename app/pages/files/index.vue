@@ -42,8 +42,8 @@ async function refreshFiles() {
   if (folderFilter.value === 'unfiled') query.folderId = 'unfiled'
   else if (folderFilter.value !== 'all') query.folderId = folderFilter.value
   files.value = await apiFetch<AppFile[]>('/api/files', { query })
-  if (!selectedFileId.value || !files.value.some(f => f.id === selectedFileId.value))
-    selectedFileId.value = files.value[0]?.id ?? null
+  if (selectedFileId.value && !files.value.some(f => f.id === selectedFileId.value))
+    selectedFileId.value = null
 }
 
 const selectedFile = computed(() => files.value.find(f => f.id === selectedFileId.value) ?? null)
@@ -231,10 +231,22 @@ onMounted(async () => {
 
         <div v-else class="flex min-h-0 flex-1 items-center justify-center p-8 text-center">
           <UiEmptyState
-            icon="i-lucide-image"
-            title="Pick a file"
-            description="Choose a file from Library to view details and actions."
-          />
+            icon="i-lucide-file"
+            title="Файл не выбран"
+            description="Выберите файл из списка слева или загрузите новый."
+          >
+            <template #actions>
+              <UButton
+                color="neutral"
+                :loading="uploading"
+                class="rounded-[var(--ui-control-radius)] px-4 shadow-sm ring-1 ring-zinc-900/10"
+                @click="openFilePicker"
+              >
+                <Icon name="i-lucide-upload" class="mr-2 size-4" aria-hidden="true" />
+                Загрузить файл
+              </UButton>
+            </template>
+          </UiEmptyState>
         </div>
       </div>
     </div>

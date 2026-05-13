@@ -165,6 +165,11 @@ export const contacts = sqliteTable(
     orgName: text('org_name').notNull().default(''),
     displayName: text('display_name').notNull().default(''),
     note: text('note').notNull().default(''),
+    shareToken: text('share_token').unique(),
+    shareEnabled: integer('share_enabled', { mode: 'boolean' })
+      .notNull()
+      .default(false),
+    shareExpiresAt: integer('share_expires_at', { mode: 'timestamp_ms' }),
     createdAt: integer('created_at', { mode: 'timestamp_ms' })
       .notNull()
       .default(sql`(strftime('%s','now') * 1000)`),
@@ -177,6 +182,7 @@ export const contacts = sqliteTable(
     index('contacts_folder_idx').on(t.folderId),
     index('contacts_type_idx').on(t.type),
     index('contacts_display_idx').on(t.displayName),
+    index('contacts_share_idx').on(t.shareToken),
   ]
 )
 
