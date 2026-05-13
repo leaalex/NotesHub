@@ -116,7 +116,7 @@ async function removeTpl(id: string) {
     <div class="mb-10 flex flex-wrap items-center gap-4">
       <NuxtLink
         to="/contacts"
-        class="inline-flex items-center rounded-full border border-zinc-200 px-4 py-1.5 text-[12px] font-medium text-zinc-700 hover:bg-zinc-50"
+        class="inline-flex items-center rounded-[var(--ui-control-radius)] border border-zinc-200 px-4 py-1.5 text-[12px] font-medium text-zinc-700 hover:bg-zinc-50"
       >
         ← Contacts
       </NuxtLink>
@@ -135,23 +135,23 @@ async function removeTpl(id: string) {
     </div>
 
     <div v-else class="grid gap-8 lg:grid-cols-2">
-      <UCard class="rounded-2xl ring-1 ring-zinc-950/[0.04]">
+      <UCard class="rounded-[var(--ui-panel-radius)] ring-1 ring-zinc-950/[0.04]">
         <template #header>
           <span class="font-semibold text-zinc-900">People</span>
         </template>
         <div class="flex gap-2">
-          <UInput v-model="newPersonLabel" class="flex-1 rounded-xl" placeholder="New label…" />
-          <UButton color="neutral" class="rounded-full" size="xs" icon="i-lucide-plus" @click="addTemplate('person')">
+          <UInput v-model="newPersonLabel" class="flex-1 rounded-[var(--ui-control-radius)]" placeholder="New label…" />
+          <UButton color="neutral" class="rounded-[var(--ui-control-radius)]" size="xs" icon="i-lucide-plus" @click="addTemplate('person')">
             Add
           </UButton>
         </div>
         <ul class="mt-5 space-y-2">
-          <li v-for="row in sorted(personRows)" :key="row.id" class="rounded-xl border border-zinc-100 bg-zinc-50/70 p-3">
+          <li v-for="row in sorted(personRows)" :key="row.id" class="rounded-[var(--ui-control-radius)] border border-zinc-100 bg-zinc-50/70 p-3">
             <div class="flex flex-wrap items-center gap-2">
               <UInput
                 size="xs"
                 :model-value="row.label"
-                class="min-w-[10rem] flex-1 rounded-lg"
+                class="min-w-[10rem] flex-1 rounded-[var(--ui-control-radius)]"
                 @blur="
                   evt => patchRow(row, {
                     label: ((evt.target as HTMLInputElement)?.value ?? row.label).trim(),
@@ -181,23 +181,23 @@ async function removeTpl(id: string) {
         </ul>
       </UCard>
 
-      <UCard class="rounded-2xl ring-1 ring-zinc-950/[0.04]">
+      <UCard class="rounded-[var(--ui-panel-radius)] ring-1 ring-zinc-950/[0.04]">
         <template #header>
           <span class="font-semibold text-zinc-900">Organizations</span>
         </template>
         <div class="flex gap-2">
-          <UInput v-model="newOrgLabel" class="flex-1 rounded-xl" placeholder="New label…" />
-          <UButton color="neutral" class="rounded-full" size="xs" icon="i-lucide-plus" @click="addTemplate('organization')">
+          <UInput v-model="newOrgLabel" class="flex-1 rounded-[var(--ui-control-radius)]" placeholder="New label…" />
+          <UButton color="neutral" class="rounded-[var(--ui-control-radius)]" size="xs" icon="i-lucide-plus" @click="addTemplate('organization')">
             Add
           </UButton>
         </div>
         <ul class="mt-5 space-y-2">
-          <li v-for="row in sorted(orgRows)" :key="row.id" class="rounded-xl border border-zinc-100 bg-zinc-50/70 p-3">
+          <li v-for="row in sorted(orgRows)" :key="row.id" class="rounded-[var(--ui-control-radius)] border border-zinc-100 bg-zinc-50/70 p-3">
             <div class="flex flex-wrap items-center gap-2">
               <UInput
                 size="xs"
                 :model-value="row.label"
-                class="min-w-[10rem] flex-1 rounded-lg"
+                class="min-w-[10rem] flex-1 rounded-[var(--ui-control-radius)]"
                 @blur="
                   evt => patchRow(row, {
                     label: ((evt.target as HTMLInputElement)?.value ?? row.label).trim(),

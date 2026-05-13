@@ -135,7 +135,7 @@ export const SlashCommands = Extension.create({
               btn.type = 'button'
               btn.textContent = item.title
               btn.className = [
-                'flex w-full rounded-xl px-3 py-2.5 text-left text-[13px] font-medium tracking-tight transition-colors',
+                'flex w-full rounded-[var(--ui-control-radius)] px-3 py-2.5 text-left text-[13px] font-medium tracking-tight transition-colors',
                 index === selectedIndex
                   ? 'bg-zinc-900 text-white'
                   : 'text-zinc-700 hover:bg-zinc-50',
@@ -154,7 +154,7 @@ export const SlashCommands = Extension.create({
               selectedIndex = 0
               root = document.createElement('div')
               root.className
-                = 'slash-command-menu rounded-2xl border border-zinc-200/90 bg-white/95 py-1.5 shadow-[0_22px_55px_-28px_rgba(24,24,27,0.55)] backdrop-blur-xl ring-1 ring-zinc-950/[0.04]'
+                = 'slash-command-menu rounded-[var(--ui-panel-radius)] border border-zinc-200/90 bg-white/95 py-1.5 shadow-[0_22px_55px_-28px_rgba(24,24,27,0.55)] backdrop-blur-xl ring-1 ring-zinc-950/[0.04]'
               document.body.appendChild(root)
               renderButtons(props)
             },

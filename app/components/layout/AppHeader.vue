@@ -92,7 +92,7 @@ const menuItems = computed(() => {
           color="neutral"
           square
           size="sm"
-          class="rounded-full ring-1 ring-zinc-200/80 hover:bg-white/80"
+          class="rounded-[var(--ui-control-radius)] ring-1 ring-zinc-200/80 hover:bg-white/80"
           :icon="foldersRailOpen ? 'i-lucide-panel-left-close' : 'i-lucide-panel-left-open'"
           :aria-label="foldersRailOpen ? 'Hide folders' : 'Show folders'"
           :aria-pressed="foldersRailOpen"
@@ -101,12 +101,12 @@ const menuItems = computed(() => {
       </div>
 
       <nav class="flex min-w-0 flex-1 justify-center" aria-label="Main">
-        <div class="flex items-center gap-1 rounded-full bg-zinc-50/90 p-1 ring-1 ring-zinc-950/[0.04]">
+        <div class="flex items-center gap-1 rounded-[var(--ui-control-radius)] bg-zinc-50/90 p-1 ring-1 ring-zinc-950/[0.04]">
           <NuxtLink
             v-for="l in links"
             :key="l.to"
             :to="l.to"
-            class="flex items-center gap-2 rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors"
+            class="flex items-center gap-2 rounded-[var(--ui-control-radius)] px-3 py-1.5 text-[13px] font-medium transition-colors"
             :class="isActive(l.to)
               ? 'bg-zinc-900 text-white shadow-sm'
               : 'text-zinc-600 hover:bg-white/70'"
@@ -123,7 +123,7 @@ const menuItems = computed(() => {
           to="/login"
           color="neutral"
           size="sm"
-          class="rounded-full px-4 shadow-sm ring-1 ring-zinc-900/10"
+          class="rounded-[var(--ui-control-radius)] px-4 shadow-sm ring-1 ring-zinc-900/10"
         >
           Sign in
         </UButton>
@@ -132,7 +132,7 @@ const menuItems = computed(() => {
             variant="ghost"
             color="neutral"
             size="sm"
-            class="max-w-[14rem] rounded-full px-2 py-1.5 ring-1 ring-zinc-200/80 hover:bg-white/80"
+            class="max-w-[14rem] rounded-[var(--ui-control-radius)] px-2 py-1.5 ring-1 ring-zinc-200/80 hover:bg-white/80"
           >
             <span class="flex min-w-0 items-center gap-2">
               <UAvatar

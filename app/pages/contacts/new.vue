@@ -73,10 +73,10 @@ function cancel() {
         Choose a type and fill in the basics. Folder follows the sidebar filter.
       </p>
 
-      <div class="mt-6 flex rounded-full bg-zinc-100 p-1">
+      <div class="mt-6 flex rounded-[var(--ui-control-radius)] bg-zinc-100 p-1">
         <button
           type="button"
-          class="flex-1 rounded-full px-3 py-2 text-[12px] font-semibold transition-all"
+          class="flex-1 rounded-[var(--ui-control-radius)] px-3 py-2 text-[12px] font-semibold transition-all"
           :class="newTab === 'person' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500'"
           @click="newTab = 'person'"
         >
@@ -84,7 +84,7 @@ function cancel() {
         </button>
         <button
           type="button"
-          class="flex-1 rounded-full px-3 py-2 text-[12px] font-semibold transition-all"
+          class="flex-1 rounded-[var(--ui-control-radius)] px-3 py-2 text-[12px] font-semibold transition-all"
           :class="newTab === 'organization' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500'"
           @click="newTab = 'organization'"
         >
@@ -95,27 +95,27 @@ function cancel() {
       <UiGlassPanel class="mt-6 space-y-3 p-5">
         <template v-if="newTab === 'person'">
           <UFormField label="First name">
-            <UInput v-model="newFirst" class="rounded-xl" />
+            <UInput v-model="newFirst" class="rounded-[var(--ui-control-radius)]" />
           </UFormField>
           <UFormField label="Last name">
-            <UInput v-model="newLast" class="rounded-xl" />
+            <UInput v-model="newLast" class="rounded-[var(--ui-control-radius)]" />
           </UFormField>
         </template>
         <template v-else>
           <UFormField label="Organization">
-            <UInput v-model="newOrg" class="rounded-xl" />
+            <UInput v-model="newOrg" class="rounded-[var(--ui-control-radius)]" />
           </UFormField>
         </template>
         <UFormField label="Note (optional)">
-          <UTextarea v-model="newNote" class="rounded-xl" autoresize :max-rows="6" />
+          <UTextarea v-model="newNote" class="rounded-[var(--ui-control-radius)]" autoresize :max-rows="6" />
         </UFormField>
       </UiGlassPanel>
 
       <div class="mt-6 flex justify-end gap-2">
-        <UButton variant="ghost" color="neutral" class="rounded-full" @click="cancel">
+        <UButton variant="ghost" color="neutral" class="rounded-[var(--ui-control-radius)]" @click="cancel">
           Cancel
         </UButton>
-        <UButton color="neutral" class="rounded-full" :loading="creating" icon="i-lucide-check" @click="createContact">
+        <UButton color="neutral" class="rounded-[var(--ui-control-radius)]" :loading="creating" icon="i-lucide-check" @click="createContact">
           Create
         </UButton>
       </div>

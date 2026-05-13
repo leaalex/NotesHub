@@ -21,6 +21,7 @@ alwaysApply: false
 - **`UAlert`:** слот **`root`**; можно задать класс `ui-control-radius` на компонент или `:ui="{ root: '…' }"`.
 
 На **одном экране формы** не смешивай для полей и primary submit разные радиусы (например `rounded-full` у кнопки и `rounded-md` у input): одна шкала для «контролов».
+- Для всего видимого app UI не вводи ad-hoc `rounded-full`, `rounded-lg`, `rounded-xl`, `rounded-2xl` там, где можно использовать токены.
 
 ## Оболочки (крупнее контролов)
 

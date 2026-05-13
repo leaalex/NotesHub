@@ -19,6 +19,10 @@
   border-radius: var(--ui-control-radius);
 }
 
+.ui-panel-radius {
+  border-radius: var(--ui-panel-radius);
+}
+
 .ui-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: rgb(228 228 231 / 0.9) transparent;
@@ -73,7 +77,7 @@
 
 .ui-table-shell {
   overflow: auto;
-  border-radius: 1rem;
+  border-radius: var(--ui-panel-radius);
   border: 1px solid rgb(228 228 231);
   background: rgb(255 255 255);
   box-shadow: 0 1px 0 rgb(24 24 27 / 0.03);

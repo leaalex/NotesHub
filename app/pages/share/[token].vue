@@ -94,7 +94,7 @@ function scrollShareToHeading(id: string) {
                   v-for="item in shareOutline"
                   :key="item.id"
                   type="button"
-                  class="flex w-full max-w-full rounded-xl px-2 py-1.5 text-left text-[12px] leading-snug text-zinc-600 transition-colors hover:bg-white/85 hover:text-zinc-900"
+                  class="flex w-full max-w-full rounded-[var(--ui-control-radius)] px-2 py-1.5 text-left text-[12px] leading-snug text-zinc-600 transition-colors hover:bg-white/85 hover:text-zinc-900"
                   :style="{ paddingLeft: `${8 + (item.level - 1) * 12}px` }"
                   @click="scrollShareToHeading(item.id)"
                 >

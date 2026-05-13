@@ -48,10 +48,10 @@ onMounted(load)
         </p>
       </div>
       <div class="flex gap-2">
-        <UButton color="neutral" variant="soft" class="rounded-full px-4" icon="i-lucide-refresh-cw" @click="load">
+        <UButton color="neutral" variant="soft" class="rounded-[var(--ui-control-radius)] px-4" icon="i-lucide-refresh-cw" @click="load">
           Refresh
         </UButton>
-        <UButton to="/cms" color="neutral" variant="soft" class="rounded-full px-4" icon="i-lucide-arrow-left">
+        <UButton to="/cms" color="neutral" variant="soft" class="rounded-[var(--ui-control-radius)] px-4" icon="i-lucide-arrow-left">
           CMS home
         </UButton>
       </div>

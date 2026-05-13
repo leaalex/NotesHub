@@ -10,6 +10,13 @@ const apiFetch = useRequestFetch()
 const folderFilter = ref<'all' | 'unfiled' | string>('all')
 const folders = ref<FolderRow[]>([])
 
+const {
+  newFolderName,
+  showNewFolder,
+  creatingFolder,
+  createFolder,
+} = useNewFolderModal(folders)
+
 onMounted(async () => {
   folders.value = await apiFetch<FolderRow[]>('/api/folders')
 })
@@ -19,15 +26,27 @@ onMounted(async () => {
   <LayoutAppThreeColumn>
     <template #folders>
       <div class="flex flex-col gap-4 border-b border-zinc-200/40 p-4 pb-3">
-        <div class="min-w-0">
-          <UiSectionLabel>
-            Folders
-          </UiSectionLabel>
+        <div class="flex items-start justify-between gap-2">
+          <div class="min-w-0">
+            <UiSectionLabel>
+              Folders
+            </UiSectionLabel>
+          </div>
+          <UButton
+            size="xs"
+            variant="ghost"
+            color="neutral"
+            square
+            class="rounded-[var(--ui-control-radius)] ring-1 ring-zinc-200/80 hover:bg-white/80"
+            icon="i-lucide-folder-plus"
+            aria-label="New folder"
+            @click="showNewFolder = true"
+          />
         </div>
         <nav class="flex flex-col gap-1 text-[13px]">
           <button
             type="button"
-            class="flex w-full items-center gap-2 rounded-full px-3 py-2 text-left font-medium transition-colors"
+            class="flex w-full items-center gap-2 rounded-[var(--ui-control-radius)] px-3 py-2 text-left font-medium transition-colors"
             :class="folderFilter === 'all'
               ? 'bg-zinc-900 text-white shadow-sm'
               : 'text-zinc-600 hover:bg-white/70'"
@@ -38,7 +57,7 @@ onMounted(async () => {
           </button>
           <button
             type="button"
-            class="flex w-full items-center gap-2 rounded-full px-3 py-2 text-left font-medium transition-colors"
+            class="flex w-full items-center gap-2 rounded-[var(--ui-control-radius)] px-3 py-2 text-left font-medium transition-colors"
             :class="folderFilter === 'unfiled'
               ? 'bg-zinc-900 text-white shadow-sm'
               : 'text-zinc-600 hover:bg-white/70'"
@@ -51,7 +70,7 @@ onMounted(async () => {
             v-for="f in folders"
             :key="f.id"
             type="button"
-            class="flex w-full items-center gap-2 rounded-full px-3 py-2 text-left font-medium transition-colors"
+            class="flex w-full items-center gap-2 rounded-[var(--ui-control-radius)] px-3 py-2 text-left font-medium transition-colors"
             :class="folderFilter === f.id
               ? 'bg-zinc-900 text-white shadow-sm'
               : 'text-zinc-600 hover:bg-white/70'"
@@ -74,13 +93,13 @@ onMounted(async () => {
           color="neutral"
           type="button"
           disabled
-          class="rounded-full px-3 opacity-60 shadow-sm ring-1 ring-zinc-900/10"
+          class="rounded-[var(--ui-control-radius)] px-3 opacity-60 shadow-sm ring-1 ring-zinc-900/10"
         >
           <Icon name="i-lucide-plus" class="mr-1 size-3.5" aria-hidden="true" />
           New
         </UButton>
       </div>
-      <div class="px-4 pb-8 pt-2">
+      <div class="ui-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-8 pt-2">
         <UiEmptyState
           icon="i-lucide-image"
           title="Files coming soon"
@@ -97,4 +116,11 @@ onMounted(async () => {
       />
     </div>
   </LayoutAppThreeColumn>
+
+  <UiNewFolderDialog
+    v-model:open="showNewFolder"
+    v-model:name="newFolderName"
+    :creating="creatingFolder"
+    @submit="createFolder"
+  />
 </template>

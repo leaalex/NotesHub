@@ -298,14 +298,14 @@ const kindLabel = computed(() =>
     <div class="mb-8 flex flex-wrap items-start justify-between gap-4">
       <div class="flex min-w-0 items-center gap-4">
         <div
-          class="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-zinc-900 text-lg font-semibold text-white shadow-lg"
+          class="flex size-14 shrink-0 items-center justify-center rounded-[var(--ui-control-radius)] bg-zinc-900 text-lg font-semibold text-white shadow-lg"
           aria-hidden="true"
         >
           {{ initials(detail.displayName) }}
         </div>
         <div class="min-w-0">
           <span
-            class="mb-1 inline-block rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-600"
+            class="mb-1 inline-block rounded-[var(--ui-control-radius)] bg-zinc-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-600"
           >
             {{ kindLabel }}
           </span>
@@ -319,40 +319,40 @@ const kindLabel = computed(() =>
         color="error"
         variant="soft"
         :loading="deleting"
-        class="rounded-full"
+        class="rounded-[var(--ui-control-radius)]"
         @click="deleteContact"
       >
         Delete
       </UButton>
     </div>
 
-    <UCard class="overflow-hidden rounded-2xl shadow-sm ring-1 ring-zinc-950/[0.04]">
+    <UCard class="overflow-hidden rounded-[var(--ui-panel-radius)] shadow-sm ring-1 ring-zinc-950/[0.04]">
       <template #header>
         <span class="font-semibold text-zinc-900">Basics</span>
       </template>
       <div v-if="detail.type === 'person'" class="grid gap-3 sm:grid-cols-2">
         <UFormField label="First name">
-          <UInput v-model="coreFirst" class="rounded-xl" />
+          <UInput v-model="coreFirst" class="rounded-[var(--ui-control-radius)]" />
         </UFormField>
         <UFormField label="Last name">
-          <UInput v-model="coreLast" class="rounded-xl" />
+          <UInput v-model="coreLast" class="rounded-[var(--ui-control-radius)]" />
         </UFormField>
       </div>
       <div v-else class="grid gap-3">
         <UFormField label="Organization name">
-          <UInput v-model="coreOrg" class="rounded-xl" />
+          <UInput v-model="coreOrg" class="rounded-[var(--ui-control-radius)]" />
         </UFormField>
       </div>
       <UFormField label="Note" class="mt-5">
-        <UTextarea v-model="coreNote" class="rounded-xl" autoresize :max-rows="8" />
+        <UTextarea v-model="coreNote" class="rounded-[var(--ui-control-radius)]" autoresize :max-rows="8" />
       </UFormField>
     </UCard>
 
-    <UCard class="mt-6 overflow-hidden rounded-2xl shadow-sm ring-1 ring-zinc-950/[0.04]">
+    <UCard class="mt-6 overflow-hidden rounded-[var(--ui-panel-radius)] shadow-sm ring-1 ring-zinc-950/[0.04]">
       <template #header>
         <div class="flex items-center justify-between gap-4">
           <span class="font-semibold text-zinc-900">Custom fields</span>
-          <UButton size="xs" color="neutral" icon="i-lucide-plus" class="rounded-full" @click="showAddField = true">
+          <UButton size="xs" color="neutral" icon="i-lucide-plus" class="rounded-[var(--ui-control-radius)]" @click="showAddField = true">
             Add field
           </UButton>
         </div>
@@ -361,7 +361,7 @@ const kindLabel = computed(() =>
       <div
         v-for="f in sortedFields()"
         :key="f.id"
-        class="mb-4 flex flex-wrap items-start gap-2 rounded-xl border border-zinc-100 bg-zinc-50/70 p-3"
+        class="mb-4 flex flex-wrap items-start gap-2 rounded-[var(--ui-control-radius)] border border-zinc-100 bg-zinc-50/70 p-3"
       >
         <div class="min-w-0 flex-1">
           <div class="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
@@ -371,7 +371,7 @@ const kindLabel = computed(() =>
           <UTextarea
             v-if="f.fieldType === 'longtext' || f.fieldType === 'address'"
             :model-value="fieldVals[f.id]"
-            class="mt-2 w-full rounded-xl"
+            class="mt-2 w-full rounded-[var(--ui-control-radius)]"
             autoresize
             :max-rows="8"
             @update:model-value="v => onFieldUpdate(f.id, v ?? '')"
@@ -380,20 +380,20 @@ const kindLabel = computed(() =>
             v-else-if="f.fieldType === 'date'"
             :model-value="fieldVals[f.id]"
             type="date"
-            class="mt-2 w-full rounded-xl"
+            class="mt-2 w-full rounded-[var(--ui-control-radius)]"
             @update:model-value="v => onFieldUpdate(f.id, v ?? '')"
           />
           <UInput
             v-else
             :model-value="fieldVals[f.id]"
-            class="mt-2 w-full rounded-xl"
+            class="mt-2 w-full rounded-[var(--ui-control-radius)]"
             :type="f.fieldType === 'email' ? 'email' : f.fieldType === 'url' ? 'url' : 'text'"
             @update:model-value="v => onFieldUpdate(f.id, v ?? '')"
           />
         </div>
         <button
           type="button"
-          class="rounded-full p-2 text-zinc-400 hover:bg-white hover:text-red-600"
+          class="rounded-[var(--ui-control-radius)] p-2 text-zinc-400 hover:bg-white hover:text-red-600"
           title="Remove"
           @click="removeField(f.id)"
         >
@@ -405,11 +405,11 @@ const kindLabel = computed(() =>
       </p>
     </UCard>
 
-    <UCard class="mt-6 overflow-hidden rounded-2xl shadow-sm ring-1 ring-zinc-950/[0.04]">
+    <UCard class="mt-6 overflow-hidden rounded-[var(--ui-panel-radius)] shadow-sm ring-1 ring-zinc-950/[0.04]">
       <template #header>
         <div class="flex items-center justify-between gap-4">
           <span class="font-semibold text-zinc-900">Linked notes</span>
-          <UButton size="xs" color="neutral" icon="i-lucide-plus" class="rounded-full" @click="openLinkNotes">
+          <UButton size="xs" color="neutral" icon="i-lucide-plus" class="rounded-[var(--ui-control-radius)]" @click="openLinkNotes">
             Link
           </UButton>
         </div>
@@ -419,14 +419,14 @@ const kindLabel = computed(() =>
         <li
           v-for="n in detail.linkedNotes"
           :key="n.id"
-          class="flex items-center justify-between rounded-xl bg-zinc-50/80 px-3 py-2"
+          class="flex items-center justify-between rounded-[var(--ui-control-radius)] bg-zinc-50/80 px-3 py-2"
         >
           <NuxtLink :to="{ path: '/', query: { note: n.id } }" class="text-[13px] font-medium text-zinc-900 hover:underline">
             {{ n.title || 'Untitled' }}
           </NuxtLink>
           <button
             type="button"
-            class="rounded-full p-1.5 text-zinc-400 hover:bg-white hover:text-red-600"
+            class="rounded-[var(--ui-control-radius)] p-1.5 text-zinc-400 hover:bg-white hover:text-red-600"
             aria-label="Unlink note"
             @click="unlinkNote(n.id)"
           >
@@ -445,7 +445,7 @@ const kindLabel = computed(() =>
         class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/35 px-4 backdrop-blur-sm"
         @click.self="showAddField = false"
       >
-        <UCard class="ui-scrollbar max-h-[80vh] w-full max-w-md overflow-auto rounded-2xl">
+        <UCard class="ui-scrollbar max-h-[80vh] w-full max-w-md overflow-auto rounded-[var(--ui-panel-radius)]">
           <template #header>
             <span class="font-semibold text-zinc-900">Add field</span>
           </template>
@@ -458,7 +458,7 @@ const kindLabel = computed(() =>
               v-for="t in missingTemplates"
               :key="t.id"
               type="button"
-              class="flex w-full rounded-xl border border-zinc-100 bg-zinc-50 px-4 py-2.5 text-left text-[13px] font-medium text-zinc-800 hover:bg-white"
+              class="flex w-full rounded-[var(--ui-control-radius)] border border-zinc-100 bg-zinc-50 px-4 py-2.5 text-left text-[13px] font-medium text-zinc-800 hover:bg-white"
               @click="addTemplateField(t)"
             >
               <span>{{ t.label }}</span>
@@ -473,7 +473,7 @@ const kindLabel = computed(() =>
               Ad-hoc
             </div>
             <UFormField label="Label">
-              <UInput v-model="newFieldLabel" class="rounded-xl" />
+              <UInput v-model="newFieldLabel" class="rounded-[var(--ui-control-radius)]" />
             </UFormField>
             <UFormField label="Type">
               <select v-model="newFieldType" class="ui-select w-full">
@@ -487,10 +487,10 @@ const kindLabel = computed(() =>
               </select>
             </UFormField>
             <div class="flex justify-end gap-2 pt-2">
-              <UButton variant="ghost" color="neutral" class="rounded-full" @click="showAddField = false">
+              <UButton variant="ghost" color="neutral" class="rounded-[var(--ui-control-radius)]" @click="showAddField = false">
                 Close
               </UButton>
-              <UButton color="neutral" class="rounded-full" @click="addAdHocField">
+              <UButton color="neutral" class="rounded-[var(--ui-control-radius)]" @click="addAdHocField">
                 Add
               </UButton>
             </div>
@@ -503,7 +503,7 @@ const kindLabel = computed(() =>
         class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/35 px-4 backdrop-blur-sm"
         @click.self="linkNoteModal = false"
       >
-        <UCard class="ui-scrollbar max-h-[80vh] w-full max-w-md overflow-auto rounded-2xl">
+        <UCard class="ui-scrollbar max-h-[80vh] w-full max-w-md overflow-auto rounded-[var(--ui-panel-radius)]">
           <template #header>
             <span class="font-semibold text-zinc-900">Pick a note</span>
           </template>
@@ -511,7 +511,7 @@ const kindLabel = computed(() =>
             <li v-for="n in noteSearchRows" :key="n.id">
               <button
                 type="button"
-                class="flex w-full rounded-xl px-4 py-2.5 text-left text-[13px] hover:bg-zinc-100"
+                class="flex w-full rounded-[var(--ui-control-radius)] px-4 py-2.5 text-left text-[13px] hover:bg-zinc-100"
                 :disabled="linking"
                 @click="linkNote(n.id)"
               >
@@ -521,7 +521,7 @@ const kindLabel = computed(() =>
           </ul>
           <template #footer>
             <div class="flex justify-end">
-              <UButton variant="ghost" color="neutral" class="rounded-full" @click="linkNoteModal = false">
+              <UButton variant="ghost" color="neutral" class="rounded-[var(--ui-control-radius)]" @click="linkNoteModal = false">
                 Cancel
               </UButton>
             </div>

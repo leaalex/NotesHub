@@ -38,10 +38,14 @@ const title = ref('')
 const content = ref('')
 const excerpt = ref('')
 const shareUrl = ref('')
-const newFolderName = ref('')
-const showNewFolder = ref(false)
 const creatingNote = ref(false)
-const creatingFolder = ref(false)
+
+const {
+  newFolderName,
+  showNewFolder,
+  creatingFolder,
+  createFolder,
+} = useNewFolderModal(folders)
 
 /** Заголовки текущей заметки для Notion-like навигации (клиент-only). */
 const noteOutline = ref<NoteOutlineItem[]>([])
@@ -363,28 +367,6 @@ watch(currentNote, v => {
     noteOutline.value = []
 })
 
-async function createFolder() {
-  const name = newFolderName.value.trim()
-  if (!name) return
-  creatingFolder.value = true
-  try {
-    const row = await apiRequest<FolderRow>('/api/folders', {
-      method: 'POST',
-      body: { name },
-    })
-    folders.value = [...folders.value, row].sort((a, b) =>
-      a.position !== b.position ? a.position - b.position : a.name.localeCompare(b.name))
-    newFolderName.value = ''
-    showNewFolder.value = false
-  }
-  catch (e: unknown) {
-    notifyApiError('Could not create folder', e)
-  }
-  finally {
-    creatingFolder.value = false
-  }
-}
-
 async function deleteNote() {
   if (!selectedNoteId.value) return
   await apiFetch(`/api/notes/${selectedNoteId.value}`, { method: 'DELETE' })
@@ -427,7 +409,7 @@ async function disableShareLink() {
             variant="ghost"
             color="neutral"
             square
-            class="rounded-full ring-1 ring-zinc-200/80 hover:bg-white/80"
+            class="rounded-[var(--ui-control-radius)] ring-1 ring-zinc-200/80 hover:bg-white/80"
             icon="i-lucide-folder-plus"
             aria-label="New folder"
             @click="showNewFolder = true"
@@ -436,7 +418,7 @@ async function disableShareLink() {
         <nav class="flex flex-col gap-1 text-[13px]">
           <button
             type="button"
-            class="flex w-full items-center gap-2 rounded-full px-3 py-2 text-left font-medium transition-colors"
+            class="flex w-full items-center gap-2 rounded-[var(--ui-control-radius)] px-3 py-2 text-left font-medium transition-colors"
             :class="folderFilter === 'all'
               ? 'bg-zinc-900 text-white shadow-sm'
               : 'text-zinc-600 hover:bg-white/70'"
@@ -447,7 +429,7 @@ async function disableShareLink() {
           </button>
           <button
             type="button"
-            class="flex w-full items-center gap-2 rounded-full px-3 py-2 text-left font-medium transition-colors"
+            class="flex w-full items-center gap-2 rounded-[var(--ui-control-radius)] px-3 py-2 text-left font-medium transition-colors"
             :class="folderFilter === 'unfiled'
               ? 'bg-zinc-900 text-white shadow-sm'
               : 'text-zinc-600 hover:bg-white/70'"
@@ -460,7 +442,7 @@ async function disableShareLink() {
             v-for="f in folders"
             :key="f.id"
             type="button"
-            class="flex w-full items-center gap-2 rounded-full px-3 py-2 text-left font-medium transition-colors"
+            class="flex w-full items-center gap-2 rounded-[var(--ui-control-radius)] px-3 py-2 text-left font-medium transition-colors"
             :class="folderFilter === f.id
               ? 'bg-zinc-900 text-white shadow-sm'
               : 'text-zinc-600 hover:bg-white/70'"
@@ -482,7 +464,7 @@ async function disableShareLink() {
           size="xs"
           color="neutral"
           type="button"
-          class="rounded-full px-3 shadow-sm ring-1 ring-zinc-900/10"
+          class="rounded-[var(--ui-control-radius)] px-3 shadow-sm ring-1 ring-zinc-900/10"
           :loading="creatingNote"
           :on-click="createNote"
         >
@@ -490,14 +472,14 @@ async function disableShareLink() {
           New
         </UButton>
       </div>
-      <ul class="ui-scrollbar flex flex-1 flex-col gap-2 overflow-y-auto px-3 pb-4">
+      <ul class="ui-scrollbar flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-3 pb-4">
         <li v-for="n in notes" :key="n.id">
           <button
             type="button"
-            class="group flex w-full flex-col items-start rounded-2xl border px-3 py-3 text-left transition-all duration-200"
+            class="group flex w-full flex-col items-start rounded-[var(--ui-control-radius)] border px-4 py-3 text-left shadow-sm ring-1 transition-all"
             :class="selectedNoteId === n.id
-              ? 'border-zinc-900/25 bg-white'
-              : 'border-transparent bg-white/40 hover:border-zinc-200/80 hover:bg-white/70 hover:shadow-sm'"
+              ? 'border-zinc-900/15 bg-white shadow-[0_1px_0_rgba(0,0,0,0.04),0_12px_40px_-18px_rgba(24,24,27,0.35)] ring-zinc-900/[0.06]'
+              : 'border-transparent bg-white/50 ring-zinc-950/[0.03] hover:border-zinc-200/80 hover:bg-white/80 hover:shadow-md'"
             @click="selectNote(n.id)"
           >
             <div class="flex w-full items-start justify-between gap-2">
@@ -536,14 +518,14 @@ async function disableShareLink() {
             class="min-w-[12rem] flex-1 font-semibold tracking-tight"
             :ui="{ base: 'text-xl placeholder:text-zinc-300' }"
           />
-          <div class="flex shrink-0 flex-wrap items-center gap-1.5 rounded-full bg-zinc-50/90 p-1 ring-1 ring-zinc-950/[0.04]">
+          <div class="flex shrink-0 flex-wrap items-center gap-1.5 rounded-[var(--ui-control-radius)] bg-zinc-50/90 p-1 ring-1 ring-zinc-950/[0.04]">
             <UButton
               v-if="!currentNote.shareEnabled"
               size="xs"
               variant="ghost"
               color="neutral"
               icon="i-lucide-link"
-              class="rounded-full px-3"
+              class="rounded-[var(--ui-control-radius)] px-3"
               @click="enableShareLink"
             >
               Share
@@ -554,7 +536,7 @@ async function disableShareLink() {
                 variant="ghost"
                 color="neutral"
                 icon="i-lucide-copy"
-                class="rounded-full px-3"
+                class="rounded-[var(--ui-control-radius)] px-3"
                 @click="enableShareLink"
               >
                 Copy link
@@ -564,7 +546,7 @@ async function disableShareLink() {
                 color="error"
                 variant="ghost"
                 icon="i-lucide-link-2-off"
-                class="rounded-full px-3"
+                class="rounded-[var(--ui-control-radius)] px-3"
                 @click="disableShareLink"
               >
                 Stop
@@ -575,7 +557,7 @@ async function disableShareLink() {
               color="error"
               variant="ghost"
               icon="i-lucide-trash-2"
-              class="rounded-full px-3"
+              class="rounded-[var(--ui-control-radius)] px-3"
               @click="deleteNote"
             >
               Delete
@@ -622,7 +604,7 @@ async function disableShareLink() {
                   v-for="item in noteOutline"
                   :key="item.id"
                   type="button"
-                  class="flex w-full max-w-full rounded-lg px-2 py-1.5 text-left text-[12px] leading-snug text-zinc-600 transition-colors hover:bg-white/85 hover:text-zinc-900"
+                  class="flex w-full max-w-full rounded-[var(--ui-control-radius)] px-2 py-1.5 text-left text-[12px] leading-snug text-zinc-600 transition-colors hover:bg-white/85 hover:text-zinc-900"
                   :style="{ paddingLeft: `${8 + (item.level - 1) * 12}px` }"
                   @click="scrollNoteToHeading(item.id)"
                 >
@@ -641,7 +623,7 @@ async function disableShareLink() {
                 </UiSectionLabel>
                 <button
                   type="button"
-                  class="rounded-full px-2 py-0.5 text-[11px] font-semibold text-zinc-600 hover:bg-white/85"
+                  class="rounded-[var(--ui-control-radius)] px-2 py-0.5 text-[11px] font-semibold text-zinc-600 hover:bg-white/85"
                   @click="showLinkContact = true"
                 >
                   + Link
@@ -651,7 +633,7 @@ async function disableShareLink() {
                 <li
                   v-for="c in linkedContacts"
                   :key="c.contactId"
-                  class="flex items-start justify-between gap-1 rounded-lg bg-white/50 px-2 py-1.5 ring-1 ring-zinc-950/[0.04]"
+                  class="flex items-start justify-between gap-1 rounded-[var(--ui-control-radius)] bg-white/50 px-2 py-1.5 ring-1 ring-zinc-950/[0.04]"
                 >
                   <NuxtLink
                     class="flex min-w-0 flex-col text-left hover:underline"
@@ -662,7 +644,7 @@ async function disableShareLink() {
                   </NuxtLink>
                   <button
                     type="button"
-                    class="shrink-0 rounded-full p-1 text-zinc-400 hover:bg-white hover:text-red-600"
+                    class="shrink-0 rounded-[var(--ui-control-radius)] p-1 text-zinc-400 hover:bg-white hover:text-red-600"
                     aria-label="Unlink contact"
                     @click="unlinkContact(c.contactId)"
                   >
@@ -689,7 +671,7 @@ async function disableShareLink() {
       >
         <template #actions>
           <UButton
-            class="rounded-full px-6 shadow-md ring-1 ring-zinc-900/10"
+            class="rounded-[var(--ui-control-radius)] px-6 shadow-md ring-1 ring-zinc-900/10"
             color="neutral"
             size="md"
             icon="i-lucide-plus"
@@ -703,32 +685,12 @@ async function disableShareLink() {
     </div>
   </LayoutAppThreeColumn>
 
-  <Teleport to="body">
-    <div
-      v-if="showNewFolder"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/40 px-4 backdrop-blur-[2px]"
-      @click.self="showNewFolder = false"
-    >
-      <UCard class="w-full max-w-md overflow-hidden rounded-2xl border border-white/60 bg-white/90 shadow-2xl shadow-zinc-950/15 ring-1 ring-zinc-950/[0.06] backdrop-blur-xl">
-        <template #header>
-          <span class="font-semibold tracking-tight text-zinc-900">New folder</span>
-        </template>
-        <UFormField label="Name">
-          <UInput v-model="newFolderName" autofocus class="rounded-xl" @keyup.enter="createFolder" />
-        </UFormField>
-        <template #footer>
-          <div class="flex justify-end gap-2">
-            <UButton variant="ghost" color="neutral" icon="i-lucide-x" class="rounded-full" @click="showNewFolder = false">
-              Cancel
-            </UButton>
-            <UButton icon="i-lucide-check" color="neutral" :loading="creatingFolder" class="rounded-full" :on-click="createFolder">
-              Create
-            </UButton>
-          </div>
-        </template>
-      </UCard>
-    </div>
-  </Teleport>
+  <UiNewFolderDialog
+    v-model:open="showNewFolder"
+    v-model:name="newFolderName"
+    :creating="creatingFolder"
+    @submit="createFolder"
+  />
 
   <Teleport to="body">
     <div
@@ -736,11 +698,11 @@ async function disableShareLink() {
       class="fixed inset-0 z-[60] flex items-center justify-center bg-zinc-950/40 px-4 backdrop-blur-[2px]"
       @click.self="showLinkContact = false"
     >
-      <UCard class="max-h-[80vh] w-full max-w-md overflow-hidden rounded-2xl border border-white/60 bg-white/95 shadow-2xl ring-1 ring-zinc-950/[0.06] backdrop-blur-xl">
+      <UCard class="max-h-[80vh] w-full max-w-md overflow-hidden rounded-[var(--ui-panel-radius)] border border-white/60 bg-white/95 shadow-2xl ring-1 ring-zinc-950/[0.06] backdrop-blur-xl">
         <template #header>
           <span class="font-semibold text-zinc-900">Link a contact</span>
         </template>
-        <UInput v-model="linkContactQuery" placeholder="Search…" icon="i-lucide-search" class="rounded-xl" />
+        <UInput v-model="linkContactQuery" placeholder="Search…" icon="i-lucide-search" class="rounded-[var(--ui-control-radius)]" />
         <ul class="mt-3 space-y-1 overflow-y-auto" style="max-height:min(320px,50vh);">
           <li v-if="pickerContactsFiltered.length === 0" class="px-3 py-6 text-center text-[13px] text-zinc-400">
             Nothing to show yet.
@@ -748,17 +710,17 @@ async function disableShareLink() {
           <li v-for="c in pickerContactsFiltered" :key="c.id">
             <button
               type="button"
-              class="flex w-full items-center rounded-xl px-3 py-2.5 text-left text-[13px] hover:bg-zinc-50"
+              class="flex w-full items-center rounded-[var(--ui-control-radius)] px-3 py-2.5 text-left text-[13px] hover:bg-zinc-50"
               @click="linkContactPick(c.id)"
             >
               <span class="line-clamp-1 font-medium">{{ c.displayName }}</span>
-              <span class="ml-auto rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-zinc-500">{{ c.type }}</span>
+              <span class="ml-auto rounded-[var(--ui-control-radius)] bg-zinc-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-zinc-500">{{ c.type }}</span>
             </button>
           </li>
         </ul>
         <template #footer>
           <div class="flex justify-end">
-            <UButton variant="ghost" color="neutral" class="rounded-full" @click="showLinkContact = false">
+            <UButton variant="ghost" color="neutral" class="rounded-[var(--ui-control-radius)]" @click="showLinkContact = false">
               Close
             </UButton>
           </div>

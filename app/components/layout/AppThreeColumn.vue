@@ -37,7 +37,7 @@ const mainPaneClasses = computed(() =>
 
     <aside
       v-if="hasFolders && foldersRailOpen"
-      class="relative z-10 flex w-[13.5rem] shrink-0 flex-col border-r border-white/60 bg-white/45 backdrop-blur-xl supports-[backdrop-filter]:bg-white/35"
+      class="ui-scrollbar relative z-10 flex min-h-0 w-[13.5rem] shrink-0 flex-col overflow-y-auto border-r border-white/60 bg-white/45 backdrop-blur-xl supports-[backdrop-filter]:bg-white/35"
     >
       <slot name="folders" />
     </aside>
@@ -51,6 +51,7 @@ const mainPaneClasses = computed(() =>
         'min-h-0',
         'shrink-0',
         'flex-col',
+        'overflow-hidden',
         'border-r',
         'border-white/50',
         'bg-white/30',

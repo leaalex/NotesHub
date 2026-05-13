@@ -173,29 +173,42 @@ export const BlockToolbar = Extension.create({
 
           const pill = document.createElement('div')
           pill.className
-            = 'pointer-events-auto flex items-center gap-px rounded-full border border-zinc-200/90 bg-white/95 px-0.5 py-px shadow-[0_12px_36px_-20px_rgba(24,24,27,0.5)] backdrop-blur-xl ring-1 ring-zinc-950/[0.04]'
+            = 'pointer-events-auto flex items-center gap-px rounded-[var(--ui-control-radius)] border border-zinc-200/90 bg-white/95 px-0.5 py-px shadow-[0_12px_36px_-20px_rgba(24,24,27,0.5)] backdrop-blur-xl ring-1 ring-zinc-950/[0.04]'
 
           const grip = document.createElement('button')
           grip.type = 'button'
           grip.title = 'Drag to move block'
           grip.className
-            = 'flex size-6 shrink-0 cursor-grab items-center justify-center rounded-full text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 active:cursor-grabbing'
+            = 'flex size-6 shrink-0 cursor-grab items-center justify-center rounded-[var(--ui-control-radius)] text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 active:cursor-grabbing'
           grip.innerHTML = '<span class="text-[11px] leading-none tracking-tighter select-none">⋮⋮</span>'
 
           const menuBtn = document.createElement('button')
           menuBtn.type = 'button'
           menuBtn.title = 'Turn into…'
           menuBtn.className
-            = 'flex size-6 shrink-0 items-center justify-center rounded-full text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900'
+            = 'flex size-6 shrink-0 items-center justify-center rounded-[var(--ui-control-radius)] text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900'
           menuBtn.innerHTML = '<span class="text-[13px] font-semibold leading-none">+</span>'
 
           pill.appendChild(grip)
           pill.appendChild(menuBtn)
-          root.appendChild(pill)
+
+          const hoverRow = document.createElement('div')
+          hoverRow.className
+            = 'flex flex-row items-center pointer-events-none'
+
+          const bridge = document.createElement('div')
+          bridge.setAttribute('aria-hidden', 'true')
+          bridge.title = ''
+          bridge.className
+            = 'note-block-toolbar__bridge pointer-events-auto shrink-0 cursor-default bg-transparent'
+
+          hoverRow.appendChild(pill)
+          hoverRow.appendChild(bridge)
+          root.appendChild(hoverRow)
 
           const menu = document.createElement('div')
           menu.className
-            = 'pointer-events-auto hidden min-w-[220px] rounded-2xl border border-zinc-200/90 bg-white/95 py-1.5 shadow-[0_22px_55px_-28px_rgba(24,24,27,0.55)] backdrop-blur-xl ring-1 ring-zinc-950/[0.04]'
+            = 'pointer-events-auto hidden min-w-[220px] rounded-[var(--ui-panel-radius)] border border-zinc-200/90 bg-white/95 py-1.5 shadow-[0_22px_55px_-28px_rgba(24,24,27,0.55)] backdrop-blur-xl ring-1 ring-zinc-950/[0.04]'
           root.appendChild(menu)
 
           document.body.appendChild(root)
@@ -218,7 +231,7 @@ export const BlockToolbar = Extension.create({
           function ensureIndicator(): HTMLDivElement {
             if (!indicator) {
               indicator = document.createElement('div')
-              indicator.className = 'pointer-events-none fixed z-[185] h-0.5 rounded-full bg-zinc-900/75'
+              indicator.className = 'pointer-events-none fixed z-[185] h-0.5 rounded-[var(--ui-control-radius)] bg-zinc-900/75'
               document.body.appendChild(indicator)
             }
             return indicator
@@ -231,10 +244,10 @@ export const BlockToolbar = Extension.create({
           }
 
           function positionMenuNearToolbar() {
-            const rootRect = root.getBoundingClientRect()
+            const pillRect = pill.getBoundingClientRect()
             menu.style.position = 'fixed'
-            menu.style.left = `${Math.round(rootRect.right + 8)}px`
-            menu.style.top = `${Math.round(rootRect.top)}px`
+            menu.style.left = `${Math.round(pillRect.right + 8)}px`
+            menu.style.top = `${Math.round(pillRect.top)}px`
             menu.style.zIndex = '200'
           }
 
@@ -277,6 +290,42 @@ export const BlockToolbar = Extension.create({
             clearTimeout(hideTimer)
           }
 
+          function pointerInsideToolbarHud(clientX: number, clientY: number): boolean {
+            if (root.style.display === 'none')
+              return false
+            const r = root.getBoundingClientRect()
+            return clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom
+          }
+
+          function onGlobalPointerMove(e: MouseEvent) {
+            if (dragActive)
+              return
+            if (pointerInsideToolbarHud(e.clientX, e.clientY)) {
+              pointerOverToolbar = true
+              cancelHideToolbar()
+            }
+          }
+
+          function layoutToolbarHud(blockRect: DOMRect) {
+            const gapPx = 6
+            const overlapIntoEditorPx = 22
+            const minBridgePx = 32
+            const pillW = pill.offsetWidth || 48
+            const pillH = pill.offsetHeight || 28
+            const rootLeft = Math.round(Math.max(4, blockRect.left - pillW - gapPx))
+            const rootTop = Math.round(Math.max(4, blockRect.top + blockRect.height / 2 - pillH / 2))
+            root.style.left = `${rootLeft}px`
+            root.style.top = `${rootTop}px`
+
+            const spanToBlockEdge = blockRect.left - rootLeft - pillW
+            const bridgeW = Math.max(minBridgePx, spanToBlockEdge + overlapIntoEditorPx)
+            bridge.style.width = `${Math.round(bridgeW)}px`
+            bridge.style.minHeight = `${Math.round(Math.max(pillH, blockRect.height))}px`
+
+            if (menuOpen)
+              positionMenuNearToolbar()
+          }
+
           function positionToolbar(block: BlockRange) {
             const rect = blockDomRect(pmView, block)
             if (!rect)
@@ -284,20 +333,9 @@ export const BlockToolbar = Extension.create({
             root.style.display = 'flex'
             root.style.opacity = '1'
             root.style.position = 'fixed'
-            const gapPx = 10
-            /** Prime layout so offsetWidth reflects compact pill size */
-            root.style.left = `${Math.round(Math.max(4, rect.left - 72))}px`
-            root.style.top = `${Math.round(rect.top)}px`
 
-            requestAnimationFrame(() => {
-              const tb = root.getBoundingClientRect()
-              const left = rect.left - tb.width - gapPx
-              const top = rect.top + rect.height / 2 - tb.height / 2
-              root.style.left = `${Math.round(Math.max(4, left))}px`
-              root.style.top = `${Math.round(Math.max(4, top))}px`
-              if (menuOpen)
-                positionMenuNearToolbar()
-            })
+            layoutToolbarHud(rect)
+            requestAnimationFrame(() => layoutToolbarHud(rect))
           }
 
           function scheduleSync(selPos: number) {
@@ -430,6 +468,7 @@ export const BlockToolbar = Extension.create({
           }
 
           document.addEventListener('mousedown', onDocMouseDown)
+          document.addEventListener('mousemove', onGlobalPointerMove, { passive: true })
           pmView.dom.addEventListener('mousemove', onMouseMove)
           pmView.dom.addEventListener('mouseleave', onMouseLeave)
 
@@ -453,6 +492,7 @@ export const BlockToolbar = Extension.create({
               cancelAnimationFrame(raf)
               clearTimeout(hideTimer)
               document.removeEventListener('mousedown', onDocMouseDown)
+              document.removeEventListener('mousemove', onGlobalPointerMove)
               document.removeEventListener('mousemove', onDragMouseMove)
               document.removeEventListener('mouseup', onDragMouseUp)
               pmView.dom.removeEventListener('mousemove', onMouseMove)
