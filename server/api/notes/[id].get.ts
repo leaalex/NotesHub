@@ -1,6 +1,7 @@
 import { and, eq } from 'drizzle-orm'
-import { notes } from '../../database/schema'
+import { files, noteFiles, notes } from '../../database/schema'
 import { db } from '../../utils/db'
+import { toFileDto } from '../../utils/file-dto'
 import { requireUserSession } from '../../utils/session'
 
 export default defineEventHandler(async (event) => {
@@ -17,5 +18,15 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Not found' })
   }
 
-  return row
+  const linkedFiles = await db
+    .select({ file: files })
+    .from(noteFiles)
+    .innerJoin(files, eq(noteFiles.fileId, files.id))
+    .where(and(eq(noteFiles.noteId, id), eq(files.userId, session.user.id)))
+
+  const config = useRuntimeConfig()
+  return {
+    ...row,
+    linkedFiles: linkedFiles.map(x => toFileDto(x.file, config.public.siteUrl as string)),
+  }
 })

@@ -22,6 +22,13 @@
       "when": 1778648786876,
       "tag": "0002_previous_black_panther",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1778660849133,
+      "tag": "0003_pale_silvermane",
+      "breakpoints": true
     }
   ]
 }

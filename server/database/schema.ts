@@ -235,6 +235,79 @@ export const noteContacts = sqliteTable(
   ]
 )
 
+export const files = sqliteTable(
+  'files',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    folderId: text('folder_id').references(() => folders.id, {
+      onDelete: 'set null',
+    }),
+    originalName: text('original_name').notNull(),
+    mimeType: text('mime_type').notNull(),
+    size: integer('size').notNull(),
+    storagePath: text('storage_path').notNull(),
+    shareToken: text('share_token').unique(),
+    shareEnabled: integer('share_enabled', { mode: 'boolean' })
+      .notNull()
+      .default(false),
+    shareExpiresAt: integer('share_expires_at', { mode: 'timestamp_ms' }),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .default(sql`(strftime('%s','now') * 1000)`),
+    updatedAt: integer('updated_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .default(sql`(strftime('%s','now') * 1000)`),
+  },
+  (t) => [
+    index('files_user_idx').on(t.userId),
+    index('files_folder_idx').on(t.folderId),
+    index('files_share_idx').on(t.shareToken),
+  ]
+)
+
+export const noteFiles = sqliteTable(
+  'note_files',
+  {
+    noteId: text('note_id')
+      .notNull()
+      .references(() => notes.id, { onDelete: 'cascade' }),
+    fileId: text('file_id')
+      .notNull()
+      .references(() => files.id, { onDelete: 'cascade' }),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .default(sql`(strftime('%s','now') * 1000)`),
+  },
+  (t) => [
+    primaryKey({ columns: [t.noteId, t.fileId] }),
+    index('nf_note_idx').on(t.noteId),
+    index('nf_file_idx').on(t.fileId),
+  ]
+)
+
+export const contactFiles = sqliteTable(
+  'contact_files',
+  {
+    contactId: text('contact_id')
+      .notNull()
+      .references(() => contacts.id, { onDelete: 'cascade' }),
+    fileId: text('file_id')
+      .notNull()
+      .references(() => files.id, { onDelete: 'cascade' }),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .default(sql`(strftime('%s','now') * 1000)`),
+  },
+  (t) => [
+    primaryKey({ columns: [t.contactId, t.fileId] }),
+    index('cf_contact_idx').on(t.contactId),
+    index('cf_file_idx').on(t.fileId),
+  ]
+)
+
 export const folderRelations = relations(folders, ({ one, many }) => ({
   user: one(user, {
     fields: [folders.userId],
@@ -248,6 +321,7 @@ export const folderRelations = relations(folders, ({ one, many }) => ({
   children: many(folders, { relationName: 'folderHierarchy' }),
   notes: many(notes),
   contacts: many(contacts),
+  files: many(files),
 }))
 
 export const noteRelations = relations(notes, ({ one, many }) => ({
@@ -260,6 +334,7 @@ export const noteRelations = relations(notes, ({ one, many }) => ({
     references: [folders.id],
   }),
   linkedContacts: many(noteContacts),
+  linkedFiles: many(noteFiles),
 }))
 
 export const contactRelations = relations(contacts, ({ one, many }) => ({
@@ -273,6 +348,7 @@ export const contactRelations = relations(contacts, ({ one, many }) => ({
   }),
   fieldValues: many(contactFieldValues),
   linkedNotes: many(noteContacts),
+  linkedFiles: many(contactFiles),
 }))
 
 export const contactFieldTemplateRelations = relations(
@@ -308,5 +384,40 @@ export const noteContactRelations = relations(noteContacts, ({ one }) => ({
   contact: one(contacts, {
     fields: [noteContacts.contactId],
     references: [contacts.id],
+  }),
+}))
+
+export const fileRelations = relations(files, ({ one, many }) => ({
+  user: one(user, {
+    fields: [files.userId],
+    references: [user.id],
+  }),
+  folder: one(folders, {
+    fields: [files.folderId],
+    references: [folders.id],
+  }),
+  linkedNotes: many(noteFiles),
+  linkedContacts: many(contactFiles),
+}))
+
+export const noteFileRelations = relations(noteFiles, ({ one }) => ({
+  note: one(notes, {
+    fields: [noteFiles.noteId],
+    references: [notes.id],
+  }),
+  file: one(files, {
+    fields: [noteFiles.fileId],
+    references: [files.id],
+  }),
+}))
+
+export const contactFileRelations = relations(contactFiles, ({ one }) => ({
+  contact: one(contacts, {
+    fields: [contactFiles.contactId],
+    references: [contacts.id],
+  }),
+  file: one(files, {
+    fields: [contactFiles.fileId],
+    references: [files.id],
   }),
 }))

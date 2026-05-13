@@ -23,6 +23,7 @@ type NoteDetail = NoteList & {
   content: string
   shareToken: string | null
   shareEnabled: boolean
+  linkedFiles?: AppFile[]
 }
 
 /** Same-origin fetch с cookie сессии (надёжнее глобального `$fetch` при SSR/клиенте) */
@@ -57,9 +58,22 @@ type LinkedContact = {
   source: string
 }
 
+type AppFile = {
+  id: string
+  originalName: string
+  mimeType: string
+  size: number
+  shareEnabled: boolean
+  shareToken: string | null
+  shareUrl: string | null
+  downloadUrl: string
+}
+
 const linkedContacts = ref<LinkedContact[]>([])
+const linkedFiles = ref<AppFile[]>([])
 const showLinkContact = ref(false)
 const linkContactQuery = ref('')
+const noteFileInput = ref<HTMLInputElement | null>(null)
 
 const route = useRoute()
 const router = useRouter()
@@ -167,6 +181,7 @@ function openNoteFromRow(n: NoteDetail) {
     nextTick(() => {
       hydratingNote.value = false
       refreshLinkedContacts()
+      refreshLinkedFiles()
     })
   }
 }
@@ -201,6 +216,22 @@ async function refreshLinkedContacts(opts?: { signal?: AbortSignal }) {
   }
 }
 
+async function refreshLinkedFiles(opts?: { signal?: AbortSignal }) {
+  const id = selectedNoteId.value
+  if (!id) {
+    linkedFiles.value = []
+    return
+  }
+  try {
+    linkedFiles.value = await apiFetch<AppFile[]>(`/api/notes/${id}/files`, {
+      ...(opts?.signal ? { signal: opts.signal } : {}),
+    })
+  }
+  catch {
+    linkedFiles.value = []
+  }
+}
+
 async function linkContactPick(contactId: string) {
   const id = selectedNoteId.value
   if (!id) return
@@ -215,6 +246,61 @@ async function unlinkContact(contactId: string) {
   if (!id) return
   await apiFetch(`/api/notes/${id}/contacts/${contactId}`, { method: 'DELETE' })
   await refreshLinkedContacts()
+}
+
+function openNoteFilePicker() {
+  noteFileInput.value?.click()
+}
+
+async function onNoteFilePicked(event: Event) {
+  const id = selectedNoteId.value
+  if (!id) return
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  const form = new FormData()
+  form.append('file', file, file.name)
+
+  try {
+    const uploaded = await apiFetch<AppFile>('/api/files/upload', {
+      method: 'POST',
+      body: form,
+    })
+    await apiFetch(`/api/notes/${id}/files`, {
+      method: 'POST',
+      body: { fileId: uploaded.id },
+    })
+    await refreshLinkedFiles()
+  }
+  catch (e: unknown) {
+    notifyApiError('Could not upload file', e)
+  }
+  finally {
+    input.value = ''
+  }
+}
+
+async function unlinkFileFromNote(fileId: string) {
+  const id = selectedNoteId.value
+  if (!id) return
+  await apiFetch(`/api/notes/${id}/files/${fileId}`, { method: 'DELETE' })
+  await refreshLinkedFiles()
+}
+
+async function deleteFileEverywhere(fileId: string) {
+  await apiFetch(`/api/files/${fileId}`, { method: 'DELETE' })
+  await refreshLinkedFiles()
+}
+
+async function toggleFileShare(fileId: string, nextEnabled: boolean) {
+  if (nextEnabled) {
+    await apiFetch(`/api/files/${fileId}/share`, { method: 'POST', body: {} })
+  }
+  else {
+    await apiFetch(`/api/files/${fileId}/share`, { method: 'DELETE' })
+  }
+  await refreshLinkedFiles()
 }
 
 type ContactChip = {
@@ -272,6 +358,7 @@ watch(folderFilter, async () => {
   selectedNoteId.value = null
   currentNote.value = null
   linkedContacts.value = []
+  linkedFiles.value = []
   await refreshNotes()
 })
 
@@ -291,6 +378,7 @@ async function selectNote(id: string, opts?: { signal?: AbortSignal }) {
     await nextTick()
     hydratingNote.value = false
     await refreshLinkedContacts()
+    await refreshLinkedFiles()
   }
 }
 
@@ -307,6 +395,7 @@ async function createNote() {
     upsertNoteInLocalList(row)
     openNoteFromRow(row)
     await refreshLinkedContacts()
+    await refreshLinkedFiles()
   }
   catch (e: unknown) {
     notifyApiError('Could not create note', e)
@@ -333,6 +422,7 @@ watchDebounced(
       })
       upsertNoteInLocalList(row)
       await refreshLinkedContacts()
+      await refreshLinkedFiles()
       if (currentNote.value?.id === row.id)
         currentNote.value = { ...currentNote.value, ...row }
     }
@@ -373,6 +463,7 @@ async function deleteNote() {
   selectedNoteId.value = null
   currentNote.value = null
   linkedContacts.value = []
+  linkedFiles.value = []
   await refreshNotes()
 }
 
@@ -595,6 +686,12 @@ async function disableShareLink() {
           <aside
             class="ui-scrollbar hidden w-[17rem] shrink-0 overflow-y-auto border-l border-zinc-100/90 bg-white/20 px-3 py-5 xl:flex xl:flex-col xl:gap-0"
           >
+            <input
+              ref="noteFileInput"
+              type="file"
+              class="hidden"
+              @change="onNoteFilePicked"
+            >
             <div>
               <UiSectionLabel>
                 On this page
@@ -654,6 +751,36 @@ async function disableShareLink() {
               </ul>
               <p v-else class="mt-3 text-[11px] leading-relaxed text-zinc-400">
                 No linked contacts. Use “+ Link” or <span class="font-medium text-zinc-500">@</span> in the note body.
+              </p>
+            </div>
+
+            <div class="mt-8 shrink-0 border-t border-zinc-100/80 pt-5">
+              <div class="flex items-center justify-between gap-2">
+                <UiSectionLabel>
+                  Linked files
+                </UiSectionLabel>
+                <button
+                  type="button"
+                  class="rounded-[var(--ui-control-radius)] px-2 py-0.5 text-[11px] font-semibold text-zinc-600 hover:bg-white/85"
+                  @click="openNoteFilePicker"
+                >
+                  + File
+                </button>
+              </div>
+              <div v-if="linkedFiles.length" class="mt-3 flex flex-col gap-2">
+                <FilesFileAttachmentItem
+                  v-for="f in linkedFiles"
+                  :key="f.id"
+                  :file="f"
+                  show-unlink
+                  show-delete
+                  @unlink="unlinkFileFromNote"
+                  @delete="deleteFileEverywhere"
+                  @toggle-share="(fileId, nextEnabled) => toggleFileShare(fileId, nextEnabled)"
+                />
+              </div>
+              <p v-else class="mt-3 text-[11px] leading-relaxed text-zinc-400">
+                No files yet. Attach one to share, preview, or download.
               </p>
             </div>
           </aside>

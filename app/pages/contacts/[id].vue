@@ -10,6 +10,17 @@ type FieldRow = {
   position: number
 }
 
+type AppFile = {
+  id: string
+  originalName: string
+  mimeType: string
+  size: number
+  shareEnabled: boolean
+  shareToken: string | null
+  shareUrl: string | null
+  downloadUrl: string
+}
+
 type ContactDetail = {
   id: string
   type: string
@@ -21,6 +32,7 @@ type ContactDetail = {
   folderId: string | null
   fields: FieldRow[]
   linkedNotes: { id: string, title: string }[]
+  linkedFiles: AppFile[]
 }
 
 type TemplateRow = {
@@ -65,6 +77,7 @@ const newFieldType = ref('text')
 const linkNoteModal = ref(false)
 const noteSearchRows = ref<NoteSearch[]>([])
 const linking = ref(false)
+const fileInput = ref<HTMLInputElement | null>(null)
 
 function initials(name: string) {
   const p = name.trim().split(/\s+/).slice(0, 2).map(w => w[0]?.toUpperCase() ?? '').join('')
@@ -96,7 +109,10 @@ async function load() {
   hydrating.value = true
   try {
     const row = await apiFetch<ContactDetail>(`/api/contacts/${id}`)
-    detail.value = row
+    detail.value = {
+      ...row,
+      linkedFiles: row.linkedFiles ?? [],
+    }
     coreFirst.value = row.firstName ?? ''
     coreLast.value = row.lastName ?? ''
     coreOrg.value = row.orgName ?? ''
@@ -262,6 +278,66 @@ async function linkNote(noteId: string) {
   }
 }
 
+async function refreshLinkedFiles() {
+  if (!detail.value)
+    return
+  detail.value.linkedFiles = await apiFetch<AppFile[]>(`/api/contacts/${detail.value.id}/files`)
+}
+
+function openFilePicker() {
+  fileInput.value?.click()
+}
+
+async function onFilePicked(event: Event) {
+  if (!detail.value)
+    return
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file)
+    return
+  const form = new FormData()
+  form.append('file', file, file.name)
+
+  try {
+    const uploaded = await apiFetch<AppFile>('/api/files/upload', {
+      method: 'POST',
+      body: form,
+    })
+    await apiFetch(`/api/contacts/${detail.value.id}/files`, {
+      method: 'POST',
+      body: { fileId: uploaded.id },
+    })
+    await refreshLinkedFiles()
+  }
+  catch (e) {
+    toast.add({ title: 'Could not upload file', color: 'error' })
+    console.error(e)
+  }
+  finally {
+    input.value = ''
+  }
+}
+
+async function unlinkFile(fileId: string) {
+  if (!detail.value)
+    return
+  await apiFetch(`/api/contacts/${detail.value.id}/files/${fileId}`, { method: 'DELETE' })
+  await refreshLinkedFiles()
+}
+
+async function deleteFileEverywhere(fileId: string) {
+  await apiFetch(`/api/files/${fileId}`, { method: 'DELETE' })
+  await refreshLinkedFiles()
+}
+
+async function toggleFileShare(fileId: string, nextEnabled: boolean) {
+  if (nextEnabled)
+    await apiFetch(`/api/files/${fileId}/share`, { method: 'POST', body: {} })
+  else
+    await apiFetch(`/api/files/${fileId}/share`, { method: 'DELETE' })
+  await refreshLinkedFiles()
+}
+
 async function deleteContact() {
   if (!detail.value || !confirm('Delete this contact?'))
     return
@@ -294,39 +370,48 @@ const kindLabel = computed(() =>
   <div v-if="hydrating || !detail" class="flex flex-1 items-center justify-center p-16 text-zinc-400">
     Loading…
   </div>
-  <div v-else class="relative min-h-0 flex-1 px-4 py-6 sm:px-8 sm:py-8">
-    <div class="mb-8 flex flex-wrap items-start justify-between gap-4">
-      <div class="flex min-w-0 items-center gap-4">
-        <div
-          class="flex size-14 shrink-0 items-center justify-center rounded-[var(--ui-control-radius)] bg-zinc-900 text-lg font-semibold text-white shadow-lg"
-          aria-hidden="true"
-        >
-          {{ initials(detail.displayName) }}
-        </div>
-        <div class="min-w-0">
-          <span
-            class="mb-1 inline-block rounded-[var(--ui-control-radius)] bg-zinc-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-600"
+  <main v-else class="flex min-w-0 flex-1 flex-col p-4 sm:p-6">
+    <div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--ui-panel-radius)] border border-white/70 bg-white/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] backdrop-blur-md ring-1 ring-zinc-950/[0.04] supports-[backdrop-filter]:bg-white/45">
+      <header class="flex shrink-0 flex-wrap items-start justify-between gap-4 border-b border-zinc-100/90 px-4 py-4 sm:px-6">
+        <div class="flex min-w-0 items-center gap-4">
+          <div
+            class="flex size-14 shrink-0 items-center justify-center rounded-[var(--ui-control-radius)] bg-zinc-900 text-lg font-semibold text-white shadow-lg"
+            aria-hidden="true"
           >
-            {{ kindLabel }}
-          </span>
-          <h1 class="truncate text-2xl font-semibold tracking-tight text-zinc-900">
-            {{ detail.displayName }}
-          </h1>
+            {{ initials(detail.displayName) }}
+          </div>
+          <div class="min-w-0">
+            <span
+              class="mb-1 inline-block rounded-[var(--ui-control-radius)] bg-zinc-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-600"
+            >
+              {{ kindLabel }}
+            </span>
+            <h1 class="truncate text-2xl font-semibold tracking-tight text-zinc-900">
+              {{ detail.displayName }}
+            </h1>
+          </div>
         </div>
-      </div>
-      <UButton
-        icon="i-lucide-trash-2"
-        color="error"
-        variant="soft"
-        :loading="deleting"
-        class="rounded-[var(--ui-control-radius)]"
-        @click="deleteContact"
-      >
-        Delete
-      </UButton>
-    </div>
+        <UButton
+          icon="i-lucide-trash-2"
+          color="error"
+          variant="soft"
+          :loading="deleting"
+          class="rounded-[var(--ui-control-radius)]"
+          @click="deleteContact"
+        >
+          Delete
+        </UButton>
+      </header>
 
-    <UCard class="overflow-hidden rounded-[var(--ui-panel-radius)] shadow-sm ring-1 ring-zinc-950/[0.04]">
+      <div class="relative flex min-h-0 flex-1 overflow-hidden">
+        <div class="ui-scrollbar relative min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-8 sm:py-8">
+          <input
+            ref="fileInput"
+            type="file"
+            class="hidden"
+            @change="onFilePicked"
+          >
+          <UCard class="overflow-hidden rounded-[var(--ui-panel-radius)] shadow-sm ring-1 ring-zinc-950/[0.04]">
       <template #header>
         <span class="font-semibold text-zinc-900">Basics</span>
       </template>
@@ -348,7 +433,7 @@ const kindLabel = computed(() =>
       </UFormField>
     </UCard>
 
-    <UCard class="mt-6 overflow-hidden rounded-[var(--ui-panel-radius)] shadow-sm ring-1 ring-zinc-950/[0.04]">
+          <UCard class="mt-6 overflow-hidden rounded-[var(--ui-panel-radius)] shadow-sm ring-1 ring-zinc-950/[0.04]">
       <template #header>
         <div class="flex items-center justify-between gap-4">
           <span class="font-semibold text-zinc-900">Custom fields</span>
@@ -437,7 +522,36 @@ const kindLabel = computed(() =>
       <p v-else class="text-[13px] text-zinc-400">
         No linked notes yet.
       </p>
-    </UCard>
+          </UCard>
+
+          <UCard class="mt-6 overflow-hidden rounded-[var(--ui-panel-radius)] shadow-sm ring-1 ring-zinc-950/[0.04]">
+            <template #header>
+              <div class="flex items-center justify-between gap-4">
+                <span class="font-semibold text-zinc-900">Linked files</span>
+                <UButton size="xs" color="neutral" icon="i-lucide-plus" class="rounded-[var(--ui-control-radius)]" @click="openFilePicker">
+                  Upload
+                </UButton>
+              </div>
+            </template>
+            <div v-if="detail.linkedFiles.length" class="space-y-2">
+              <FilesFileAttachmentItem
+                v-for="f in detail.linkedFiles"
+                :key="f.id"
+                :file="f"
+                show-unlink
+                show-delete
+                @unlink="unlinkFile"
+                @delete="deleteFileEverywhere"
+                @toggle-share="(fileId, nextEnabled) => toggleFileShare(fileId, nextEnabled)"
+              />
+            </div>
+            <p v-else class="text-[13px] text-zinc-400">
+              No linked files yet.
+            </p>
+          </UCard>
+        </div>
+      </div>
+    </div>
 
     <Teleport to="body">
       <div
@@ -529,5 +643,5 @@ const kindLabel = computed(() =>
         </UCard>
       </div>
     </Teleport>
-  </div>
+  </main>
 </template>

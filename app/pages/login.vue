@@ -72,7 +72,7 @@ async function submit() {
             <Icon name="i-lucide-feather" class="size-5" aria-hidden="true" />
           </div>
           <h1 class="mt-5 text-xl font-semibold tracking-tight text-zinc-900">
-            Arkhivarius
+            Archivarius
           </h1>
           <p class="mt-1.5 text-sm text-zinc-500">
             {{ mode === 'signin' ? 'Sign in to your workspace' : 'Create an account' }}

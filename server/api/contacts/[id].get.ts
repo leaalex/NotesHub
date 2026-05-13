@@ -1,11 +1,14 @@
 import { and, asc, eq } from 'drizzle-orm'
 import {
+  contactFiles,
   contactFieldValues,
   contacts,
+  files,
   noteContacts,
   notes,
 } from '../../database/schema'
 import { db } from '../../utils/db'
+import { toFileDto } from '../../utils/file-dto'
 import { requireUserSession } from '../../utils/session'
 
 export default defineEventHandler(async (event) => {
@@ -41,9 +44,18 @@ export default defineEventHandler(async (event) => {
     ))
     .orderBy(notes.updatedAt)
 
+  const linkedFiles = await db
+    .select({ file: files })
+    .from(contactFiles)
+    .innerJoin(files, eq(contactFiles.fileId, files.id))
+    .where(and(eq(contactFiles.contactId, id), eq(files.userId, session.user.id)))
+    .orderBy(files.updatedAt)
+
+  const config = useRuntimeConfig()
   return {
     ...contact,
     fields,
     linkedNotes,
+    linkedFiles: linkedFiles.map(x => toFileDto(x.file, config.public.siteUrl as string)),
   }
 })
