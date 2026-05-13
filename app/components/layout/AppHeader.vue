@@ -100,19 +100,21 @@ const menuItems = computed(() => {
         />
       </div>
 
-      <nav class="flex min-w-0 flex-1 justify-center gap-1 sm:gap-1.5" aria-label="Main">
-        <NuxtLink
-          v-for="l in links"
-          :key="l.to"
-          :to="l.to"
-          class="flex items-center gap-2 rounded-full px-3 py-2 text-[13px] font-medium transition-colors"
-          :class="isActive(l.to)
-            ? 'bg-zinc-900 text-white shadow-sm'
-            : 'text-zinc-600 hover:bg-white/70'"
-        >
-          <Icon :name="l.icon" class="size-4 shrink-0 opacity-90" aria-hidden="true" />
-          <span class="truncate">{{ l.label }}</span>
-        </NuxtLink>
+      <nav class="flex min-w-0 flex-1 justify-center" aria-label="Main">
+        <div class="flex items-center gap-1 rounded-full bg-zinc-50/90 p-1 ring-1 ring-zinc-950/[0.04]">
+          <NuxtLink
+            v-for="l in links"
+            :key="l.to"
+            :to="l.to"
+            class="flex items-center gap-2 rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors"
+            :class="isActive(l.to)
+              ? 'bg-zinc-900 text-white shadow-sm'
+              : 'text-zinc-600 hover:bg-white/70'"
+          >
+            <Icon :name="l.icon" class="size-4 shrink-0 opacity-90" aria-hidden="true" />
+            <span class="truncate">{{ l.label }}</span>
+          </NuxtLink>
+        </div>
       </nav>
 
       <div class="flex shrink-0 items-center justify-end">

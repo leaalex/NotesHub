@@ -413,13 +413,13 @@ async function disableShareLink() {
 </script>
 
 <template>
-  <AppThreeColumn>
+  <LayoutAppThreeColumn>
     <template #folders>
       <div class="flex flex-col gap-4 border-b border-zinc-200/40 p-4 pb-3">
         <div class="flex items-start justify-between gap-2">
           <div class="min-w-0">
             <div class="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
-              Notes
+              Folders
             </div>
           </div>
           <UButton
@@ -702,7 +702,7 @@ async function disableShareLink() {
         </UButton>
       </div>
     </div>
-  </AppThreeColumn>
+  </LayoutAppThreeColumn>
 
   <Teleport to="body">
     <div

@@ -112,12 +112,12 @@ function cardClasses(c: ContactRow) {
 
 <template>
   <NuxtPage v-if="isTemplatesOnly" />
-  <AppThreeColumn v-else right-pane-scrollable>
+  <LayoutAppThreeColumn v-else right-pane-scrollable>
     <template #folders>
       <div class="flex flex-col gap-4 border-b border-zinc-200/40 p-4 pb-3">
         <div class="min-w-0">
           <div class="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
-            Contacts
+            Folders
           </div>
         </div>
         <nav class="flex flex-col gap-1 text-[13px]">
@@ -225,7 +225,7 @@ function cardClasses(c: ContactRow) {
     </template>
 
     <NuxtPage />
-  </AppThreeColumn>
+  </LayoutAppThreeColumn>
 </template>
 
 <style scoped>

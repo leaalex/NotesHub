@@ -16,12 +16,12 @@ onMounted(async () => {
 </script>
 
 <template>
-  <AppThreeColumn>
+  <LayoutAppThreeColumn>
     <template #folders>
       <div class="flex flex-col gap-4 border-b border-zinc-200/40 p-4 pb-3">
         <div class="min-w-0">
           <div class="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
-            Files
+            Folders
           </div>
         </div>
         <nav class="flex flex-col gap-1 text-[13px]">
@@ -93,8 +93,7 @@ onMounted(async () => {
 
     <div class="flex min-h-0 flex-1 flex-col items-center justify-center p-8 text-center">
       <div class="max-w-sm rounded-[1.35rem] border border-white/70 bg-white/50 px-10 py-12 shadow-[0_24px_80px_-32px_rgba(24,24,27,0.35)] backdrop-blur-md ring-1 ring-zinc-950/[0.04] supports-[backdrop-filter]:bg-white/40">
-        <Icon name="i-lucide-image" class="mx-auto size-8 text-zinc-400" aria-hidden="true" />
-        <h2 class="mt-4 text-lg font-semibold tracking-tight text-zinc-900">
+        <h2 class="text-lg font-semibold tracking-tight text-zinc-900">
           Media library is coming soon
         </h2>
         <p class="mt-2 text-sm leading-relaxed text-zinc-500">
@@ -102,5 +101,5 @@ onMounted(async () => {
         </p>
       </div>
     </div>
-  </AppThreeColumn>
+  </LayoutAppThreeColumn>
 </template>
