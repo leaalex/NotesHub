@@ -85,19 +85,36 @@ const menuItems = computed(() => {
   <header
     class="sticky top-0 z-40 border-b border-white/60 bg-white/55 backdrop-blur-xl ring-1 ring-zinc-950/[0.04] supports-[backdrop-filter]:bg-white/45"
   >
-    <div class="flex h-14 w-full items-center gap-4 px-4 sm:gap-6 sm:px-6">
-      <div v-if="showFoldersRailToggle" class="flex w-10 shrink-0 justify-start">
-        <UButton
-          variant="ghost"
-          color="neutral"
-          square
-          size="sm"
-          class="rounded-[var(--ui-control-radius)] ring-1 ring-zinc-200/80 hover:bg-white/80"
-          :icon="foldersRailOpen ? 'i-lucide-panel-left-close' : 'i-lucide-panel-left-open'"
-          :aria-label="foldersRailOpen ? 'Hide folders' : 'Show folders'"
-          :aria-pressed="foldersRailOpen"
-          @click="toggleFoldersRail()"
-        />
+    <div class="flex h-14 w-full items-center gap-3 px-4 sm:gap-4 sm:px-6">
+      <div class="flex min-w-0 shrink-0 items-center gap-1 sm:gap-2">
+        <NuxtLink
+          to="/"
+          class="-m-1 flex min-w-0 shrink-0 items-center gap-2.5 rounded-[var(--ui-control-radius)] px-2 py-1 text-zinc-900 outline-none hover:bg-white/65 focus-visible:ring-2 focus-visible:ring-zinc-900/25 sm:gap-3"
+          aria-label="Archivarius — Home"
+        >
+          <LogoMark class="h-6 w-auto shrink-0 sm:h-7" />
+          <span
+            class="h-6 w-[1px] shrink-0 bg-zinc-300/95 sm:h-7"
+            aria-hidden="true"
+            role="presentation"
+          />
+          <span class="truncate text-[14px] font-semibold tracking-tight sm:text-[15px]">
+            Archivarius
+          </span>
+        </NuxtLink>
+        <div v-if="showFoldersRailToggle" class="flex shrink-0">
+          <UButton
+            variant="ghost"
+            color="neutral"
+            square
+            size="sm"
+            class="rounded-[var(--ui-control-radius)] ring-1 ring-zinc-200/80 hover:bg-white/80"
+            :icon="foldersRailOpen ? 'i-lucide-panel-left-close' : 'i-lucide-panel-left-open'"
+            :aria-label="foldersRailOpen ? 'Hide folders' : 'Show folders'"
+            :aria-pressed="foldersRailOpen"
+            @click="toggleFoldersRail()"
+          />
+        </div>
       </div>
 
       <nav class="flex min-w-0 flex-1 justify-center" aria-label="Main">
@@ -117,7 +134,9 @@ const menuItems = computed(() => {
         </div>
       </nav>
 
-      <div class="flex shrink-0 items-center justify-end">
+      <div class="flex shrink-0 flex-wrap items-center justify-end gap-2">
+        <LogoColorPicker />
+
         <UButton
           v-if="!user"
           to="/login"
