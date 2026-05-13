@@ -116,9 +116,9 @@ function cardClasses(c: ContactRow) {
     <template #folders>
       <div class="flex flex-col gap-4 border-b border-zinc-200/40 p-4 pb-3">
         <div class="min-w-0">
-          <div class="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
+          <UiSectionLabel>
             Folders
-          </div>
+          </UiSectionLabel>
         </div>
         <nav class="flex flex-col gap-1 text-[13px]">
           <button
@@ -163,9 +163,9 @@ function cardClasses(c: ContactRow) {
     <template #cards>
       <div class="flex flex-wrap items-center justify-between gap-3 px-4 pb-2 pt-4">
         <div class="flex flex-wrap items-center gap-2">
-          <span class="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-400">
+          <UiSectionLabel>
             Directory
-          </span>
+          </UiSectionLabel>
           <select
             v-model="typeFilter"
             class="rounded-full border border-zinc-200/80 bg-white/80 px-3 py-1.5 text-[12px] font-medium text-zinc-700"
@@ -200,7 +200,7 @@ function cardClasses(c: ContactRow) {
       <div class="px-4 pb-2">
         <UInput v-model="search" placeholder="Search…" icon="i-lucide-search" size="sm" class="w-full rounded-2xl" />
       </div>
-      <ul class="contacts-scrollbar flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-4 pb-6">
+      <ul class="ui-scrollbar flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-4 pb-6">
         <li v-for="c in contacts" :key="c.id">
           <button
             type="button"
@@ -227,28 +227,3 @@ function cardClasses(c: ContactRow) {
     <NuxtPage />
   </LayoutAppThreeColumn>
 </template>
-
-<style scoped>
-.contacts-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: rgb(228 228 231 / 0.9) transparent;
-}
-.contacts-scrollbar::-webkit-scrollbar {
-  width: 6px;
-}
-.contacts-scrollbar::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: rgb(228 228 231 / 0.95);
-}
-.notes-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: rgb(228 228 231 / 0.9) transparent;
-}
-.notes-scrollbar::-webkit-scrollbar {
-  width: 6px;
-}
-.notes-scrollbar::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: rgb(228 228 231 / 0.95);
-}
-</style>

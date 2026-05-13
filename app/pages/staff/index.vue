@@ -6,18 +6,21 @@ const links = [
 </script>
 
 <template>
-  <div class="mx-auto max-w-2xl p-8">
-    <h1 class="text-xl font-semibold">
+  <div class="ui-page-wrap ui-page-wrap--narrow py-8">
+    <UiSectionLabel>
+      Admin
+    </UiSectionLabel>
+    <h1 class="mt-3 ui-page-title">
       Administration
     </h1>
-    <p class="mt-1 text-sm text-zinc-500">
+    <p class="ui-page-subtitle">
       Manage application data and accounts (admin only).
     </p>
     <ul class="mt-8 space-y-3">
       <li v-for="l in links" :key="l.to">
         <NuxtLink
           :to="l.to"
-          class="flex items-start gap-3 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm transition hover:border-zinc-300 hover:shadow"
+          class="flex items-start gap-3 rounded-2xl border border-zinc-200 bg-white/90 p-4 shadow-sm ring-1 ring-zinc-950/[0.03] transition hover:border-zinc-300 hover:bg-white"
         >
           <Icon :name="l.icon" class="mt-0.5 size-5 text-zinc-500" aria-hidden="true" />
           <div>

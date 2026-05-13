@@ -309,7 +309,7 @@ const kindLabel = computed(() =>
           >
             {{ kindLabel }}
           </span>
-          <h1 class="truncate text-2xl font-bold tracking-tight text-zinc-900">
+          <h1 class="truncate text-2xl font-semibold tracking-tight text-zinc-900">
             {{ detail.displayName }}
           </h1>
         </div>
@@ -445,7 +445,7 @@ const kindLabel = computed(() =>
         class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/35 px-4 backdrop-blur-sm"
         @click.self="showAddField = false"
       >
-        <UCard class="max-h-[80vh] w-full max-w-md overflow-auto rounded-2xl">
+        <UCard class="ui-scrollbar max-h-[80vh] w-full max-w-md overflow-auto rounded-2xl">
           <template #header>
             <span class="font-semibold text-zinc-900">Add field</span>
           </template>
@@ -476,7 +476,7 @@ const kindLabel = computed(() =>
               <UInput v-model="newFieldLabel" class="rounded-xl" />
             </UFormField>
             <UFormField label="Type">
-              <select v-model="newFieldType" class="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-[13px]">
+              <select v-model="newFieldType" class="ui-select w-full">
                 <option value="text">Text</option>
                 <option value="email">Email</option>
                 <option value="phone">Phone</option>
@@ -503,7 +503,7 @@ const kindLabel = computed(() =>
         class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/35 px-4 backdrop-blur-sm"
         @click.self="linkNoteModal = false"
       >
-        <UCard class="max-h-[80vh] w-full max-w-md overflow-auto rounded-2xl">
+        <UCard class="ui-scrollbar max-h-[80vh] w-full max-w-md overflow-auto rounded-2xl">
           <template #header>
             <span class="font-semibold text-zinc-900">Pick a note</span>
           </template>

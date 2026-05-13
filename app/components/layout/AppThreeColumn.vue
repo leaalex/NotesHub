@@ -20,7 +20,7 @@ const hasCards = computed(() => typeof slots.cards === 'function')
 const mainPaneClasses = computed(() =>
   props.rightPaneScrollable
     ? [
-        'notes-scrollbar',
+        'ui-scrollbar',
         'overflow-y-auto',
         'border-l',
         'border-zinc-100/90',

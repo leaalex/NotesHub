@@ -43,16 +43,19 @@ function scrollShareToHeading(id: string) {
     <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_45%_at_50%_-15%,rgba(24,24,27,0.06),transparent)]" />
 
     <div class="relative z-10 mx-auto max-w-5xl">
-      <div v-if="pending" class="rounded-2xl border border-white/60 bg-white/50 px-6 py-16 text-center text-sm text-zinc-500 backdrop-blur-md">
+      <UiGlassPanel v-if="pending" class="px-6 py-16 text-center text-sm text-zinc-500">
         Loading…
-      </div>
-      <div v-else-if="error" class="rounded-2xl border border-red-100/90 bg-red-50/90 px-5 py-4 text-sm text-red-900 backdrop-blur-sm">
-        This note is not available (link disabled or expired).
-      </div>
+      </UiGlassPanel>
+      <UiEmptyState
+        v-else-if="error"
+        icon="i-lucide-link-2-off"
+        title="This note is not available"
+        description="The share link is disabled or expired."
+      />
       <div v-else-if="data">
-        <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
+        <UiSectionLabel>
           Shared
-        </p>
+        </UiSectionLabel>
         <h1 class="mt-3 text-3xl font-semibold tracking-tight text-zinc-900 sm:text-[2rem]">
           {{ data.title || 'Untitled' }}
         </h1>
@@ -60,9 +63,9 @@ function scrollShareToHeading(id: string) {
           Updated {{ new Date(data.updatedAt).toLocaleString() }}
         </p>
 
-        <div class="mt-10 overflow-hidden rounded-[1.35rem] border border-white/70 bg-white/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] backdrop-blur-md ring-1 ring-zinc-950/[0.04] supports-[backdrop-filter]:bg-white/45">
+        <div class="mt-10 overflow-hidden rounded-[var(--ui-panel-radius)] border border-white/70 bg-white/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] backdrop-blur-md ring-1 ring-zinc-950/[0.04] supports-[backdrop-filter]:bg-white/45">
           <div class="flex max-h-[min(72vh,52rem)] min-h-[min(40vh,28rem)] overflow-hidden">
-            <div class="notes-scrollbar-share min-h-0 flex-1 overflow-y-auto p-5 sm:p-8">
+            <div class="ui-scrollbar min-h-0 flex-1 overflow-y-auto p-5 sm:p-8">
               <ClientOnly>
                 <NotesLexicalNoteEditor
                   :note-key="`share-${token}-${data.updatedAt}`"
@@ -81,17 +84,17 @@ function scrollShareToHeading(id: string) {
             </div>
 
             <aside
-              class="notes-scrollbar-share hidden w-[13.5rem] shrink-0 overflow-y-auto border-l border-zinc-100/90 bg-white/25 px-3 py-5 xl:block"
+              class="ui-scrollbar hidden w-[13.5rem] shrink-0 overflow-y-auto border-l border-zinc-100/90 bg-white/25 px-3 py-5 xl:block"
             >
-              <div class="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-400">
+              <UiSectionLabel>
                 On this page
-              </div>
+              </UiSectionLabel>
               <nav v-if="shareOutline.length" class="mt-3 space-y-0.5" aria-label="Outline">
                 <button
                   v-for="item in shareOutline"
                   :key="item.id"
                   type="button"
-                  class="flex w-full max-w-full rounded-lg px-2 py-1.5 text-left text-[12px] leading-snug text-zinc-600 transition-colors hover:bg-white/85 hover:text-zinc-900"
+                  class="flex w-full max-w-full rounded-xl px-2 py-1.5 text-left text-[12px] leading-snug text-zinc-600 transition-colors hover:bg-white/85 hover:text-zinc-900"
                   :style="{ paddingLeft: `${8 + (item.level - 1) * 12}px` }"
                   @click="scrollShareToHeading(item.id)"
                 >
@@ -108,17 +111,3 @@ function scrollShareToHeading(id: string) {
     </div>
   </div>
 </template>
-
-<style scoped>
-.notes-scrollbar-share {
-  scrollbar-width: thin;
-  scrollbar-color: rgb(228 228 231 / 0.9) transparent;
-}
-.notes-scrollbar-share::-webkit-scrollbar {
-  width: 6px;
-}
-.notes-scrollbar-share::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: rgb(228 228 231 / 0.95);
-}
-</style>

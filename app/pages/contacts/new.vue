@@ -92,7 +92,7 @@ function cancel() {
         </button>
       </div>
 
-      <div class="mt-6 space-y-3 rounded-2xl border border-zinc-100/90 bg-white/60 p-5 ring-1 ring-zinc-950/[0.03]">
+      <UiGlassPanel class="mt-6 space-y-3 p-5">
         <template v-if="newTab === 'person'">
           <UFormField label="First name">
             <UInput v-model="newFirst" class="rounded-xl" />
@@ -109,7 +109,7 @@ function cancel() {
         <UFormField label="Note (optional)">
           <UTextarea v-model="newNote" class="rounded-xl" autoresize :max-rows="6" />
         </UFormField>
-      </div>
+      </UiGlassPanel>
 
       <div class="mt-6 flex justify-end gap-2">
         <UButton variant="ghost" color="neutral" class="rounded-full" @click="cancel">

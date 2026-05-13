@@ -1,0 +1,27 @@
+---
+description: Единый радиус скругления для полей, кнопок и бейджей в формах (токен + Nuxt UI)
+globs: app/**/*.vue
+alwaysApply: false
+---
+
+# UI control radius (Archivarius / Notes)
+
+- **Токен контролов:** `--ui-control-radius` (0.375rem).
+- **Токен оболочки:** `--ui-panel-radius` = `calc(3 * var(--ui-control-radius))`; класс/утилита в Tailwind: `rounded-[var(--ui-panel-radius)]`.
+- **Утилита:** класс `ui-control-radius` для нативных элементов (`div`, `button`, `select` без Nuxt UI).
+- **Селекты:** класс `ui-select` уже использует `border-radius: var(--ui-control-radius)`.
+
+## Nuxt UI (`UInput`, `UButton`, и т.д.)
+
+Компоненты подставляют свой `rounded-md` / `rounded-full` на нужном слоте. Класс только на корневом `class=` часто **не меняет** сам `<input>` или `<button>` — смотри исходник (`data-slot`):
+
+- **`UInput`:** слот **`base`** (элемент `<input>`). Переопределение: `:ui="{ base: 'rounded-[length:var(--ui-control-radius)]' }"` или согласованный фиксированный класс того же размера.
+- **`UButton`:** слот **`base`**. Аналогично `:ui="{ base: '…' }"`.
+- **`UCard`:** слот **`root`** (`rounded-lg` по умолчанию). Для формы внутри стекла: `:ui="{ root: 'rounded-[var(--ui-control-radius)] …' }"`.
+- **`UAlert`:** слот **`root`**; можно задать класс `ui-control-radius` на компонент или `:ui="{ root: '…' }"`.
+
+На **одном экране формы** не смешивай для полей и primary submit разные радиусы (например `rounded-full` у кнопки и `rounded-md` у input): одна шкала для «контролов».
+
+## Оболочки (крупнее контролов)
+
+- **`--ui-panel-radius`:** `calc(3 * var(--ui-control-radius))` в [app/assets/css/main.css](app/assets/css/main.css). Используй `rounded-[var(--ui-panel-radius)]` для `UiGlassPanel` и аналогичных «стеклянных» контейнеров.

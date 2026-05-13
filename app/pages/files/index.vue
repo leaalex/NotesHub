@@ -20,9 +20,9 @@ onMounted(async () => {
     <template #folders>
       <div class="flex flex-col gap-4 border-b border-zinc-200/40 p-4 pb-3">
         <div class="min-w-0">
-          <div class="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
+          <UiSectionLabel>
             Folders
-          </div>
+          </UiSectionLabel>
         </div>
         <nav class="flex flex-col gap-1 text-[13px]">
           <button
@@ -66,9 +66,9 @@ onMounted(async () => {
 
     <template #cards>
       <div class="flex items-center justify-between gap-2 px-4 pb-3 pt-4">
-        <span class="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-400">
+        <UiSectionLabel>
           Library
-        </span>
+        </UiSectionLabel>
         <UButton
           size="xs"
           color="neutral"
@@ -80,26 +80,21 @@ onMounted(async () => {
           New
         </UButton>
       </div>
-      <div class="flex flex-1 flex-col items-center justify-center gap-2 px-6 pb-8 text-center">
-        <Icon name="i-lucide-image" class="size-10 text-zinc-300" aria-hidden="true" />
-        <p class="text-[13px] font-medium text-zinc-500">
-          Files coming soon
-        </p>
-        <p class="max-w-[12rem] text-[11px] leading-relaxed text-zinc-400">
-          Uploads and thumbnails will appear here.
-        </p>
+      <div class="px-4 pb-8 pt-2">
+        <UiEmptyState
+          icon="i-lucide-image"
+          title="Files coming soon"
+          description="Uploads and thumbnails will appear here."
+        />
       </div>
     </template>
 
     <div class="flex min-h-0 flex-1 flex-col items-center justify-center p-8 text-center">
-      <div class="max-w-sm rounded-[1.35rem] border border-white/70 bg-white/50 px-10 py-12 shadow-[0_24px_80px_-32px_rgba(24,24,27,0.35)] backdrop-blur-md ring-1 ring-zinc-950/[0.04] supports-[backdrop-filter]:bg-white/40">
-        <h2 class="text-lg font-semibold tracking-tight text-zinc-900">
-          Media library is coming soon
-        </h2>
-        <p class="mt-2 text-sm leading-relaxed text-zinc-500">
-          You will be able to upload and reuse files across notes here.
-        </p>
-      </div>
+      <UiEmptyState
+        icon="i-lucide-image"
+        title="Media library is coming soon"
+        description="You will be able to upload and reuse files across notes here."
+      />
     </div>
   </LayoutAppThreeColumn>
 </template>

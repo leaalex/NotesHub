@@ -121,7 +121,7 @@ async function removeTpl(id: string) {
         ← Contacts
       </NuxtLink>
       <div>
-        <h1 class="text-2xl font-bold tracking-tight text-zinc-900">
+        <h1 class="text-2xl font-semibold tracking-tight text-zinc-900">
           Field templates
         </h1>
         <p class="mt-1 text-sm text-zinc-500">
@@ -130,8 +130,8 @@ async function removeTpl(id: string) {
       </div>
     </div>
 
-    <div v-if="loading" class="rounded-2xl border border-dashed border-zinc-200 p-14 text-center text-zinc-400">
-      Loading…
+    <div v-if="loading">
+      <UiEmptyState title="Loading templates" description="Please wait while field templates are fetched." />
     </div>
 
     <div v-else class="grid gap-8 lg:grid-cols-2">
@@ -158,7 +158,7 @@ async function removeTpl(id: string) {
                   })"
               />
               <select
-                class="rounded-lg border border-zinc-200 bg-white px-2 py-1 text-[11px]"
+                class="ui-select"
                 @change="
                   evt => patchRow(row, {
                     fieldType: (evt.target as HTMLSelectElement).value,
@@ -204,7 +204,7 @@ async function removeTpl(id: string) {
                   })"
               />
               <select
-                class="rounded-lg border border-zinc-200 bg-white px-2 py-1 text-[11px]"
+                class="ui-select"
                 @change="
                   evt => patchRow(row, {
                     fieldType: (evt.target as HTMLSelectElement).value,

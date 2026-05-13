@@ -55,30 +55,36 @@ async function setRole(id: string, role: string) {
 </script>
 
 <template>
-  <div class="mx-auto max-w-4xl p-6">
-    <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+  <div class="ui-page-wrap ui-page-wrap--wide py-8">
+    <div class="ui-toolbar">
       <div>
-        <h1 class="text-lg font-semibold">
+        <UiSectionLabel>
+          Staff
+        </UiSectionLabel>
+        <h1 class="mt-3 ui-page-title">
           Users &amp; roles
         </h1>
-        <p class="text-sm text-zinc-500">
+        <p class="ui-page-subtitle">
           Better Auth admin plugin
         </p>
       </div>
       <div class="flex gap-2">
         <UInput v-model="q" placeholder="Search…" icon="i-lucide-search" class="w-48" />
-        <UButton to="/staff" color="neutral" variant="soft" icon="i-lucide-arrow-left">
+        <UButton to="/staff" color="neutral" variant="soft" class="rounded-full px-4" icon="i-lucide-arrow-left">
           Back
         </UButton>
       </div>
     </div>
 
-    <div v-if="loading" class="text-sm text-zinc-500">
-      Loading…
-    </div>
-    <div v-else class="overflow-hidden rounded-lg border border-zinc-200 bg-white">
+    <UiEmptyState
+      v-if="loading"
+      icon="i-lucide-loader-circle"
+      title="Loading users"
+      description="Fetching accounts and roles."
+    />
+    <div v-else class="ui-table-shell">
       <table class="w-full text-left text-sm">
-        <thead class="border-b border-zinc-100 bg-zinc-50">
+        <thead class="ui-table-head">
           <tr>
             <th class="px-3 py-2 font-medium">
               Name
@@ -101,7 +107,7 @@ async function setRole(id: string, role: string) {
             </td>
             <td class="px-3 py-2">
               <select
-                class="rounded border border-zinc-200 bg-white px-2 py-1 text-sm"
+                class="ui-select"
                 :value="u.role || 'user'"
                 @change="setRole(u.id, ($event.target as HTMLSelectElement).value)"
               >

@@ -34,32 +34,38 @@ onMounted(load)
 </script>
 
 <template>
-  <div class="mx-auto max-w-6xl p-6">
-    <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+  <div class="ui-page-wrap ui-page-wrap--wide py-8">
+    <div class="ui-toolbar">
       <div>
-        <h1 class="text-lg font-semibold">
+        <UiSectionLabel>
+          CMS
+        </UiSectionLabel>
+        <h1 class="mt-3 ui-page-title">
           Folders (admin)
         </h1>
-        <p class="text-sm text-zinc-500">
+        <p class="ui-page-subtitle">
           SQLite table <code class="rounded bg-zinc-100 px-1">folders</code>
         </p>
       </div>
       <div class="flex gap-2">
-        <UButton color="neutral" variant="soft" icon="i-lucide-refresh-cw" @click="load">
+        <UButton color="neutral" variant="soft" class="rounded-full px-4" icon="i-lucide-refresh-cw" @click="load">
           Refresh
         </UButton>
-        <UButton to="/cms" color="neutral" variant="soft" icon="i-lucide-arrow-left">
+        <UButton to="/cms" color="neutral" variant="soft" class="rounded-full px-4" icon="i-lucide-arrow-left">
           CMS home
         </UButton>
       </div>
     </div>
 
-    <div v-if="loading" class="text-sm text-zinc-500">
-      Loading…
-    </div>
-    <div v-else class="overflow-x-auto rounded-lg border border-zinc-200 bg-white">
+    <UiEmptyState
+      v-if="loading"
+      icon="i-lucide-loader-circle"
+      title="Loading folders"
+      description="Fetching rows from SQLite."
+    />
+    <div v-else class="ui-table-shell">
       <table class="w-full min-w-[56rem] text-left text-sm">
-        <thead class="border-b border-zinc-100 bg-zinc-50">
+        <thead class="ui-table-head">
           <tr>
             <th class="px-3 py-2 font-medium">
               Name

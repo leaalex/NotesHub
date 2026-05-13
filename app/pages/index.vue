@@ -418,9 +418,9 @@ async function disableShareLink() {
       <div class="flex flex-col gap-4 border-b border-zinc-200/40 p-4 pb-3">
         <div class="flex items-start justify-between gap-2">
           <div class="min-w-0">
-            <div class="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
+            <UiSectionLabel>
               Folders
-            </div>
+            </UiSectionLabel>
           </div>
           <UButton
             size="xs"
@@ -475,9 +475,9 @@ async function disableShareLink() {
 
     <template #cards>
       <div class="flex items-center justify-between gap-2 px-4 pb-3 pt-4">
-        <span class="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-400">
+        <UiSectionLabel>
           Library
-        </span>
+        </UiSectionLabel>
         <UButton
           size="xs"
           color="neutral"
@@ -490,7 +490,7 @@ async function disableShareLink() {
           New
         </UButton>
       </div>
-      <ul class="notes-scrollbar flex flex-1 flex-col gap-2 overflow-y-auto px-3 pb-4">
+      <ul class="ui-scrollbar flex flex-1 flex-col gap-2 overflow-y-auto px-3 pb-4">
         <li v-for="n in notes" :key="n.id">
           <button
             type="button"
@@ -526,7 +526,7 @@ async function disableShareLink() {
     </template>
 
     <main v-if="currentNote" class="flex min-w-0 flex-1 flex-col p-4 sm:p-6">
-      <div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[1.35rem] border border-white/70 bg-white/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] backdrop-blur-md ring-1 ring-zinc-950/[0.04] supports-[backdrop-filter]:bg-white/45">
+      <div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--ui-panel-radius)] border border-white/70 bg-white/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] backdrop-blur-md ring-1 ring-zinc-950/[0.04] supports-[backdrop-filter]:bg-white/45">
         <header class="flex shrink-0 flex-wrap items-center gap-2 border-b border-zinc-100/90 px-4 py-3 sm:px-6">
           <UInput
             v-model="title"
@@ -592,7 +592,7 @@ async function disableShareLink() {
         </div>
 
         <div class="relative flex min-h-0 flex-1 overflow-hidden">
-          <div class="notes-scrollbar relative min-h-0 flex-1 overflow-y-auto px-3 pb-10 pt-2 sm:px-8">
+          <div class="ui-scrollbar relative min-h-0 flex-1 overflow-y-auto px-3 pb-10 pt-2 sm:px-8">
             <ClientOnly>
               <NotesLexicalNoteEditor
                 :note-key="selectedNoteId || 'none'"
@@ -611,12 +611,12 @@ async function disableShareLink() {
           </div>
 
           <aside
-            class="notes-scrollbar hidden w-[17rem] shrink-0 overflow-y-auto border-l border-zinc-100/90 bg-white/20 px-3 py-5 xl:flex xl:flex-col xl:gap-0"
+            class="ui-scrollbar hidden w-[17rem] shrink-0 overflow-y-auto border-l border-zinc-100/90 bg-white/20 px-3 py-5 xl:flex xl:flex-col xl:gap-0"
           >
             <div>
-              <div class="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-400">
+              <UiSectionLabel>
                 On this page
-              </div>
+              </UiSectionLabel>
               <nav v-if="noteOutline.length" class="mt-3 space-y-0.5" aria-label="Outline">
                 <button
                   v-for="item in noteOutline"
@@ -636,9 +636,9 @@ async function disableShareLink() {
 
             <div class="mt-8 shrink-0 border-t border-zinc-100/80 pt-5">
               <div class="flex items-center justify-between gap-2">
-                <span class="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-400">
+                <UiSectionLabel>
                   Linked contacts
-                </span>
+                </UiSectionLabel>
                 <button
                   type="button"
                   class="rounded-full px-2 py-0.5 text-[11px] font-semibold text-zinc-600 hover:bg-white/85"
@@ -683,24 +683,23 @@ async function disableShareLink() {
       v-else
       class="flex min-w-0 flex-1 flex-col items-center justify-center px-8 py-12 text-center"
     >
-      <div class="max-w-sm rounded-[1.35rem] border border-white/70 bg-white/50 px-10 py-12 shadow-[0_24px_80px_-32px_rgba(24,24,27,0.35)] backdrop-blur-md ring-1 ring-zinc-950/[0.04] supports-[backdrop-filter]:bg-white/40">
-        <h2 class="text-lg font-semibold tracking-tight text-zinc-900">
-          Pick a note to write
-        </h2>
-        <p class="mt-2 text-sm leading-relaxed text-zinc-500">
-          Your drafts stay here — minimal surface, zero clutter.
-        </p>
-        <UButton
-          class="mt-8 rounded-full px-6 shadow-md ring-1 ring-zinc-900/10"
-          color="neutral"
-          size="md"
-          icon="i-lucide-plus"
-          :loading="creatingNote"
-          :on-click="createNote"
-        >
-          New note
-        </UButton>
-      </div>
+      <UiEmptyState
+        title="Pick a note to write"
+        description="Your drafts stay here — minimal surface, zero clutter."
+      >
+        <template #actions>
+          <UButton
+            class="rounded-full px-6 shadow-md ring-1 ring-zinc-900/10"
+            color="neutral"
+            size="md"
+            icon="i-lucide-plus"
+            :loading="creatingNote"
+            :on-click="createNote"
+          >
+            New note
+          </UButton>
+        </template>
+      </UiEmptyState>
     </div>
   </LayoutAppThreeColumn>
 
@@ -768,17 +767,3 @@ async function disableShareLink() {
     </div>
   </Teleport>
 </template>
-
-<style scoped>
-.notes-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: rgb(228 228 231 / 0.9) transparent;
-}
-.notes-scrollbar::-webkit-scrollbar {
-  width: 6px;
-}
-.notes-scrollbar::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: rgb(228 228 231 / 0.95);
-}
-</style>

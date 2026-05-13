@@ -1,6 +1,20 @@
 <script setup lang="ts">
 definePageMeta({ layout: false })
 
+useSeoMeta({ title: 'Arkhivarius' })
+
+/** Скругление полей/кнопки совпадает с `--ui-control-radius` в `main.css` (см. `.cursor/rules/ui-control-radius.mdc`). */
+const loginInputUi = {
+  base: 'rounded-[var(--ui-control-radius)]',
+}
+const loginButtonUi = {
+  base: 'rounded-[var(--ui-control-radius)] shadow-md ring-1 ring-zinc-900/10',
+}
+/** UCard темизирует корень слотом `root`, не `base`. */
+const loginCardUi = {
+  root: 'divide-y divide-zinc-200/70 rounded-[var(--ui-control-radius)] bg-transparent shadow-none ring-0',
+}
+
 const auth = useNotesAuth()
 const email = ref('')
 const password = ref('')
@@ -50,14 +64,15 @@ async function submit() {
     <div class="pointer-events-none absolute inset-0 bg-gradient-to-br from-zinc-50 via-white to-zinc-100" />
     <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_75%_55%_at_50%_-10%,rgba(24,24,27,0.07),transparent)]" />
 
-    <UCard class="relative z-10 w-full max-w-[420px] overflow-hidden rounded-[1.35rem] border border-white/70 bg-white/70 shadow-[0_28px_90px_-40px_rgba(24,24,27,0.45)] ring-1 ring-zinc-950/[0.05] backdrop-blur-xl supports-[backdrop-filter]:bg-white/55">
+    <UiGlassPanel class="relative z-10 w-full max-w-[420px] overflow-hidden bg-white/70 shadow-[0_28px_90px_-40px_rgba(24,24,27,0.45)] supports-[backdrop-filter]:bg-white/55">
+      <UCard :ui="loginCardUi" class="my-0 border-0 bg-transparent ring-0 shadow-none">
       <template #header>
         <div class="text-center">
-          <div class="mx-auto flex size-11 items-center justify-center rounded-2xl bg-zinc-900 text-white shadow-lg shadow-zinc-900/20">
+          <div class="mx-auto flex size-11 items-center justify-center bg-zinc-900 text-white shadow-lg shadow-zinc-900/20 ui-control-radius">
             <Icon name="i-lucide-feather" class="size-5" aria-hidden="true" />
           </div>
           <h1 class="mt-5 text-xl font-semibold tracking-tight text-zinc-900">
-            Notes
+            Arkhivarius
           </h1>
           <p class="mt-1.5 text-sm text-zinc-500">
             {{ mode === 'signin' ? 'Sign in to your workspace' : 'Create an account' }}
@@ -70,20 +85,20 @@ async function submit() {
         @submit.prevent="submit"
       >
         <UFormField v-if="mode === 'signup'" class="w-full" label="Name">
-          <UInput v-model="name" class="w-full rounded-xl" autocomplete="name" />
+          <UInput v-model="name" class="w-full" :ui="loginInputUi" autocomplete="name" />
         </UFormField>
         <UFormField class="w-full" label="Email" required>
-          <UInput v-model="email" class="w-full rounded-xl" type="email" autocomplete="email" required />
+          <UInput v-model="email" class="w-full" :ui="loginInputUi" type="email" autocomplete="email" required />
         </UFormField>
         <UFormField class="w-full" label="Password" required>
-          <UInput v-model="password" class="w-full rounded-xl" type="password" autocomplete="current-password" required />
+          <UInput v-model="password" class="w-full" :ui="loginInputUi" type="password" autocomplete="current-password" required />
         </UFormField>
 
         <UAlert
           v-if="error"
           color="error"
           variant="soft"
-          class="rounded-xl"
+          class="ui-control-radius"
           :title="error"
         />
 
@@ -91,7 +106,7 @@ async function submit() {
           type="submit"
           block
           size="lg"
-          class="rounded-full shadow-md ring-1 ring-zinc-900/10"
+          :ui="loginButtonUi"
           :loading="loading"
           color="neutral"
         >
@@ -110,6 +125,7 @@ async function submit() {
           </button>
         </div>
       </template>
-    </UCard>
+      </UCard>
+    </UiGlassPanel>
   </div>
 </template>
