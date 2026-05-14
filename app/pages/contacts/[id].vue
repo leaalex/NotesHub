@@ -13,6 +13,8 @@ type FieldRow = {
 type AppFile = {
   id: string
   originalName: string
+  title?: string
+  description?: string
   mimeType: string
   size: number
   shareEnabled: boolean

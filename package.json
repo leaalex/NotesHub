@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@fontsource/dancing-script": "^5.2.8",
+    "@fontsource/water-brush": "^5.2.8",
     "@libsql/client": "^0.17.3",
     "@peculiar/webcrypto": "^1.7.1",
     "@tiptap/extension-link": "^3.23.2",

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 definePageMeta({ layout: false })
 
-useSeoMeta({ title: 'Arkhivarius' })
+useSeoMeta({ title: 'Archivarius' })
 
 /** Скругление полей/кнопки совпадает с `--ui-control-radius` в `main.css` (см. `.cursor/rules/ui-control-radius.mdc`). */
 const loginInputUi = {
@@ -68,13 +68,10 @@ async function submit() {
       <UCard :ui="loginCardUi" class="my-0 border-0 bg-transparent ring-0 shadow-none">
       <template #header>
         <div class="text-center">
-          <div class="mx-auto flex size-11 items-center justify-center bg-zinc-900 text-white shadow-lg shadow-zinc-900/20 ui-control-radius">
-            <Icon name="i-lucide-feather" class="size-5" aria-hidden="true" />
-          </div>
-          <h1 class="mt-5 text-xl font-semibold tracking-tight text-zinc-900">
-            Archivarius
+          <h1 class="mt-5 flex w-full justify-center">
+            <BrandLockup size="lg" />
           </h1>
-          <p class="mt-1.5 text-sm text-zinc-500">
+          <p class="mt-2 text-base text-zinc-500 sm:mt-2.5">
             {{ mode === 'signin' ? 'Sign in to your workspace' : 'Create an account' }}
           </p>
         </div>

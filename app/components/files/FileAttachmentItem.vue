@@ -2,6 +2,8 @@
 type FileAttachment = {
   id: string
   originalName: string
+  /** Display title; defaults to originalName when missing or empty */
+  title?: string
   mimeType: string
   size: number
   shareEnabled: boolean
@@ -48,6 +50,11 @@ function fileSizeLabel(size: number): string {
 const isImage = computed(() => props.file.mimeType.startsWith('image/'))
 const showDeleteConfirm = ref(false)
 
+const displayName = computed(() => {
+  const t = props.file.title?.trim()
+  return t && t.length ? t : props.file.originalName
+})
+
 async function copyShareUrl() {
   if (!props.file.shareUrl)
     return
@@ -75,7 +82,7 @@ function confirmDelete() {
       <img
         v-if="isImage"
         :src="file.downloadUrl"
-        :alt="file.originalName"
+        :alt="displayName"
         class="size-14 shrink-0 rounded-[var(--ui-control-radius)] object-cover ring-1 ring-zinc-200/80"
       >
       <div
@@ -87,6 +94,12 @@ function confirmDelete() {
 
       <div class="min-w-0 flex-1">
         <p class="line-clamp-2 text-[13px] font-semibold leading-snug text-zinc-900">
+          {{ displayName }}
+        </p>
+        <p
+          v-if="displayName !== file.originalName"
+          class="mt-0.5 line-clamp-1 text-[10px] text-zinc-400"
+        >
           {{ file.originalName }}
         </p>
         <p class="mt-1 text-[11px] text-zinc-500">

@@ -7,6 +7,8 @@ export function toFileDto(row: FileRow, siteUrl: string) {
   return {
     id: row.id,
     originalName: row.originalName,
+    title: row.title ?? '',
+    description: row.description ?? '',
     mimeType: row.mimeType,
     size: row.size,
     createdAt: row.createdAt,

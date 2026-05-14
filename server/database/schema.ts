@@ -252,6 +252,8 @@ export const files = sqliteTable(
       onDelete: 'set null',
     }),
     originalName: text('original_name').notNull(),
+    title: text('title').notNull().default(''),
+    description: text('description').notNull().default(''),
     mimeType: text('mime_type').notNull(),
     size: integer('size').notNull(),
     storagePath: text('storage_path').notNull(),
@@ -272,6 +274,38 @@ export const files = sqliteTable(
     index('files_folder_idx').on(t.folderId),
     index('files_share_idx').on(t.shareToken),
   ]
+)
+
+export const fileFieldTemplates = sqliteTable(
+  'file_field_templates',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    label: text('label').notNull(),
+    fieldType: text('field_type').notNull().default('text'),
+    position: integer('position').notNull().default(0),
+  },
+  (t) => [index('fft_user_idx').on(t.userId)]
+)
+
+export const fileFieldValues = sqliteTable(
+  'file_field_values',
+  {
+    id: text('id').primaryKey(),
+    fileId: text('file_id')
+      .notNull()
+      .references(() => files.id, { onDelete: 'cascade' }),
+    templateId: text('template_id').references(() => fileFieldTemplates.id, {
+      onDelete: 'set null',
+    }),
+    label: text('label').notNull(),
+    fieldType: text('field_type').notNull().default('text'),
+    value: text('value').notNull().default(''),
+    position: integer('position').notNull().default(0),
+  },
+  (t) => [index('ffv_file_idx').on(t.fileId)]
 )
 
 export const noteFiles = sqliteTable(
@@ -404,6 +438,26 @@ export const fileRelations = relations(files, ({ one, many }) => ({
   }),
   linkedNotes: many(noteFiles),
   linkedContacts: many(contactFiles),
+  fieldValues: many(fileFieldValues),
+}))
+
+export const fileFieldTemplateRelations = relations(fileFieldTemplates, ({ one, many }) => ({
+  user: one(user, {
+    fields: [fileFieldTemplates.userId],
+    references: [user.id],
+  }),
+  values: many(fileFieldValues),
+}))
+
+export const fileFieldValueRelations = relations(fileFieldValues, ({ one }) => ({
+  file: one(files, {
+    fields: [fileFieldValues.fileId],
+    references: [files.id],
+  }),
+  template: one(fileFieldTemplates, {
+    fields: [fileFieldValues.templateId],
+    references: [fileFieldTemplates.id],
+  }),
 }))
 
 export const noteFileRelations = relations(noteFiles, ({ one }) => ({

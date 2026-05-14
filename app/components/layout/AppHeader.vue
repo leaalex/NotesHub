@@ -89,21 +89,10 @@ const menuItems = computed(() => {
       <div class="flex min-w-0 shrink-0 items-center gap-1 sm:gap-2">
         <NuxtLink
           to="/"
-          class="-m-1 flex min-w-0 shrink-0 items-center gap-2.5 rounded-[var(--ui-control-radius)] px-2 py-1 text-zinc-900 outline-none hover:bg-white/65 focus-visible:ring-2 focus-visible:ring-zinc-900/25 sm:gap-3"
+          class="-m-1 flex min-w-0 shrink-0 items-center rounded-[var(--ui-control-radius)] px-2 py-1 text-zinc-900 outline-none hover:bg-white/65 focus-visible:ring-2 focus-visible:ring-zinc-900/25"
           aria-label="Archivarius — Home"
         >
-          <LogoMark class="h-6 w-auto shrink-0 sm:h-7" />
-          <span
-            class="h-6 w-[1px] shrink-0 bg-zinc-300/95 sm:h-7"
-            aria-hidden="true"
-            role="presentation"
-          />
-          <span
-            class="inline-block origin-left -rotate-[5deg] text-[clamp(19px,1.5rem,22px)] font-normal leading-none tracking-tight sm:text-[clamp(20px,1.625rem,24px)]"
-            style="font-family: 'Dancing Script', cursive;"
-          >
-            Archivarius
-          </span>
+          <BrandLockup />
         </NuxtLink>
         <div v-if="showFoldersRailToggle" class="flex shrink-0">
           <UButton
