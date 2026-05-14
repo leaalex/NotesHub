@@ -98,7 +98,10 @@ const menuItems = computed(() => {
             aria-hidden="true"
             role="presentation"
           />
-          <span class="truncate text-[14px] font-semibold tracking-tight sm:text-[15px]">
+          <span
+            class="inline-block origin-left -rotate-[5deg] text-[clamp(19px,1.5rem,22px)] font-normal leading-none tracking-tight sm:text-[clamp(20px,1.625rem,24px)]"
+            style="font-family: 'Dancing Script', cursive;"
+          >
             Archivarius
           </span>
         </NuxtLink>

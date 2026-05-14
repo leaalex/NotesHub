@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
+@import "@fontsource/dancing-script";
 
 /* Явный контент: не зависит от абсолютных путей в сгенерированном `.nuxt/ui.css` (Docker vs хост). */
 @source "../../**/*";
