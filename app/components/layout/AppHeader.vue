@@ -127,8 +127,6 @@ const menuItems = computed(() => {
       </nav>
 
       <div class="flex shrink-0 flex-wrap items-center justify-end gap-2">
-        <LogoColorPicker />
-
         <UButton
           v-if="!user"
           to="/login"

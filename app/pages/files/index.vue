@@ -21,13 +21,6 @@ type AppFile = {
   downloadUrl: string
 }
 
-type FileTemplateRow = {
-  id: string
-  label: string
-  fieldType: string
-  position: number
-}
-
 type FileFieldRow = {
   id: string
   fileId: string
@@ -42,6 +35,8 @@ type FileDetail = AppFile & { fields: FileFieldRow[] }
 
 const apiFetch = useRequestFetch()
 const toast = useToast()
+const runtimeConfig = useRuntimeConfig()
+
 const folderFilter = ref<'all' | 'unfiled' | string>('all')
 const folders = ref<FolderRow[]>([])
 const files = ref<AppFile[]>([])
@@ -50,13 +45,10 @@ const fileDetail = ref<FileDetail | null>(null)
 const uploading = ref(false)
 const fileInput = ref<HTMLInputElement | null>(null)
 
-/** Upload metadata modal */
-const showUploadMeta = ref(false)
-const pendingUploadFile = ref<File | null>(null)
-const uploadTitle = ref('')
-const uploadDescription = ref('')
-const uploadTemplates = ref<FileTemplateRow[]>([])
-const uploadFieldValues = reactive<Record<string, string>>({})
+const isEditing = ref(false)
+const finishingEdit = ref(false)
+const showDeleteFileConfirm = ref(false)
+const deletingFile = ref(false)
 
 const draftTitle = ref('')
 const draftDescription = ref('')
@@ -73,6 +65,39 @@ function displayFileName(f: AppFile) {
   const t = f.title?.trim()
   return t && t.length ? t : f.originalName
 }
+
+function viewDash(v: string | null | undefined) {
+  const t = String(v ?? '').trim()
+  return t.length ? t : '—'
+}
+
+function resolvedUrlHref(raw: string) {
+  const t = raw.trim()
+  if (!t)
+    return ''
+  try {
+    const u = new URL(t.startsWith('//') ? `https:${t}` : t)
+    if (u.protocol === 'http:' || u.protocol === 'https:')
+      return u.href
+    return ''
+  }
+  catch {
+    if (/^[a-zA-Z][a-zA-Z\d+.-]*:\/\//.test(t))
+      return t
+    return `https://${t}`
+  }
+}
+
+const fileShareBannerUrl = computed(() => {
+  const url = fileDetail.value?.shareUrl?.trim()
+  if (url)
+    return url
+  const d = fileDetail.value
+  if (!d?.shareEnabled || !d.shareToken)
+    return ''
+  const base = String(runtimeConfig.public.siteUrl ?? '').replace(/\/$/, '')
+  return base ? `${base}/share/file/${d.shareToken}` : ''
+})
 
 async function refreshFolders() {
   folders.value = await apiFetch<FolderRow[]>('/api/folders')
@@ -96,9 +121,20 @@ const attachmentFilePayload = computed(() => {
   return {
     ...base,
     title: (t ?? '').trim() ? t : '',
+    shareUrl: fileDetail.value?.shareUrl ?? base.shareUrl,
+    shareEnabled: fileDetail.value?.shareEnabled ?? base.shareEnabled,
   }
 })
+
 const selectedFileIsImage = computed(() => selectedFile.value?.mimeType?.startsWith('image/'))
+
+const detailTitleHeading = computed(() => {
+  const f = fileDetail.value ?? selectedFile.value
+  if (!f)
+    return 'Untitled'
+  const t = draftTitle.value.trim()
+  return t.length ? t : displayFileName(f)
+})
 
 function openFilePicker() {
   fileInput.value?.click()
@@ -110,40 +146,9 @@ async function onFilePicked(event: Event) {
   input.value = ''
   if (!raw)
     return
-  pendingUploadFile.value = raw
-  uploadTitle.value = raw.name
-  uploadDescription.value = ''
-  for (const k of Object.keys(uploadFieldValues))
-    delete uploadFieldValues[k]
-  try {
-    uploadTemplates.value = await apiFetch<FileTemplateRow[]>('/api/file-field-templates')
-    for (const t of uploadTemplates.value)
-      uploadFieldValues[t.id] = ''
-  }
-  catch (e) {
-    console.error(e)
-    toast.add({ title: 'Could not load field templates', color: 'error' })
-    pendingUploadFile.value = null
-    return
-  }
-  showUploadMeta.value = true
-}
-
-function cancelUploadMeta() {
-  showUploadMeta.value = false
-  pendingUploadFile.value = null
-}
-
-async function confirmUploadMeta() {
-  const file = pendingUploadFile.value
-  if (!file)
-    return
   uploading.value = true
   const form = new FormData()
-  form.append('file', file, file.name)
-  form.append('title', uploadTitle.value.trim())
-  form.append('description', uploadDescription.value.trim())
-  form.append('fieldValues', JSON.stringify(uploadFieldValues))
+  form.append('file', raw, raw.name)
   if (folderFilter.value !== 'all' && folderFilter.value !== 'unfiled')
     form.append('folderId', folderFilter.value)
   try {
@@ -151,10 +156,10 @@ async function confirmUploadMeta() {
       method: 'POST',
       body: form,
     })
-    cancelUploadMeta()
     await refreshFiles()
     selectedFileId.value = created.id
     await loadFileDetail(created.id)
+    isEditing.value = true
   }
   catch (e) {
     console.error(e)
@@ -165,12 +170,76 @@ async function confirmUploadMeta() {
   }
 }
 
-async function toggleFileShare(fileId: string, nextEnabled: boolean) {
-  await apiFetch(`/api/files/${fileId}/share`, {
-    method: nextEnabled ? 'POST' : 'DELETE',
-    ...(nextEnabled ? { body: {} } : {}),
-  })
-  await refreshFiles()
+async function enableFileShare() {
+  const id = selectedFileId.value
+  if (!id || !fileDetail.value)
+    return
+  try {
+    const r = await apiFetch<{ url: string, shareToken: string }>(`/api/files/${id}/share`, {
+      method: 'POST',
+      body: {},
+    })
+    fileDetail.value.shareEnabled = true
+    fileDetail.value.shareToken = r.shareToken
+    fileDetail.value.shareUrl = r.url
+    mergeListRow({
+      id,
+      shareEnabled: true,
+      shareToken: r.shareToken,
+      shareUrl: r.url,
+    })
+    await refreshFiles()
+  }
+  catch (e) {
+    console.error(e)
+    toast.add({ title: 'Could not enable share link', color: 'error' })
+  }
+}
+
+async function disableFileShare() {
+  const id = selectedFileId.value
+  if (!id || !fileDetail.value)
+    return
+  try {
+    await apiFetch(`/api/files/${id}/share`, { method: 'DELETE' })
+    fileDetail.value.shareEnabled = false
+    fileDetail.value.shareToken = null
+    fileDetail.value.shareUrl = null
+    mergeListRow({
+      id,
+      shareEnabled: false,
+      shareToken: null,
+      shareUrl: null,
+    })
+    await refreshFiles()
+  }
+  catch (e) {
+    console.error(e)
+    toast.add({ title: 'Could not disable share link', color: 'error' })
+  }
+}
+
+async function copyFileShareLink() {
+  const url = fileShareBannerUrl.value.trim()
+  if (!url) {
+    toast.add({
+      title: 'No share link',
+      description: 'Enable sharing first.',
+      color: 'neutral',
+    })
+    return
+  }
+  try {
+    await navigator.clipboard.writeText(url)
+    toast.add({ title: 'Link copied', color: 'success' })
+  }
+  catch {
+    toast.add({
+      title: 'Could not copy',
+      description: 'Clipboard permission may be blocked.',
+      color: 'error',
+    })
+  }
 }
 
 async function deleteFileEverywhere(fileId: string) {
@@ -179,6 +248,24 @@ async function deleteFileEverywhere(fileId: string) {
     selectedFileId.value = null
   fileDetail.value = null
   await refreshFiles()
+}
+
+function requestDeleteFile() {
+  showDeleteFileConfirm.value = true
+}
+
+async function confirmDeleteFile() {
+  const id = selectedFileId.value
+  if (!id)
+    return
+  deletingFile.value = true
+  try {
+    await deleteFileEverywhere(id)
+    showDeleteFileConfirm.value = false
+  }
+  finally {
+    deletingFile.value = false
+  }
 }
 
 function mergeListRow(patch: Partial<AppFile> & { id: string }) {
@@ -207,6 +294,8 @@ async function loadFileDetail(id: string) {
 }
 
 const persistFileDebounced = debouncedSchedule(async () => {
+  if (!isEditing.value)
+    return
   const id = selectedFileId.value
   if (!id || !fileDetail.value)
     return
@@ -254,21 +343,78 @@ async function persistFieldImmediate(fieldId: string, value: string): Promise<bo
 
 const persistFieldDebounced = debouncedScheduleArgs(
   async (fieldId: string, value: string) => {
+    if (!isEditing.value)
+      return
     await persistFieldImmediate(fieldId, value)
   },
   450,
 )
 
 function onMetaTitleDescChange() {
+  if (!isEditing.value)
+    return
   persistFileDebounced.schedule()
 }
 
 function onFieldUpdate(fieldId: string, next: string) {
+  if (!isEditing.value)
+    return
   fieldVals[fieldId] = next
   persistFieldDebounced.schedule(fieldId, next)
 }
 
+async function finishEditing() {
+  const id = selectedFileId.value
+  if (!id || !fileDetail.value)
+    return
+  finishingEdit.value = true
+  try {
+    persistFileDebounced.cancel()
+    persistFieldDebounced.cancel()
+
+    const fieldBaseline = sortedDetailFields().map(f => ({
+      id: f.id,
+      baseline: f.value ?? '',
+    }))
+
+    try {
+      const updated = await apiFetch<AppFile>(`/api/files/${id}`, {
+        method: 'PATCH',
+        body: {
+          title: draftTitle.value,
+          description: draftDescription.value,
+        },
+      })
+      fileDetail.value = {
+        ...fileDetail.value,
+        ...updated,
+        fields: fileDetail.value.fields,
+      }
+      mergeListRow(updated)
+    }
+    catch (e) {
+      console.error(e)
+      toast.add({ title: 'Could not save file', color: 'error' })
+      return
+    }
+
+    for (const { id: fid, baseline } of fieldBaseline) {
+      const cur = fieldVals[fid] ?? ''
+      if (cur === baseline)
+        continue
+      const ok = await persistFieldImmediate(fid, cur)
+      if (!ok)
+        return
+    }
+    isEditing.value = false
+  }
+  finally {
+    finishingEdit.value = false
+  }
+}
+
 watch(selectedFileId, (id, prev) => {
+  isEditing.value = false
   persistFileDebounced.cancel()
   persistFieldDebounced.cancel()
   if (!id) {
@@ -423,85 +569,239 @@ function previewAlt() {
 
     <div class="flex min-h-0 flex-1 flex-col p-4 sm:p-6">
       <div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--ui-panel-radius)] border border-white/70 bg-white/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] backdrop-blur-md ring-1 ring-zinc-950/[0.04] supports-[backdrop-filter]:bg-white/45">
-        <div v-if="selectedFile && attachmentFilePayload" class="ui-scrollbar min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
-          <FilesFileAttachmentItem
-            :file="attachmentFilePayload"
-            show-delete
-            @delete="deleteFileEverywhere"
-            @toggle-share="(fileId, nextEnabled) => toggleFileShare(fileId, nextEnabled)"
-          />
-
-          <div v-if="fileDetail" class="mt-6 space-y-5">
-            <UFormField label="Title">
-              <UInput
-                v-model="draftTitle"
-                class="rounded-[var(--ui-control-radius)]"
-                @update:model-value="onMetaTitleDescChange"
+        <template v-if="selectedFile && attachmentFilePayload">
+          <header class="flex shrink-0 flex-wrap items-start gap-3 border-b border-zinc-100/90 px-4 py-3 sm:px-6">
+            <div class="min-w-0 flex-1">
+              <template v-if="!isEditing">
+                <h1 class="truncate text-xl font-semibold tracking-tight text-zinc-900 sm:text-[1.35rem]">
+                  {{ detailTitleHeading }}
+                </h1>
+                <p class="mt-1 text-[11px] text-zinc-400">
+                  {{ selectedFile.originalName }}
+                </p>
+              </template>
+              <template v-else>
+                <UInput
+                  v-model="draftTitle"
+                  placeholder="Title"
+                  variant="ghost"
+                  size="lg"
+                  class="w-full font-semibold tracking-tight"
+                  :ui="{ base: 'text-xl placeholder:text-zinc-300' }"
+                  @update:model-value="onMetaTitleDescChange"
+                />
+                <p class="mt-1 text-[11px] text-zinc-400">
+                  {{ selectedFile.originalName }}
+                </p>
+              </template>
+            </div>
+            <div class="flex shrink-0 flex-wrap items-center gap-1.5 rounded-[var(--ui-control-radius)] bg-zinc-50/90 p-1 ring-1 ring-zinc-950/[0.04]">
+              <UButton
+                v-if="!fileDetail?.shareEnabled"
+                size="xs"
+                variant="ghost"
+                color="neutral"
+                icon="i-lucide-link"
+                class="rounded-[var(--ui-control-radius)] px-3"
+                :disabled="!fileDetail"
+                @click="enableFileShare"
+              >
+                Share
+              </UButton>
+              <template v-else>
+                <UButton
+                  size="xs"
+                  variant="ghost"
+                  color="neutral"
+                  icon="i-lucide-copy"
+                  class="rounded-[var(--ui-control-radius)] px-3"
+                  @click="copyFileShareLink"
+                >
+                  Copy link
+                </UButton>
+                <UButton
+                  size="xs"
+                  color="error"
+                  variant="ghost"
+                  icon="i-lucide-link-2-off"
+                  class="rounded-[var(--ui-control-radius)] px-3"
+                  @click="disableFileShare"
+                >
+                  Stop
+                </UButton>
+              </template>
+              <div
+                class="mx-0.5 hidden h-4 w-px shrink-0 bg-zinc-200/80 sm:block"
+                role="presentation"
+                aria-hidden="true"
               />
-            </UFormField>
-            <UFormField label="Description">
-              <UTextarea
-                v-model="draftDescription"
-                class="rounded-[var(--ui-control-radius)]"
-                autoresize
-                :max-rows="8"
-                @update:model-value="onMetaTitleDescChange"
-              />
-            </UFormField>
+              <UButton
+                v-if="!isEditing"
+                icon="i-lucide-pencil"
+                color="neutral"
+                variant="ghost"
+                size="xs"
+                class="rounded-[var(--ui-control-radius)] px-3"
+                :disabled="!fileDetail"
+                @click="isEditing = true"
+              >
+                Edit
+              </UButton>
+              <template v-else>
+                <UButton
+                  icon="i-lucide-check"
+                  color="neutral"
+                  variant="ghost"
+                  size="xs"
+                  class="rounded-[var(--ui-control-radius)] px-3"
+                  :loading="finishingEdit"
+                  @click="finishEditing"
+                >
+                  Done
+                </UButton>
+                <UButton
+                  size="xs"
+                  color="error"
+                  variant="ghost"
+                  icon="i-lucide-trash-2"
+                  class="rounded-[var(--ui-control-radius)] px-3"
+                  :loading="deletingFile"
+                  @click="requestDeleteFile"
+                >
+                  Delete
+                </UButton>
+              </template>
+            </div>
+          </header>
 
-            <div>
-              <p class="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
-                Custom fields
-              </p>
-              <div v-for="f in sortedDetailFields()" :key="f.id" class="mt-3 rounded-[var(--ui-control-radius)] border border-zinc-100 bg-zinc-50/70 p-3">
-                <div class="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
-                  {{ f.label }}
-                  <span class="normal-case opacity-70"> · {{ f.fieldType }}</span>
-                </div>
+          <div
+            v-if="fileShareBannerUrl"
+            class="shrink-0 border-b border-emerald-100/90 bg-emerald-50/80 px-4 py-2 text-[11px] text-emerald-950 sm:px-6"
+          >
+            <span class="font-semibold text-emerald-900">Shared · </span>
+            <span class="break-all font-mono text-emerald-900/90">{{ fileShareBannerUrl }}</span>
+          </div>
+
+          <div class="ui-scrollbar min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
+            <FilesFileAttachmentItem
+              :file="attachmentFilePayload"
+              :show-share="false"
+              :show-delete="isEditing"
+              @delete="deleteFileEverywhere"
+            />
+
+            <div v-if="fileDetail" class="mt-6 space-y-5">
+              <div>
+                <p class="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+                  Description
+                </p>
+                <p v-if="!isEditing" class="mt-2 whitespace-pre-wrap text-[13px] text-zinc-900">
+                  {{ viewDash(draftDescription) }}
+                </p>
                 <UTextarea
-                  v-if="f.fieldType === 'longtext' || f.fieldType === 'address'"
-                  :model-value="fieldVals[f.id]"
-                  class="mt-2 w-full rounded-[var(--ui-control-radius)]"
+                  v-else
+                  v-model="draftDescription"
+                  class="mt-2 rounded-[var(--ui-control-radius)]"
                   autoresize
                   :max-rows="8"
-                  @update:model-value="v => onFieldUpdate(f.id, v ?? '')"
-                />
-                <UInput
-                  v-else-if="f.fieldType === 'date'"
-                  :model-value="fieldVals[f.id]"
-                  type="date"
-                  class="mt-2 w-full rounded-[var(--ui-control-radius)]"
-                  @update:model-value="v => onFieldUpdate(f.id, v ?? '')"
-                />
-                <UInput
-                  v-else
-                  :model-value="fieldVals[f.id]"
-                  class="mt-2 w-full rounded-[var(--ui-control-radius)]"
-                  :type="f.fieldType === 'email' ? 'email' : f.fieldType === 'url' ? 'url' : 'text'"
-                  @update:model-value="v => onFieldUpdate(f.id, v ?? '')"
+                  @update:model-value="onMetaTitleDescChange"
                 />
               </div>
-              <p v-if="fileDetail.fields.length === 0" class="mt-2 text-[13px] text-zinc-400">
-                No custom fields. Add templates under Manage fields.
-              </p>
-            </div>
-          </div>
-          <div v-else class="mt-4 text-[13px] text-zinc-400">
-            Loading details…
-          </div>
 
-          <div class="mt-8 rounded-[var(--ui-control-radius)] border border-zinc-200/80 bg-white/70 p-4">
-            <p class="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
-              Preview
-            </p>
-            <div v-if="selectedFileIsImage && selectedFile" class="mt-3">
-              <img :src="selectedFile.downloadUrl" :alt="previewAlt()" class="max-h-[24rem] w-full rounded-[var(--ui-control-radius)] object-contain ring-1 ring-zinc-200/80">
+              <div>
+                <p class="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+                  Custom fields
+                </p>
+                <template v-if="!isEditing">
+                  <div
+                    v-for="f in sortedDetailFields()"
+                    :key="f.id"
+                    class="mt-3 rounded-[var(--ui-control-radius)] border border-zinc-100 bg-zinc-50/70 p-3"
+                  >
+                    <div class="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+                      {{ f.label }}
+                      <span class="normal-case opacity-70"> · {{ f.fieldType }}</span>
+                    </div>
+                    <div class="mt-2 min-w-0 text-[13px] text-zinc-900">
+                      <template v-if="f.fieldType === 'email' && String(f.value || '').trim()">
+                        <a :href="`mailto:${String(f.value).trim()}`" class="font-medium underline decoration-zinc-300 underline-offset-2 hover:text-zinc-700">
+                          {{ String(f.value).trim() }}
+                        </a>
+                      </template>
+                      <template v-else-if="f.fieldType === 'url' && String(f.value || '').trim()">
+                        <a
+                          :href="resolvedUrlHref(String(f.value))"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="break-all font-medium underline decoration-zinc-300 underline-offset-2 hover:text-zinc-700"
+                        >
+                          {{ String(f.value).trim() }}
+                        </a>
+                      </template>
+                      <p v-else-if="f.fieldType === 'longtext' || f.fieldType === 'address'" class="whitespace-pre-wrap">
+                        {{ viewDash(f.value) }}
+                      </p>
+                      <template v-else>
+                        {{ viewDash(f.value) }}
+                      </template>
+                    </div>
+                  </div>
+                  <p v-if="fileDetail.fields.length === 0" class="mt-2 text-[13px] text-zinc-400">
+                    No custom fields. Add templates under Manage fields.
+                  </p>
+                </template>
+                <template v-else>
+                  <div v-for="f in sortedDetailFields()" :key="f.id" class="mt-3 rounded-[var(--ui-control-radius)] border border-zinc-100 bg-zinc-50/70 p-3">
+                    <div class="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+                      {{ f.label }}
+                      <span class="normal-case opacity-70"> · {{ f.fieldType }}</span>
+                    </div>
+                    <UTextarea
+                      v-if="f.fieldType === 'longtext' || f.fieldType === 'address'"
+                      :model-value="fieldVals[f.id]"
+                      class="mt-2 w-full rounded-[var(--ui-control-radius)]"
+                      autoresize
+                      :max-rows="8"
+                      @update:model-value="v => onFieldUpdate(f.id, v ?? '')"
+                    />
+                    <UInput
+                      v-else-if="f.fieldType === 'date'"
+                      :model-value="fieldVals[f.id]"
+                      type="date"
+                      class="mt-2 w-full rounded-[var(--ui-control-radius)]"
+                      @update:model-value="v => onFieldUpdate(f.id, v ?? '')"
+                    />
+                    <UInput
+                      v-else
+                      :model-value="fieldVals[f.id]"
+                      class="mt-2 w-full rounded-[var(--ui-control-radius)]"
+                      :type="f.fieldType === 'email' ? 'email' : f.fieldType === 'url' ? 'url' : 'text'"
+                      @update:model-value="v => onFieldUpdate(f.id, v ?? '')"
+                    />
+                  </div>
+                  <p v-if="fileDetail.fields.length === 0" class="mt-2 text-[13px] text-zinc-400">
+                    No custom fields. Add templates under Manage fields.
+                  </p>
+                </template>
+              </div>
             </div>
-            <div v-else class="mt-3 text-sm text-zinc-600">
-              Preview is unavailable for this format. Use Download to open the file locally.
+            <div v-else class="mt-4 text-[13px] text-zinc-400">
+              Loading details…
+            </div>
+
+            <div class="mt-8 rounded-[var(--ui-control-radius)] border border-zinc-200/80 bg-white/70 p-4">
+              <p class="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+                Preview
+              </p>
+              <div v-if="selectedFileIsImage && selectedFile" class="mt-3">
+                <img :src="selectedFile.downloadUrl" :alt="previewAlt()" class="max-h-[24rem] w-full rounded-[var(--ui-control-radius)] object-contain ring-1 ring-zinc-200/80">
+              </div>
+              <div v-else class="mt-3 text-sm text-zinc-600">
+                Preview is unavailable for this format. Use Download to open the file locally.
+              </div>
             </div>
           </div>
-        </div>
+        </template>
 
         <div v-else class="flex min-h-0 flex-1 items-center justify-center p-8 text-center">
           <UiEmptyState
@@ -533,65 +833,12 @@ function previewAlt() {
     @submit="createFolder"
   />
 
-  <Teleport to="body">
-    <div
-      v-if="showUploadMeta"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/40 px-4 backdrop-blur-[2px]"
-      @click.self="cancelUploadMeta"
-    >
-      <UCard class="max-h-[min(90dvh,640px)] w-full max-w-lg overflow-hidden overflow-y-auto rounded-[var(--ui-panel-radius)] border border-white/60 bg-white/90 shadow-2xl shadow-zinc-950/15 ring-1 ring-zinc-950/[0.06] backdrop-blur-xl">
-        <template #header>
-          <span class="font-semibold tracking-tight text-zinc-900">File details</span>
-        </template>
-        <div class="space-y-4">
-          <UFormField label="Title" required>
-            <UInput v-model="uploadTitle" class="rounded-[var(--ui-control-radius)]" />
-          </UFormField>
-          <UFormField label="Description">
-            <UTextarea v-model="uploadDescription" class="rounded-[var(--ui-control-radius)]" autoresize :max-rows="6" />
-          </UFormField>
-          <template v-if="uploadTemplates.length">
-            <div
-              v-for="tpl in [...uploadTemplates].sort((a, b) =>
-                a.position !== b.position ? a.position - b.position : a.label.localeCompare(b.label),
-              )"
-              :key="tpl.id"
-            >
-              <UFormField :label="`${tpl.label} (${tpl.fieldType})`">
-                <UInput
-                  v-if="tpl.fieldType !== 'longtext' && tpl.fieldType !== 'address' && tpl.fieldType !== 'date'"
-                  v-model="uploadFieldValues[tpl.id]"
-                  class="rounded-[var(--ui-control-radius)]"
-                  :type="tpl.fieldType === 'email' ? 'email' : tpl.fieldType === 'url' ? 'url' : 'text'"
-                />
-                <UInput
-                  v-else-if="tpl.fieldType === 'date'"
-                  v-model="uploadFieldValues[tpl.id]"
-                  type="date"
-                  class="rounded-[var(--ui-control-radius)]"
-                />
-                <UTextarea
-                  v-else
-                  v-model="uploadFieldValues[tpl.id]"
-                  class="rounded-[var(--ui-control-radius)]"
-                  autoresize
-                  :max-rows="5"
-                />
-              </UFormField>
-            </div>
-          </template>
-        </div>
-        <template #footer>
-          <div class="flex justify-end gap-2">
-            <UButton variant="ghost" color="neutral" class="rounded-[var(--ui-control-radius)]" @click="cancelUploadMeta">
-              Cancel
-            </UButton>
-            <UButton color="neutral" class="rounded-[var(--ui-control-radius)]" :loading="uploading" @click="confirmUploadMeta">
-              Upload
-            </UButton>
-          </div>
-        </template>
-      </UCard>
-    </div>
-  </Teleport>
+  <UiConfirmDeleteDialog
+    v-model:open="showDeleteFileConfirm"
+    title="Delete file"
+    description="This file will be removed everywhere it is linked. This action cannot be undone."
+    confirm-label="Delete"
+    :loading="deletingFile"
+    @confirm="confirmDeleteFile"
+  />
 </template>
