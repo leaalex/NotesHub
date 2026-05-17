@@ -689,10 +689,10 @@ function requestDeleteTask() {
           <template v-else>
             <UButton
               icon="i-lucide-check"
-              color="neutral"
-              variant="ghost"
+              color="success"
+              variant="soft"
               size="xs"
-              class="rounded-[var(--ui-control-radius)] px-3"
+              class="ui-done-btn rounded-[var(--ui-control-radius)] px-3"
               :loading="finishingEdit"
               @click="finishEditing"
             >

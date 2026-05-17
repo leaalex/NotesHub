@@ -188,6 +188,16 @@ async function onDeleteTpl() {
                   Move down
                 </UButton>
                 <UButton
+                  icon="i-lucide-check"
+                  color="success"
+                  variant="soft"
+                  size="xs"
+                  class="ui-done-btn rounded-[var(--ui-control-radius)] px-3"
+                  @click="doneEditingTpl"
+                >
+                  Done
+                </UButton>
+                <UButton
                   variant="soft"
                   color="error"
                   size="xs"
@@ -196,16 +206,6 @@ async function onDeleteTpl() {
                   @click="onDeleteTpl"
                 >
                   Delete
-                </UButton>
-                <UButton
-                  icon="i-lucide-check"
-                  color="neutral"
-                  variant="ghost"
-                  size="xs"
-                  class="rounded-[var(--ui-control-radius)] px-3"
-                  @click="doneEditingTpl"
-                >
-                  Done
                 </UButton>
               </div>
               <div

@@ -97,3 +97,16 @@
   font-weight: 500;
   color: rgb(63 63 70);
 }
+
+/** Зелёная кнопка «Done»: текст и иконка чуть темнее стандартного success.soft */
+.ui-done-btn {
+  color: rgb(5 80 62);
+}
+
+.dark .ui-done-btn {
+  color: rgb(167 243 208);
+}
+
+.ui-done-btn svg {
+  color: inherit;
+}

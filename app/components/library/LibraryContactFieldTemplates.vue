@@ -68,14 +68,6 @@ const selectedRow = computed((): LibraryContactTplRow | null => {
   return list.find(r => r.id === sel.value.selectedId) ?? null
 })
 
-const siblings = computed(() => {
-  if (sel.value.contactSubset === 'person')
-    return personRows.value
-  if (sel.value.contactSubset === 'organization')
-    return orgRows.value
-  return [] as LibraryContactTplRow[]
-})
-
 watch(
   () => route.path,
   (path) => {
@@ -293,29 +285,67 @@ async function onDeleteTpl() {
             <span class="font-semibold text-zinc-900">
               {{ sel.contactSubset === 'person' ? 'Person field' : 'Organization field' }}
             </span>
-            <div class="flex shrink-0 flex-wrap items-center gap-1.5 rounded-[var(--ui-control-radius)] bg-zinc-50/90 p-1 ring-1 ring-zinc-950/[0.04]">
-              <UButton
-                v-if="!editingTpl"
-                icon="i-lucide-pencil"
-                color="neutral"
-                variant="ghost"
-                size="xs"
-                class="rounded-[var(--ui-control-radius)] px-3"
-                @click="editingTpl = true"
+            <div class="flex shrink-0 flex-wrap items-center gap-2">
+              <div
+                v-if="editingTpl"
+                class="flex shrink-0 flex-wrap items-center gap-1 rounded-[var(--ui-control-radius)] bg-zinc-50/90 p-1 ring-1 ring-zinc-950/[0.04]"
               >
-                Edit
-              </UButton>
-              <UButton
+                <UButton
+                  variant="soft"
+                  color="neutral"
+                  size="xs"
+                  icon="i-lucide-chevron-up"
+                  class="rounded-[var(--ui-control-radius)]"
+                  @click="onMoveTpl(-1)"
+                >
+                  Move up
+                </UButton>
+                <UButton
+                  variant="soft"
+                  color="neutral"
+                  size="xs"
+                  icon="i-lucide-chevron-down"
+                  class="rounded-[var(--ui-control-radius)]"
+                  @click="onMoveTpl(1)"
+                >
+                  Move down
+                </UButton>
+                <UButton
+                  icon="i-lucide-check"
+                  color="success"
+                  variant="soft"
+                  size="xs"
+                  class="ui-done-btn rounded-[var(--ui-control-radius)] px-3"
+                  @click="doneEditingTpl"
+                >
+                  Done
+                </UButton>
+                <UButton
+                  variant="soft"
+                  color="error"
+                  size="xs"
+                  icon="i-lucide-trash-2"
+                  class="rounded-[var(--ui-control-radius)]"
+                  @click="onDeleteTpl"
+                >
+                  Delete
+                </UButton>
+              </div>
+              <div
                 v-else
-                icon="i-lucide-check"
-                color="neutral"
-                variant="ghost"
-                size="xs"
-                class="rounded-[var(--ui-control-radius)] px-3"
-                @click="doneEditingTpl"
+                class="flex shrink-0 flex-wrap items-center gap-1.5 rounded-[var(--ui-control-radius)] bg-zinc-50/90 p-1 ring-1 ring-zinc-950/[0.04]"
               >
-                Done
-              </UButton>
+                <UButton
+                  icon="i-lucide-pencil"
+                  color="neutral"
+                  variant="ghost"
+                  size="xs"
+                  class="rounded-[var(--ui-control-radius)] px-3"
+                  @click="editingTpl = true"
+                >
+                  Edit
+                </UButton>
+              </div>
             </div>
           </header>
           <template v-if="!editingTpl">
@@ -353,17 +383,6 @@ async function onDeleteTpl() {
                 </option>
               </select>
             </UFormField>
-            <div class="flex flex-wrap gap-2">
-              <UButton variant="soft" color="neutral" size="xs" class="rounded-[var(--ui-control-radius)]" icon="i-lucide-chevron-up" @click="onMoveTpl(-1)">
-                Move up
-              </UButton>
-              <UButton variant="soft" color="neutral" size="xs" class="rounded-[var(--ui-control-radius)]" icon="i-lucide-chevron-down" @click="onMoveTpl(1)">
-                Move down
-              </UButton>
-              <UButton variant="soft" color="error" size="xs" class="rounded-[var(--ui-control-radius)]" icon="i-lucide-trash-2" @click="onDeleteTpl">
-                Delete
-              </UButton>
-            </div>
           </div>
         </div>
       </div>
