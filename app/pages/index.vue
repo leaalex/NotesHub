@@ -325,6 +325,21 @@ async function unlinkContact(contactId: string) {
   await refreshLinkedContacts()
 }
 
+async function onMentionFile(fileId: string) {
+  const id = selectedNoteId.value
+  if (!id) return
+  try {
+    await apiFetch(`/api/notes/${id}/files`, {
+      method: 'POST',
+      body: { fileId },
+    })
+    await refreshLinkedFiles()
+  }
+  catch {
+    /* упоминание уже в тексте — связь вторична, инлайн ошибку не блокируем */
+  }
+}
+
 function openNoteFilePicker() {
   noteFileInput.value?.click()
 }
@@ -949,6 +964,7 @@ function tableRowClasses(n: NoteList) {
             <ClientOnly>
               <NotesLexicalNoteEditor
                 :note-key="selectedNoteId || 'none'"
+                :note-id="selectedNoteId || undefined"
                 :model-value="content"
                 :read-only="!isEditing"
                 :placeholder="isEditing ? 'Start writing…' : ''"
@@ -956,6 +972,7 @@ function tableRowClasses(n: NoteList) {
                 @update:model-value="onEditorUpdate"
                 @update:excerpt="onExcerptUpdate"
                 @update:outline="onOutlineUpdate"
+                @mention:file="onMentionFile"
               />
               <template #fallback>
                 <div class="flex min-h-[40vh] items-center justify-center text-sm text-zinc-400">
@@ -1034,7 +1051,7 @@ function tableRowClasses(n: NoteList) {
                 </li>
               </ul>
               <p v-else class="mt-3 text-[11px] leading-relaxed text-zinc-400">
-                No linked contacts. Use “+ Link” or <span class="font-medium text-zinc-500">@</span> in the note body.
+                No linked contacts. Use “+ Link” or type <span class="font-medium text-zinc-500">@</span> for contacts / files in the note body.
               </p>
             </div>
 

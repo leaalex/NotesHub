@@ -9,7 +9,9 @@ import { EditorContent, useEditor } from '@tiptap/vue-3'
 import { useDebounceFn } from '@vueuse/core'
 import { nextTick, watch } from 'vue'
 import { BlockToolbar } from '~/extensions/tiptap-block-toolbar'
+import { AtMentions } from '~/extensions/tiptap-at-mentions'
 import { ContactMention } from '~/extensions/tiptap-contact-mention'
+import { FileMention } from '~/extensions/tiptap-file-mention'
 import { SlashCommands } from '~/extensions/tiptap-slash-commands'
 import { EMPTY_TIPTAP_DOC_JSON } from '#shared/tiptap-empty-doc'
 import type { NoteOutlineItem } from '#shared/note-outline'
@@ -21,6 +23,8 @@ defineOptions({
 const props = withDefaults(
   defineProps<{
     noteKey: string
+    /** Опционально: id заметки (для будущего использования или отладки). */
+    noteId?: string | null
     modelValue: string
     readOnly?: boolean
     placeholder?: string
@@ -35,6 +39,7 @@ const emit = defineEmits<{
   'update:modelValue': [value: string]
   'update:excerpt': [value: string]
   'update:outline': [value: NoteOutlineItem[]]
+  'mention:file': [fileId: string]
 }>()
 
 /** Accept only Tiptap doc JSON; Lexical `{}` / invalid payloads fall back to empty doc. */
@@ -107,6 +112,10 @@ const editor = useEditor({
       placeholder: props.placeholder,
     }),
     ContactMention,
+    FileMention,
+    AtMentions.configure({
+      onPickFile: fileId => emit('mention:file', fileId),
+    }),
     BlockToolbar,
     SlashCommands,
   ],
@@ -249,6 +258,10 @@ watch(
   border-top: 1px solid rgb(244 244 245);
 }
 :deep(.notes-prose-editor[contenteditable='true'] a.contact-mention-chip) {
+  pointer-events: none;
+  cursor: text;
+}
+:deep(.notes-prose-editor[contenteditable='true'] a.file-mention-chip) {
   pointer-events: none;
   cursor: text;
 }
