@@ -31,7 +31,10 @@ type FileFieldRow = {
   position: number
 }
 
-type FileDetail = AppFile & { fields: FileFieldRow[] }
+type FileDetail = AppFile & {
+  fields: FileFieldRow[]
+  linkedTasks?: { id: string, title: string, status: string, priority: string }[]
+}
 
 const apiFetch = useRequestFetch()
 const toast = useToast()
@@ -274,10 +277,53 @@ function mergeListRow(patch: Partial<AppFile> & { id: string }) {
     files.value[i] = { ...files.value[i]!, ...patch } as AppFile
 }
 
+const linkTaskModal = ref(false)
+const taskSearchRows = ref<{ id: string, title: string }[]>([])
+const linkingTask = ref(false)
+
+async function refreshLinkedTasks() {
+  const id = selectedFileId.value
+  if (!id || !fileDetail.value)
+    return
+  fileDetail.value.linkedTasks = await apiFetch<{ id: string, title: string, status: string, priority: string }[]>(`/api/files/${id}/tasks`)
+}
+
+async function openLinkTasks() {
+  taskSearchRows.value = await apiFetch<{ id: string, title: string }[]>('/api/tasks')
+  linkTaskModal.value = true
+}
+
+async function linkTaskToFile(taskId: string) {
+  const id = selectedFileId.value
+  if (!id || !fileDetail.value)
+    return
+  linkingTask.value = true
+  try {
+    await apiFetch(`/api/files/${id}/tasks/${taskId}`, { method: 'POST' })
+    await refreshLinkedTasks()
+    linkTaskModal.value = false
+  }
+  catch (e) {
+    console.error(e)
+    toast.add({ title: 'Could not link task', color: 'error' })
+  }
+  finally {
+    linkingTask.value = false
+  }
+}
+
+async function unlinkTaskFromFile(taskId: string) {
+  const id = selectedFileId.value
+  if (!id)
+    return
+  await apiFetch(`/api/files/${id}/tasks/${taskId}`, { method: 'DELETE' })
+  await refreshLinkedTasks()
+}
+
 async function loadFileDetail(id: string) {
   try {
     const d = await apiFetch<FileDetail>(`/api/files/${id}`)
-    fileDetail.value = d
+    fileDetail.value = { ...d, linkedTasks: d.linkedTasks ?? [] }
     draftTitle.value = d.title
     draftDescription.value = d.description
     for (const k of Object.keys(fieldVals))
@@ -311,6 +357,7 @@ const persistFileDebounced = debouncedSchedule(async () => {
       ...fileDetail.value,
       ...updated,
       fields: fileDetail.value.fields,
+      linkedTasks: fileDetail.value.linkedTasks ?? [],
     }
     mergeListRow(updated)
   }
@@ -389,6 +436,7 @@ async function finishEditing() {
         ...fileDetail.value,
         ...updated,
         fields: fileDetail.value.fields,
+        linkedTasks: fileDetail.value.linkedTasks ?? [],
       }
       mergeListRow(updated)
     }
@@ -784,6 +832,45 @@ function previewAlt() {
                   </p>
                 </template>
               </div>
+
+              <div class="mt-6 rounded-[var(--ui-control-radius)] border border-zinc-100 bg-zinc-50/70 p-4">
+                <div class="flex items-center justify-between gap-2">
+                  <p class="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+                    Linked tasks
+                  </p>
+                  <button
+                    v-if="isEditing"
+                    type="button"
+                    class="rounded-[var(--ui-control-radius)] px-2 py-0.5 text-[11px] font-semibold text-zinc-600 hover:bg-white/85"
+                    @click="openLinkTasks"
+                  >
+                    + Link
+                  </button>
+                </div>
+                <ul v-if="(fileDetail.linkedTasks ?? []).length" class="mt-3 space-y-2">
+                  <li
+                    v-for="t in fileDetail.linkedTasks"
+                    :key="t.id"
+                    class="flex items-center justify-between gap-2 rounded-[var(--ui-control-radius)] bg-white/60 px-3 py-2 text-[13px]"
+                  >
+                    <NuxtLink :to="`/tasks/${t.id}`" class="min-w-0 flex-1 font-medium text-zinc-800 hover:underline">
+                      {{ t.title || 'Untitled' }}
+                    </NuxtLink>
+                    <button
+                      v-if="isEditing"
+                      type="button"
+                      class="shrink-0 rounded-[var(--ui-control-radius)] p-1 text-zinc-400 hover:text-red-600"
+                      aria-label="Unlink task"
+                      @click="unlinkTaskFromFile(t.id)"
+                    >
+                      <Icon name="i-lucide-x" class="size-3.5" />
+                    </button>
+                  </li>
+                </ul>
+                <p v-else class="mt-3 text-[13px] text-zinc-400">
+                  No linked tasks.
+                </p>
+              </div>
             </div>
             <div v-else class="mt-4 text-[13px] text-zinc-400">
               Loading details…
@@ -832,6 +919,37 @@ function previewAlt() {
     :creating="creatingFolder"
     @submit="createFolder"
   />
+
+  <Teleport to="body">
+    <div
+      v-if="linkTaskModal"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/35 px-4 backdrop-blur-sm"
+      @click.self="linkTaskModal = false"
+    >
+      <UCard class="max-h-[80vh] w-full max-w-md overflow-auto rounded-[var(--ui-panel-radius)]">
+        <template #header>
+          <span class="font-semibold">Link a task</span>
+        </template>
+        <ul class="space-y-1">
+          <li v-for="t in taskSearchRows" :key="t.id">
+            <button
+              type="button"
+              class="flex w-full rounded-[var(--ui-control-radius)] px-4 py-2.5 text-left text-[13px] hover:bg-zinc-100"
+              :disabled="linkingTask"
+              @click="linkTaskToFile(t.id)"
+            >
+              {{ t.title || 'Untitled' }}
+            </button>
+          </li>
+        </ul>
+        <template #footer>
+          <UButton variant="ghost" color="neutral" class="rounded-[var(--ui-control-radius)]" @click="linkTaskModal = false">
+            Cancel
+          </UButton>
+        </template>
+      </UCard>
+    </div>
+  </Teleport>
 
   <UiConfirmDeleteDialog
     v-model:open="showDeleteFileConfirm"

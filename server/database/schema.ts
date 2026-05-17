@@ -348,6 +348,140 @@ export const contactFiles = sqliteTable(
   ]
 )
 
+export const tasks = sqliteTable(
+  'tasks',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    folderId: text('folder_id').references(() => folders.id, {
+      onDelete: 'set null',
+    }),
+    parentId: text('parent_id').references(() => tasks.id, {
+      onDelete: 'set null',
+    }),
+    title: text('title').notNull().default(''),
+    description: text('description').notNull().default(''),
+    status: text('status').notNull().default('todo'),
+    priority: text('priority').notNull().default('normal'),
+    dueAt: integer('due_at', { mode: 'timestamp_ms' }),
+    completedAt: integer('completed_at', { mode: 'timestamp_ms' }),
+    position: integer('position').notNull().default(0),
+    shareToken: text('share_token').unique(),
+    shareEnabled: integer('share_enabled', { mode: 'boolean' })
+      .notNull()
+      .default(false),
+    shareExpiresAt: integer('share_expires_at', { mode: 'timestamp_ms' }),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .default(sql`(strftime('%s','now') * 1000)`),
+    updatedAt: integer('updated_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .default(sql`(strftime('%s','now') * 1000)`),
+  },
+  (t) => [
+    index('tasks_user_idx').on(t.userId),
+    index('tasks_folder_idx').on(t.folderId),
+    index('tasks_parent_idx').on(t.parentId),
+    index('tasks_status_idx').on(t.status),
+    index('tasks_due_idx').on(t.dueAt),
+    index('tasks_share_idx').on(t.shareToken),
+  ]
+)
+
+export const taskFieldTemplates = sqliteTable(
+  'task_field_templates',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    label: text('label').notNull(),
+    fieldType: text('field_type').notNull().default('text'),
+    position: integer('position').notNull().default(0),
+  },
+  (t) => [index('task_ft_user_idx').on(t.userId)]
+)
+
+export const taskFieldValues = sqliteTable(
+  'task_field_values',
+  {
+    id: text('id').primaryKey(),
+    taskId: text('task_id')
+      .notNull()
+      .references(() => tasks.id, { onDelete: 'cascade' }),
+    templateId: text('template_id').references(() => taskFieldTemplates.id, {
+      onDelete: 'set null',
+    }),
+    label: text('label').notNull(),
+    fieldType: text('field_type').notNull().default('text'),
+    value: text('value').notNull().default(''),
+    position: integer('position').notNull().default(0),
+  },
+  (t) => [index('task_fv_task_idx').on(t.taskId)]
+)
+
+export const noteTasks = sqliteTable(
+  'note_tasks',
+  {
+    noteId: text('note_id')
+      .notNull()
+      .references(() => notes.id, { onDelete: 'cascade' }),
+    taskId: text('task_id')
+      .notNull()
+      .references(() => tasks.id, { onDelete: 'cascade' }),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .default(sql`(strftime('%s','now') * 1000)`),
+  },
+  (t) => [
+    primaryKey({ columns: [t.noteId, t.taskId] }),
+    index('nt_note_idx').on(t.noteId),
+    index('nt_task_idx').on(t.taskId),
+  ]
+)
+
+export const contactTasks = sqliteTable(
+  'contact_tasks',
+  {
+    contactId: text('contact_id')
+      .notNull()
+      .references(() => contacts.id, { onDelete: 'cascade' }),
+    taskId: text('task_id')
+      .notNull()
+      .references(() => tasks.id, { onDelete: 'cascade' }),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .default(sql`(strftime('%s','now') * 1000)`),
+  },
+  (t) => [
+    primaryKey({ columns: [t.contactId, t.taskId] }),
+    index('ct_contact_idx').on(t.contactId),
+    index('ct_task_idx').on(t.taskId),
+  ]
+)
+
+export const taskFiles = sqliteTable(
+  'task_files',
+  {
+    taskId: text('task_id')
+      .notNull()
+      .references(() => tasks.id, { onDelete: 'cascade' }),
+    fileId: text('file_id')
+      .notNull()
+      .references(() => files.id, { onDelete: 'cascade' }),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .default(sql`(strftime('%s','now') * 1000)`),
+  },
+  (t) => [
+    primaryKey({ columns: [t.taskId, t.fileId] }),
+    index('tf_task_idx').on(t.taskId),
+    index('tf_file_idx').on(t.fileId),
+  ]
+)
+
 export const folderRelations = relations(folders, ({ one, many }) => ({
   user: one(user, {
     fields: [folders.userId],
@@ -362,6 +496,7 @@ export const folderRelations = relations(folders, ({ one, many }) => ({
   notes: many(notes),
   contacts: many(contacts),
   files: many(files),
+  tasks: many(tasks),
 }))
 
 export const noteRelations = relations(notes, ({ one, many }) => ({
@@ -375,6 +510,7 @@ export const noteRelations = relations(notes, ({ one, many }) => ({
   }),
   linkedContacts: many(noteContacts),
   linkedFiles: many(noteFiles),
+  linkedTasks: many(noteTasks),
 }))
 
 export const contactRelations = relations(contacts, ({ one, many }) => ({
@@ -389,6 +525,7 @@ export const contactRelations = relations(contacts, ({ one, many }) => ({
   fieldValues: many(contactFieldValues),
   linkedNotes: many(noteContacts),
   linkedFiles: many(contactFiles),
+  linkedTasks: many(contactTasks),
 }))
 
 export const contactFieldTemplateRelations = relations(
@@ -439,6 +576,7 @@ export const fileRelations = relations(files, ({ one, many }) => ({
   linkedNotes: many(noteFiles),
   linkedContacts: many(contactFiles),
   fieldValues: many(fileFieldValues),
+  linkedTasks: many(taskFiles),
 }))
 
 export const fileFieldTemplateRelations = relations(fileFieldTemplates, ({ one, many }) => ({
@@ -478,6 +616,82 @@ export const contactFileRelations = relations(contactFiles, ({ one }) => ({
   }),
   file: one(files, {
     fields: [contactFiles.fileId],
+    references: [files.id],
+  }),
+}))
+
+export const taskRelations = relations(tasks, ({ one, many }) => ({
+  user: one(user, {
+    fields: [tasks.userId],
+    references: [user.id],
+  }),
+  folder: one(folders, {
+    fields: [tasks.folderId],
+    references: [folders.id],
+  }),
+  parent: one(tasks, {
+    fields: [tasks.parentId],
+    references: [tasks.id],
+    relationName: 'taskHierarchy',
+  }),
+  children: many(tasks, { relationName: 'taskHierarchy' }),
+  fieldValues: many(taskFieldValues),
+  linkedNotes: many(noteTasks),
+  linkedContacts: many(contactTasks),
+  linkedFiles: many(taskFiles),
+}))
+
+export const taskFieldTemplateRelations = relations(
+  taskFieldTemplates,
+  ({ one, many }) => ({
+    user: one(user, {
+      fields: [taskFieldTemplates.userId],
+      references: [user.id],
+    }),
+    values: many(taskFieldValues),
+  })
+)
+
+export const taskFieldValueRelations = relations(taskFieldValues, ({ one }) => ({
+  task: one(tasks, {
+    fields: [taskFieldValues.taskId],
+    references: [tasks.id],
+  }),
+  template: one(taskFieldTemplates, {
+    fields: [taskFieldValues.templateId],
+    references: [taskFieldTemplates.id],
+  }),
+}))
+
+export const noteTaskRelations = relations(noteTasks, ({ one }) => ({
+  note: one(notes, {
+    fields: [noteTasks.noteId],
+    references: [notes.id],
+  }),
+  task: one(tasks, {
+    fields: [noteTasks.taskId],
+    references: [tasks.id],
+  }),
+}))
+
+export const contactTaskRelations = relations(contactTasks, ({ one }) => ({
+  contact: one(contacts, {
+    fields: [contactTasks.contactId],
+    references: [contacts.id],
+  }),
+  task: one(tasks, {
+    fields: [contactTasks.taskId],
+    references: [tasks.id],
+  }),
+}))
+
+export const taskFileRelations = relations(taskFiles, ({ one }) => ({
+  task: one(tasks, {
+    fields: [taskFiles.taskId],
+    references: [tasks.id],
+  }),
+  file: one(files, {
+    fields: [taskFiles.fileId],
     references: [files.id],
   }),
 }))

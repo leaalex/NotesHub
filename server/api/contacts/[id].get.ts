@@ -2,10 +2,12 @@ import { and, asc, eq } from 'drizzle-orm'
 import {
   contactFiles,
   contactFieldValues,
+  contactTasks,
   contacts,
   files,
   noteContacts,
   notes,
+  tasks,
 } from '../../database/schema'
 import { db } from '../../utils/db'
 import { toFileDto } from '../../utils/file-dto'
@@ -51,11 +53,24 @@ export default defineEventHandler(async (event) => {
     .where(and(eq(contactFiles.contactId, id), eq(files.userId, session.user.id)))
     .orderBy(files.updatedAt)
 
+  const linkedTasks = await db
+    .select({
+      id: tasks.id,
+      title: tasks.title,
+      status: tasks.status,
+      priority: tasks.priority,
+    })
+    .from(contactTasks)
+    .innerJoin(tasks, eq(contactTasks.taskId, tasks.id))
+    .where(and(eq(contactTasks.contactId, id), eq(tasks.userId, session.user.id)))
+    .orderBy(tasks.title)
+
   const config = useRuntimeConfig()
   return {
     ...contact,
     fields,
     linkedNotes,
     linkedFiles: linkedFiles.map(x => toFileDto(x.file, config.public.siteUrl as string)),
+    linkedTasks,
   }
 })

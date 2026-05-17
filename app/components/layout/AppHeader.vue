@@ -6,11 +6,12 @@ const sessionQuery = auth.useSession()
 const { open: foldersRailOpen, toggle: toggleFoldersRail } = useFoldersRail()
 
 const showFoldersRailToggle = computed(() => {
-  if (route.path === '/contacts/templates')
+  if (route.path === '/contacts/templates' || route.path === '/tasks/templates')
     return false
   return route.path === '/'
     || route.path.startsWith('/contacts')
     || route.path.startsWith('/files')
+    || route.path.startsWith('/tasks')
 })
 
 const user = computed(() => sessionQuery.value?.data?.user)
@@ -20,6 +21,7 @@ const links = [
   { to: '/', label: 'Notes', icon: 'i-lucide-notebook-text' },
   { to: '/files', label: 'Files', icon: 'i-lucide-image' },
   { to: '/contacts', label: 'Contacts', icon: 'i-lucide-contact' },
+  { to: '/tasks', label: 'Tasks', icon: 'i-lucide-list-checks' },
 ] as const
 
 function isActive(to: string) {

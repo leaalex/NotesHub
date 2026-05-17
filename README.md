@@ -74,10 +74,12 @@ Caddy terminates TLS and reverse-proxies to the Nitro app. Ensure DNS for `DOMAI
 |------|---------|
 | `/` | Notes app |
 | `/login` | Sign in / sign up |
+| `/tasks` | Tasks (folders, subtasks, links to notes/contacts/files) |
 | `/share/:token` | Read-only shared note |
+| `/share/task/:token` | Read-only shared task |
 | `/staff` | Admin hub |
 | `/staff/users` | Better Auth user list & roles |
-| `/cms` | Admin read-only views: folders, notes (SQLite) |
+| `/cms` | Admin read-only views: folders, notes, tasks (SQLite) |
 
 ## License
 

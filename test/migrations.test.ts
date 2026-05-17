@@ -35,5 +35,8 @@ describe('drizzle migrations', () => {
     expect(names).toContain('user')
     expect(names).toContain('notes')
     expect(names).toContain('folders')
+    expect(names).toContain('tasks')
+    expect(names).toContain('note_tasks')
+    expect(names).toContain('task_field_templates')
   })
 })

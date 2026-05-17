@@ -14,7 +14,6 @@ type AppFile = {
   id: string
   originalName: string
   title?: string
-  description?: string
   mimeType: string
   size: number
   shareEnabled: boolean
@@ -23,34 +22,32 @@ type AppFile = {
   downloadUrl: string
 }
 
-type ContactDetail = {
+type TaskDetail = {
   id: string
-  type: string
-  firstName: string
-  lastName: string
-  orgName: string
-  displayName: string
-  note: string
+  userId: string
   folderId: string | null
+  parentId: string | null
+  title: string
+  description: string
+  status: string
+  priority: string
+  dueAt: string | Date | null
+  completedAt: string | Date | null
+  position: number
   shareEnabled?: boolean
   shareToken?: string | null
   shareExpiresAt?: string | Date | null
   fields: FieldRow[]
   linkedNotes: { id: string, title: string }[]
+  linkedContacts: { id: string, displayName: string, type: string }[]
   linkedFiles: AppFile[]
-  linkedTasks: { id: string, title: string, status: string, priority: string }[]
+  children: { id: string, title: string, status: string, priority: string }[]
 }
 
-type TemplateRow = {
-  id: string
-  label: string
-  fieldType: string
-}
-
-type NoteSearch = {
-  id: string
-  title: string
-}
+type TemplateRow = { id: string, label: string, fieldType: string }
+type NoteSearch = { id: string, title: string }
+type ContactSearch = { id: string, displayName: string }
+type FileSearch = { id: string, originalName: string, title?: string }
 
 const route = useRoute()
 const router = useRouter()
@@ -58,88 +55,91 @@ const toast = useToast()
 const apiFetch = useRequestFetch()
 const runtimeConfig = useRuntimeConfig()
 
-const contactShareUrl = ref('')
-
-const listVersion = useState<number>('contacts:listVersion', () => 0)
-
-function bumpContactsList() {
+const listVersion = useState<number>('tasks:listVersion', () => 0)
+function bumpList() {
   listVersion.value++
 }
 
+const taskShareUrl = ref('')
 const hydrating = ref(true)
-const detail = ref<ContactDetail | null>(null)
-
-/** Default read-only until Edit; resetting when switching contacts. */
+const detail = ref<TaskDetail | null>(null)
 const isEditing = ref(false)
 const finishingEdit = ref(false)
 
 const templates = ref<TemplateRow[]>([])
-
-const coreFirst = ref('')
-const coreLast = ref('')
-const coreOrg = ref('')
-const coreNote = ref('')
+const coreTitle = ref('')
+const coreDesc = ref('')
+const coreStatus = ref('todo')
+const corePriority = ref('normal')
 const deleting = ref(false)
-const showDeleteContactConfirm = ref(false)
+const showDeleteConfirm = ref(false)
 const showDeleteFieldConfirm = ref(false)
 const pendingFieldId = ref<string | null>(null)
 const removingField = ref(false)
+const taskDetailScroll = ref<HTMLElement | null>(null)
 
 const fieldVals = reactive<Record<string, string>>({})
-
 const showAddField = ref(false)
 const newFieldLabel = ref('')
 const newFieldType = ref('text')
 
 const linkNoteModal = ref(false)
-const linkTaskModal = ref(false)
+const linkContactModal = ref(false)
+const linkFileModal = ref(false)
 const noteSearchRows = ref<NoteSearch[]>([])
-const taskSearchRows = ref<{ id: string, title: string }[]>([])
+const contactSearchRows = ref<ContactSearch[]>([])
+const fileSearchRows = ref<FileSearch[]>([])
 const linking = ref(false)
-const linkingTask = ref(false)
-const fileInput = ref<HTMLInputElement | null>(null)
-const contactDetailScroll = ref<HTMLElement | null>(null)
 
-function syncContactShareUrl() {
+const statusOpts = [
+  { value: 'todo', label: 'To do' },
+  { value: 'in_progress', label: 'In progress' },
+  { value: 'done', label: 'Done' },
+  { value: 'cancelled', label: 'Cancelled' },
+]
+const priorityOpts = [
+  { value: 'low', label: 'Low' },
+  { value: 'normal', label: 'Normal' },
+  { value: 'high', label: 'High' },
+]
+
+function dueLocal(d: string | Date | null | undefined): string {
+  if (!d)
+    return ''
+  const x = typeof d === 'string' ? new Date(d) : d
+  if (Number.isNaN(x.getTime()))
+    return ''
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${x.getFullYear()}-${pad(x.getMonth() + 1)}-${pad(x.getDate())}T${pad(x.getHours())}:${pad(x.getMinutes())}`
+}
+
+const coreDueLocal = ref('')
+
+const dueDisplayReadonly = computed(() => {
+  if (!coreDueLocal.value.trim())
+    return '—'
+  const d = new Date(coreDueLocal.value)
+  if (Number.isNaN(d.getTime()))
+    return '—'
+  return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+})
+
+function syncTaskShareUrl() {
   const d = detail.value
   if (!d?.shareEnabled || !d.shareToken) {
-    contactShareUrl.value = ''
+    taskShareUrl.value = ''
     return
   }
   const base = String(runtimeConfig.public.siteUrl ?? '').replace(/\/$/, '')
-  contactShareUrl.value = base ? `${base}/share/contact/${d.shareToken}` : ''
+  taskShareUrl.value = base ? `${base}/share/task/${d.shareToken}` : ''
 }
 
-async function copyContactShareLink() {
-  syncContactShareUrl()
-  const url = contactShareUrl.value.trim()
-  if (!url) {
-    toast.add({
-      title: 'No share link',
-      description: 'Enable sharing first.',
-      color: 'neutral',
-    })
-    return
-  }
-  try {
-    await navigator.clipboard.writeText(url)
-    toast.add({ title: 'Link copied', color: 'success' })
-  }
-  catch {
-    toast.add({
-      title: 'Could not copy',
-      description: 'Clipboard permission may be blocked.',
-      color: 'error',
-    })
-  }
-}
-
-async function enableContactShare() {
+async function enableShare() {
   if (!detail.value)
     return
   try {
-    const r = await apiFetch<{ url: string, shareToken: string }>(`/api/contacts/${detail.value.id}/share`, { method: 'POST', body: {} })
-    contactShareUrl.value = r.url
+    const r = await apiFetch<{ url: string, shareToken: string }>(`/api/tasks/${detail.value.id}/share`, { method: 'POST', body: {} })
+    taskShareUrl.value = r.url
     detail.value.shareEnabled = true
     detail.value.shareToken = r.shareToken
   }
@@ -149,12 +149,12 @@ async function enableContactShare() {
   }
 }
 
-async function disableContactShare() {
+async function disableShare() {
   if (!detail.value)
     return
   try {
-    await apiFetch(`/api/contacts/${detail.value.id}/share`, { method: 'DELETE' })
-    contactShareUrl.value = ''
+    await apiFetch(`/api/tasks/${detail.value.id}/share`, { method: 'DELETE' })
+    taskShareUrl.value = ''
     detail.value.shareEnabled = false
     detail.value.shareToken = null
     detail.value.shareExpiresAt = null
@@ -165,19 +165,23 @@ async function disableContactShare() {
   }
 }
 
-watch(detail, syncContactShareUrl, { deep: true })
-
-function scrollToContactSection(sectionId: string) {
-  contactDetailScroll.value?.querySelector(`#${sectionId}`)?.scrollIntoView({
-    behavior: 'smooth',
-    block: 'start',
-  })
+async function copyShareLink() {
+  syncTaskShareUrl()
+  const url = taskShareUrl.value.trim()
+  if (!url) {
+    toast.add({ title: 'No share link', description: 'Enable sharing first.', color: 'neutral' })
+    return
+  }
+  try {
+    await navigator.clipboard.writeText(url)
+    toast.add({ title: 'Link copied', color: 'success' })
+  }
+  catch {
+    toast.add({ title: 'Could not copy', color: 'error' })
+  }
 }
 
-function initials(name: string) {
-  const p = name.trim().split(/\s+/).slice(0, 2).map(w => w[0]?.toUpperCase() ?? '').join('')
-  return p.slice(0, 2) || '?'
-}
+watch(detail, syncTaskShareUrl, { deep: true })
 
 function refreshFieldVals(rows: FieldRow[]) {
   for (const k of Object.keys(fieldVals))
@@ -188,13 +192,11 @@ function refreshFieldVals(rows: FieldRow[]) {
 const missingTemplates = computed(() =>
   templates.value.filter(t =>
     !(detail.value?.fields.some(v => v.templateId === t.id)),
-  ))
+  ),
+)
 
-async function loadTemplates(type: string) {
-  const t = type === 'organization' ? 'organization' : 'person'
-  templates.value = await apiFetch<TemplateRow[]>('/api/contact-field-templates', {
-    query: { type: t },
-  })
+async function loadTemplates() {
+  templates.value = await apiFetch<TemplateRow[]>('/api/task-field-templates')
 }
 
 async function load() {
@@ -203,22 +205,26 @@ async function load() {
     return
   hydrating.value = true
   try {
-    const row = await apiFetch<ContactDetail>(`/api/contacts/${id}`)
+    const row = await apiFetch<TaskDetail>(`/api/tasks/${id}`)
     detail.value = {
       ...row,
       linkedFiles: row.linkedFiles ?? [],
-      linkedTasks: row.linkedTasks ?? [],
+      linkedNotes: row.linkedNotes ?? [],
+      linkedContacts: row.linkedContacts ?? [],
+      children: row.children ?? [],
+      fields: row.fields ?? [],
     }
-    coreFirst.value = row.firstName ?? ''
-    coreLast.value = row.lastName ?? ''
-    coreOrg.value = row.orgName ?? ''
-    coreNote.value = row.note ?? ''
-    refreshFieldVals(row.fields)
-    await loadTemplates(row.type)
+    coreTitle.value = row.title ?? ''
+    coreDesc.value = row.description ?? ''
+    coreStatus.value = row.status ?? 'todo'
+    corePriority.value = row.priority ?? 'normal'
+    coreDueLocal.value = dueLocal(row.dueAt ?? null)
+    refreshFieldVals(row.fields ?? [])
+    await loadTemplates()
   }
   catch {
-    toast.add({ title: 'Contact not found', color: 'error' })
-    await router.replace('/contacts')
+    toast.add({ title: 'Task not found', color: 'error' })
+    await router.replace('/tasks')
     detail.value = null
   }
   finally {
@@ -226,54 +232,54 @@ async function load() {
   }
 }
 
-watch(
-  () => route.params.id as string,
-  () => {
-    isEditing.value = false
-    showAddField.value = false
-    linkNoteModal.value = false
-    linkTaskModal.value = false
-    load()
-  },
-  { immediate: true },
-)
+watch(() => route.params.id as string, () => {
+  isEditing.value = false
+  showAddField.value = false
+  linkNoteModal.value = false
+  linkContactModal.value = false
+  linkFileModal.value = false
+  load()
+}, { immediate: true })
 
 async function persistCoreImmediate(): Promise<boolean> {
   if (!detail.value || hydrating.value)
     return true
   try {
-    const prevDisplay = detail.value.displayName
-    const row = await apiFetch<Omit<ContactDetail, 'fields' | 'linkedNotes'>>(`/api/contacts/${detail.value.id}`, {
+    const dueMs = coreDueLocal.value.trim()
+      ? new Date(coreDueLocal.value).getTime()
+      : null
+    const row = await apiFetch(`/api/tasks/${detail.value.id}`, {
       method: 'PATCH',
       body: {
-        firstName: coreFirst.value,
-        lastName: coreLast.value,
-        orgName: coreOrg.value,
-        note: coreNote.value,
+        title: coreTitle.value,
+        description: coreDesc.value,
+        status: coreStatus.value,
+        priority: corePriority.value,
+        dueAt: dueMs,
       },
-    })
+    }) as TaskDetail
     detail.value = {
       ...detail.value,
       ...row,
       fields: detail.value.fields,
       linkedNotes: detail.value.linkedNotes,
+      linkedContacts: detail.value.linkedContacts,
       linkedFiles: detail.value.linkedFiles,
-      linkedTasks: detail.value.linkedTasks,
+      children: detail.value.children,
     }
-    if (row.displayName !== prevDisplay)
-      bumpContactsList()
+    bumpList()
     return true
   }
   catch (e) {
     console.error(e)
-    toast.add({ title: 'Could not save contact', color: 'error' })
+    toast.add({ title: 'Could not save task', color: 'error' })
     return false
   }
 }
 
 const persistCoreDebounced = debouncedSchedule(() => persistCoreImmediate(), 600)
 
-watch([coreFirst, coreLast, coreOrg, coreNote], () => {
+watch([coreTitle, coreDesc, coreStatus, corePriority, coreDueLocal], () => {
   if (!isEditing.value || hydrating.value)
     return
   persistCoreDebounced.schedule()
@@ -287,11 +293,8 @@ async function persistFieldImmediate(fieldId: string, value: string): Promise<bo
     return true
   try {
     const row = await apiFetch<FieldRow>(
-      `/api/contacts/${detail.value.id}/fields/${fieldId}`,
-      {
-        method: 'PATCH',
-        body: { value },
-      },
+      `/api/tasks/${detail.value.id}/fields/${fieldId}`,
+      { method: 'PATCH', body: { value } },
     )
     const i = detail.value.fields.findIndex(x => x.id === fieldId)
     if (i >= 0)
@@ -328,16 +331,10 @@ async function finishEditing() {
   try {
     persistCoreDebounced.cancel()
     persistFieldDebounced.cancel()
-
-    const fieldBaseline = sortedFields().map(f => ({
-      id: f.id,
-      baseline: f.value ?? '',
-    }))
-
+    const fieldBaseline = sortedFields().map(f => ({ id: f.id, baseline: f.value ?? '' }))
     const coreOk = await persistCoreImmediate()
     if (!coreOk)
       return
-
     for (const { id, baseline } of fieldBaseline) {
       const cur = fieldVals[id] ?? ''
       if (cur === baseline)
@@ -349,11 +346,204 @@ async function finishEditing() {
     isEditing.value = false
     showAddField.value = false
     linkNoteModal.value = false
-    linkTaskModal.value = false
+    linkContactModal.value = false
+    linkFileModal.value = false
   }
   finally {
     finishingEdit.value = false
   }
+}
+
+async function addTemplateField(t: TemplateRow) {
+  if (!detail.value)
+    return
+  try {
+    await apiFetch<FieldRow>(`/api/tasks/${detail.value.id}/fields`, {
+      method: 'POST',
+      body: { templateId: t.id },
+    })
+    await load()
+    showAddField.value = false
+  }
+  catch (e) {
+    console.error(e)
+    toast.add({ title: 'Could not add field', color: 'error' })
+  }
+}
+
+async function addAdHocField() {
+  if (!detail.value)
+    return
+  const lb = newFieldLabel.value.trim()
+  if (!lb)
+    return
+  try {
+    await apiFetch(`/api/tasks/${detail.value.id}/fields`, {
+      method: 'POST',
+      body: { label: lb, fieldType: newFieldType.value },
+    })
+    newFieldLabel.value = ''
+    newFieldType.value = 'text'
+    await load()
+    showAddField.value = false
+  }
+  catch (e) {
+    console.error(e)
+    toast.add({ title: 'Could not add field', color: 'error' })
+  }
+}
+
+async function confirmDelete() {
+  if (!detail.value)
+    return
+  deleting.value = true
+  try {
+    await apiFetch(`/api/tasks/${detail.value.id}`, { method: 'DELETE' })
+    bumpList()
+    showDeleteConfirm.value = false
+    await router.replace('/tasks')
+  }
+  catch (e) {
+    console.error(e)
+    toast.add({ title: 'Could not delete task', color: 'error' })
+  }
+  finally {
+    deleting.value = false
+  }
+}
+
+async function openLinkNotes() {
+  noteSearchRows.value = await apiFetch<NoteSearch[]>('/api/notes')
+  linkNoteModal.value = true
+}
+
+async function linkNote(noteId: string) {
+  if (!detail.value)
+    return
+  linking.value = true
+  try {
+    await apiFetch(`/api/tasks/${detail.value.id}/notes/${noteId}`, { method: 'POST' })
+    detail.value.linkedNotes = await apiFetch(`/api/tasks/${detail.value.id}/notes`)
+    linkNoteModal.value = false
+  }
+  catch (e) {
+    console.error(e)
+    toast.add({ title: 'Could not link note', color: 'error' })
+  }
+  finally {
+    linking.value = false
+  }
+}
+
+async function unlinkNote(noteId: string) {
+  if (!detail.value)
+    return
+  await apiFetch(`/api/tasks/${detail.value.id}/notes/${noteId}`, { method: 'DELETE' })
+  detail.value.linkedNotes = detail.value.linkedNotes.filter(n => n.id !== noteId)
+}
+
+async function openLinkContacts() {
+  contactSearchRows.value = await apiFetch<ContactSearch[]>('/api/contacts')
+  linkContactModal.value = true
+}
+
+async function linkContact(contactId: string) {
+  if (!detail.value)
+    return
+  linking.value = true
+  try {
+    await apiFetch(`/api/tasks/${detail.value.id}/contacts/${contactId}`, { method: 'POST' })
+    detail.value.linkedContacts = await apiFetch(`/api/tasks/${detail.value.id}/contacts`)
+    linkContactModal.value = false
+  }
+  catch (e) {
+    console.error(e)
+    toast.add({ title: 'Could not link contact', color: 'error' })
+  }
+  finally {
+    linking.value = false
+  }
+}
+
+async function unlinkContact(contactId: string) {
+  if (!detail.value)
+    return
+  await apiFetch(`/api/tasks/${detail.value.id}/contacts/${contactId}`, { method: 'DELETE' })
+  detail.value.linkedContacts = detail.value.linkedContacts.filter(c => c.id !== contactId)
+}
+
+async function openLinkFiles() {
+  fileSearchRows.value = await apiFetch<FileSearch[]>('/api/files')
+  linkFileModal.value = true
+}
+
+async function linkFile(fileId: string) {
+  if (!detail.value)
+    return
+  linking.value = true
+  try {
+    await apiFetch(`/api/tasks/${detail.value.id}/files/${fileId}`, { method: 'POST' })
+    await refreshLinkedFiles()
+    linkFileModal.value = false
+  }
+  catch (e) {
+    console.error(e)
+    toast.add({ title: 'Could not link file', color: 'error' })
+  }
+  finally {
+    linking.value = false
+  }
+}
+
+async function unlinkFile(fileId: string) {
+  if (!detail.value)
+    return
+  await apiFetch(`/api/tasks/${detail.value.id}/files/${fileId}`, { method: 'DELETE' })
+  await refreshLinkedFiles()
+}
+
+async function refreshLinkedFiles() {
+  if (!detail.value)
+    return
+  const d = await apiFetch<TaskDetail>(`/api/tasks/${detail.value.id}`)
+  detail.value.linkedFiles = d.linkedFiles ?? []
+}
+
+async function toggleFileShare(fileId: string, nextEnabled: boolean) {
+  if (nextEnabled)
+    await apiFetch(`/api/files/${fileId}/share`, { method: 'POST', body: {} })
+  else
+    await apiFetch(`/api/files/${fileId}/share`, { method: 'DELETE' })
+  await refreshLinkedFiles()
+}
+
+async function deleteFileEverywhere(fileId: string) {
+  await apiFetch(`/api/files/${fileId}`, { method: 'DELETE' })
+  await refreshLinkedFiles()
+}
+
+function sortedFields() {
+  return [...(detail.value?.fields ?? [])].sort((a, b) =>
+    a.position !== b.position ? a.position - b.position : a.label.localeCompare(b.label),
+  )
+}
+
+function addSubtask() {
+  if (!detail.value)
+    return
+  void router.push({ path: '/tasks/new', query: { parent: detail.value.id } })
+}
+
+function scrollToTaskSection(sectionId: string) {
+  taskDetailScroll.value?.querySelector(`#${sectionId}`)?.scrollIntoView({
+    behavior: 'smooth',
+    block: 'start',
+  })
+}
+
+function initials(name: string) {
+  const p = name.trim().split(/\s+/).slice(0, 2).map(w => w[0]?.toUpperCase() ?? '').join('')
+  return p.slice(0, 2) || '?'
 }
 
 function viewDash(v: string | null | undefined) {
@@ -378,6 +568,14 @@ function resolvedUrlHref(raw: string) {
   }
 }
 
+function statusLabelUi(s: string) {
+  return statusOpts.find(o => o.value === s)?.label ?? s.replaceAll('_', ' ')
+}
+
+function priorityLabelUi(s: string) {
+  return priorityOpts.find(o => o.value === s)?.label ?? s
+}
+
 function requestRemoveField(fid: string) {
   pendingFieldId.value = fid
   showDeleteFieldConfirm.value = true
@@ -391,7 +589,7 @@ async function confirmRemoveField() {
     return
   removingField.value = true
   try {
-    await apiFetch(`/api/contacts/${detail.value.id}/fields/${fid}`, { method: 'DELETE' })
+    await apiFetch(`/api/tasks/${detail.value.id}/fields/${fid}`, { method: 'DELETE' })
     detail.value.fields = detail.value.fields.filter(f => f.id !== fid)
     delete fieldVals[fid]
     showDeleteFieldConfirm.value = false
@@ -406,201 +604,9 @@ async function confirmRemoveField() {
   }
 }
 
-async function addTemplateField(tpl: TemplateRow) {
-  if (!detail.value)
-    return
-  try {
-    const row = await apiFetch<FieldRow>(`/api/contacts/${detail.value.id}/fields`, {
-      method: 'POST',
-      body: { templateId: tpl.id },
-    })
-    detail.value.fields.push(row)
-    fieldVals[row.id] = row.value ?? ''
-    showAddField.value = false
-  }
-  catch (e: unknown) {
-    const err = e as { data?: { statusMessage?: string } }
-    toast.add({
-      title: err.data?.statusMessage ?? 'Could not add field',
-      color: 'error',
-    })
-    console.error(e)
-  }
+function requestDeleteTask() {
+  showDeleteConfirm.value = true
 }
-
-async function addAdHocField() {
-  if (!detail.value)
-    return
-  const lb = newFieldLabel.value.trim()
-  if (!lb)
-    return
-  const row = await apiFetch<FieldRow>(`/api/contacts/${detail.value.id}/fields`, {
-    method: 'POST',
-    body: { label: lb, fieldType: newFieldType.value },
-  })
-  detail.value.fields.push(row)
-  fieldVals[row.id] = row.value ?? ''
-  newFieldLabel.value = ''
-  showAddField.value = false
-}
-
-async function unlinkNote(noteId: string) {
-  if (!detail.value)
-    return
-  await apiFetch(`/api/notes/${noteId}/contacts/${detail.value.id}`, {
-    method: 'DELETE',
-  })
-  detail.value.linkedNotes = detail.value.linkedNotes.filter(n => n.id !== noteId)
-}
-
-async function openLinkNotes() {
-  linkNoteModal.value = true
-  noteSearchRows.value = await apiFetch<NoteSearch[]>('/api/notes')
-}
-
-async function linkNote(noteId: string) {
-  if (!detail.value)
-    return
-  linking.value = true
-  try {
-    await apiFetch(`/api/notes/${noteId}/contacts/${detail.value.id}`, { method: 'POST' })
-    const refreshed = await apiFetch<ContactDetail>(`/api/contacts/${detail.value.id}`)
-    detail.value.linkedNotes = refreshed.linkedNotes
-    linkNoteModal.value = false
-  }
-  catch (e) {
-    toast.add({ title: 'Could not link note', color: 'error' })
-    console.error(e)
-  }
-  finally {
-    linking.value = false
-  }
-}
-
-async function openLinkTasks() {
-  linkTaskModal.value = true
-  taskSearchRows.value = await apiFetch<{ id: string, title: string }[]>('/api/tasks')
-}
-
-async function linkTask(taskId: string) {
-  if (!detail.value)
-    return
-  linkingTask.value = true
-  try {
-    await apiFetch(`/api/contacts/${detail.value.id}/tasks/${taskId}`, { method: 'POST' })
-    const refreshed = await apiFetch<ContactDetail>(`/api/contacts/${detail.value.id}`)
-    detail.value.linkedTasks = refreshed.linkedTasks ?? []
-    linkTaskModal.value = false
-  }
-  catch (e) {
-    toast.add({ title: 'Could not link task', color: 'error' })
-    console.error(e)
-  }
-  finally {
-    linkingTask.value = false
-  }
-}
-
-async function unlinkTask(taskId: string) {
-  if (!detail.value)
-    return
-  await apiFetch(`/api/contacts/${detail.value.id}/tasks/${taskId}`, { method: 'DELETE' })
-  detail.value.linkedTasks = (detail.value.linkedTasks ?? []).filter(t => t.id !== taskId)
-}
-
-async function refreshLinkedFiles() {
-  if (!detail.value)
-    return
-  detail.value.linkedFiles = await apiFetch<AppFile[]>(`/api/contacts/${detail.value.id}/files`)
-}
-
-function openFilePicker() {
-  fileInput.value?.click()
-}
-
-async function onFilePicked(event: Event) {
-  if (!detail.value)
-    return
-  const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
-  if (!file)
-    return
-  const form = new FormData()
-  form.append('file', file, file.name)
-
-  try {
-    const uploaded = await apiFetch<AppFile>('/api/files/upload', {
-      method: 'POST',
-      body: form,
-    })
-    await apiFetch(`/api/contacts/${detail.value.id}/files`, {
-      method: 'POST',
-      body: { fileId: uploaded.id },
-    })
-    await refreshLinkedFiles()
-  }
-  catch (e) {
-    toast.add({ title: 'Could not upload file', color: 'error' })
-    console.error(e)
-  }
-  finally {
-    input.value = ''
-  }
-}
-
-async function unlinkFile(fileId: string) {
-  if (!detail.value)
-    return
-  await apiFetch(`/api/contacts/${detail.value.id}/files/${fileId}`, { method: 'DELETE' })
-  await refreshLinkedFiles()
-}
-
-async function deleteFileEverywhere(fileId: string) {
-  await apiFetch(`/api/files/${fileId}`, { method: 'DELETE' })
-  await refreshLinkedFiles()
-}
-
-async function toggleFileShare(fileId: string, nextEnabled: boolean) {
-  if (nextEnabled)
-    await apiFetch(`/api/files/${fileId}/share`, { method: 'POST', body: {} })
-  else
-    await apiFetch(`/api/files/${fileId}/share`, { method: 'DELETE' })
-  await refreshLinkedFiles()
-}
-
-function requestDeleteContact() {
-  if (!detail.value)
-    return
-  showDeleteContactConfirm.value = true
-}
-
-async function confirmDeleteContact() {
-  if (!detail.value)
-    return
-  deleting.value = true
-  try {
-    await apiFetch(`/api/contacts/${detail.value.id}`, { method: 'DELETE' })
-    bumpContactsList()
-    showDeleteContactConfirm.value = false
-    await router.push('/contacts')
-  }
-  catch {
-    toast.add({ title: 'Could not delete', color: 'error' })
-  }
-  finally {
-    deleting.value = false
-  }
-}
-
-function sortedFields() {
-  return [...(detail.value?.fields ?? [])].sort((a, b) =>
-    a.position !== b.position ? a.position - b.position : a.label.localeCompare(b.label),
-  )
-}
-
-const kindLabel = computed(() =>
-  detail.value?.type === 'organization' ? 'Organization' : 'Person',
-)
 </script>
 
 <template>
@@ -615,16 +621,18 @@ const kindLabel = computed(() =>
             class="flex size-14 shrink-0 items-center justify-center rounded-[var(--ui-control-radius)] bg-zinc-900 text-lg font-semibold text-white shadow-lg"
             aria-hidden="true"
           >
-            {{ initials(detail.displayName) }}
+            {{ initials(coreTitle || 'Task') }}
           </div>
           <div class="min-w-0">
             <span
               class="mb-1 inline-block rounded-[var(--ui-control-radius)] bg-zinc-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-600"
             >
-              {{ kindLabel }}
+              {{ statusLabelUi(coreStatus) }}
+              <span class="lowercase text-zinc-400"> · </span>
+              <span class="normal-case">{{ priorityLabelUi(corePriority) }}</span>
             </span>
             <h1 class="truncate text-2xl font-semibold tracking-tight text-zinc-900">
-              {{ detail.displayName }}
+              {{ coreTitle.trim() || 'Untitled task' }}
             </h1>
           </div>
         </div>
@@ -636,7 +644,7 @@ const kindLabel = computed(() =>
             color="neutral"
             icon="i-lucide-link"
             class="rounded-[var(--ui-control-radius)] px-3"
-            @click="enableContactShare"
+            @click="enableShare"
           >
             Share
           </UButton>
@@ -647,7 +655,7 @@ const kindLabel = computed(() =>
               color="neutral"
               icon="i-lucide-copy"
               class="rounded-[var(--ui-control-radius)] px-3"
-              @click="copyContactShareLink"
+              @click="copyShareLink"
             >
               Copy link
             </UButton>
@@ -657,7 +665,7 @@ const kindLabel = computed(() =>
               variant="ghost"
               icon="i-lucide-link-2-off"
               class="rounded-[var(--ui-control-radius)] px-3"
-              @click="disableContactShare"
+              @click="disableShare"
             >
               Stop
             </UButton>
@@ -697,7 +705,7 @@ const kindLabel = computed(() =>
               size="xs"
               :loading="deleting"
               class="rounded-[var(--ui-control-radius)] px-3"
-              @click="requestDeleteContact"
+              @click="requestDeleteTask"
             >
               Delete
             </UButton>
@@ -706,87 +714,127 @@ const kindLabel = computed(() =>
       </header>
 
       <div
-        v-if="contactShareUrl"
+        v-if="taskShareUrl"
         class="shrink-0 border-b border-emerald-100/90 bg-emerald-50/80 px-4 py-2 text-[11px] text-emerald-950 sm:px-6"
       >
         <span class="font-semibold text-emerald-900">Shared · </span>
-        <span class="break-all font-mono text-emerald-900/90">{{ contactShareUrl }}</span>
+        <span class="break-all font-mono text-emerald-900/90">{{ taskShareUrl }}</span>
       </div>
 
       <div class="relative flex min-h-0 flex-1 overflow-hidden">
-        <input
-          ref="fileInput"
-          type="file"
-          class="hidden"
-          @change="onFilePicked"
-        >
         <div
-          ref="contactDetailScroll"
+          ref="taskDetailScroll"
           class="ui-scrollbar relative min-h-0 flex-1 overflow-y-auto px-3 pb-10 pt-2 sm:px-8"
         >
-          <div id="contact-section-basics">
+          <div id="task-section-basics">
             <UiSectionLabel>
               Basics
             </UiSectionLabel>
             <div class="mt-3">
               <template v-if="!isEditing">
-                <div v-if="detail.type === 'person'" class="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <div class="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
-                      First name
-                    </div>
-                    <div class="mt-1 text-[13px] text-zinc-900">
-                      {{ viewDash(detail.firstName) }}
-                    </div>
-                  </div>
-                  <div>
-                    <div class="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
-                      Last name
-                    </div>
-                    <div class="mt-1 text-[13px] text-zinc-900">
-                      {{ viewDash(detail.lastName) }}
-                    </div>
-                  </div>
-                </div>
-                <div v-else>
+                <div>
                   <div class="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
-                    Organization name
+                    Title
                   </div>
                   <div class="mt-1 text-[13px] text-zinc-900">
-                    {{ viewDash(detail.orgName) }}
+                    {{ viewDash(coreTitle) }}
                   </div>
                 </div>
                 <div class="mt-5">
                   <div class="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
-                    Note
+                    Description
                   </div>
                   <p class="mt-1 whitespace-pre-wrap text-[13px] text-zinc-900">
-                    {{ viewDash(detail.note) }}
+                    {{ viewDash(coreDesc) }}
                   </p>
+                </div>
+                <div class="mt-5 grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <div class="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+                      Status
+                    </div>
+                    <div class="mt-1 text-[13px] text-zinc-900">
+                      {{ statusLabelUi(coreStatus) }}
+                    </div>
+                  </div>
+                  <div>
+                    <div class="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+                      Priority
+                    </div>
+                    <div class="mt-1 text-[13px] text-zinc-900">
+                      {{ priorityLabelUi(corePriority) }}
+                    </div>
+                  </div>
+                </div>
+                <div class="mt-5">
+                  <div class="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+                    Due
+                  </div>
+                  <div class="mt-1 text-[13px] text-zinc-900">
+                    {{ dueDisplayReadonly }}
+                  </div>
                 </div>
               </template>
               <template v-else>
-                <div v-if="detail.type === 'person'" class="grid gap-3 sm:grid-cols-2">
-                  <UFormField label="First name">
-                    <UInput v-model="coreFirst" class="rounded-[var(--ui-control-radius)]" />
+                <UFormField label="Title">
+                  <UInput v-model="coreTitle" class="rounded-[var(--ui-control-radius)]" />
+                </UFormField>
+                <UFormField label="Description" class="mt-4">
+                  <UTextarea v-model="coreDesc" class="rounded-[var(--ui-control-radius)]" autoresize :max-rows="10" />
+                </UFormField>
+                <div class="mt-4 grid gap-3 sm:grid-cols-2">
+                  <UFormField label="Status">
+                    <select v-model="coreStatus" class="ui-select w-full">
+                      <option v-for="o in statusOpts" :key="o.value" :value="o.value">
+                        {{ o.label }}
+                      </option>
+                    </select>
                   </UFormField>
-                  <UFormField label="Last name">
-                    <UInput v-model="coreLast" class="rounded-[var(--ui-control-radius)]" />
+                  <UFormField label="Priority">
+                    <select v-model="corePriority" class="ui-select w-full">
+                      <option v-for="o in priorityOpts" :key="o.value" :value="o.value">
+                        {{ o.label }}
+                      </option>
+                    </select>
                   </UFormField>
                 </div>
-                <div v-else class="grid gap-3">
-                  <UFormField label="Organization name">
-                    <UInput v-model="coreOrg" class="rounded-[var(--ui-control-radius)]" />
-                  </UFormField>
-                </div>
-                <UFormField label="Note" class="mt-5">
-                  <UTextarea v-model="coreNote" class="rounded-[var(--ui-control-radius)]" autoresize :max-rows="8" />
+                <UFormField label="Due" class="mt-4">
+                  <input
+                    v-model="coreDueLocal"
+                    type="datetime-local"
+                    class="ui-control-radius w-full border border-zinc-200 bg-white px-3 py-2 text-sm"
+                  >
                 </UFormField>
               </template>
             </div>
           </div>
 
-          <div id="contact-section-fields" class="mt-8 border-t border-zinc-100/90 pt-6">
+          <div id="task-section-subtasks" class="mt-8 border-t border-zinc-100/90 pt-6">
+            <div class="flex items-center justify-between gap-3">
+              <UiSectionLabel>
+                Subtasks
+              </UiSectionLabel>
+              <UButton size="xs" color="neutral" icon="i-lucide-plus" class="shrink-0 rounded-[var(--ui-control-radius)]" @click="addSubtask">
+                New
+              </UButton>
+            </div>
+            <ul v-if="detail.children.length" class="mt-3 flex flex-col gap-1">
+              <li v-for="c in detail.children" :key="c.id">
+                <NuxtLink
+                  :to="`/tasks/${c.id}`"
+                  class="flex items-start justify-between gap-1 rounded-[var(--ui-control-radius)] bg-white/50 px-2 py-1.5 ring-1 ring-zinc-950/[0.04] hover:bg-white/85"
+                >
+                  <span class="line-clamp-2 text-[12px] font-medium leading-snug text-zinc-800">{{ c.title || 'Untitled' }}</span>
+                  <span class="shrink-0 text-[10px] font-medium uppercase tracking-wide text-zinc-400">{{ c.status.replaceAll('_', ' ') }}</span>
+                </NuxtLink>
+              </li>
+            </ul>
+            <p v-else class="mt-3 text-[13px] text-zinc-400">
+              No subtasks yet.
+            </p>
+          </div>
+
+          <div id="task-section-fields" class="mt-8 border-t border-zinc-100/90 pt-6">
             <div class="flex items-center justify-between gap-4">
               <UiSectionLabel>
                 Custom fields
@@ -834,7 +882,6 @@ const kindLabel = computed(() =>
                   No custom fields yet.
                 </p>
               </template>
-
               <template v-else>
                 <div
                   v-for="f in sortedFields()"
@@ -891,20 +938,27 @@ const kindLabel = computed(() =>
         >
           <div>
             <UiSectionLabel>
-              On this contact
+              On this task
             </UiSectionLabel>
-            <nav class="mt-3 space-y-0.5" aria-label="Contact sections">
+            <nav class="mt-3 space-y-0.5" aria-label="Task sections">
               <button
                 type="button"
                 class="flex w-full max-w-full rounded-[var(--ui-control-radius)] px-2 py-1.5 text-left text-[12px] leading-snug text-zinc-600 transition-colors hover:bg-white/85 hover:text-zinc-900"
-                @click="scrollToContactSection('contact-section-basics')"
+                @click="scrollToTaskSection('task-section-basics')"
               >
                 Basics
               </button>
               <button
                 type="button"
                 class="flex w-full max-w-full rounded-[var(--ui-control-radius)] px-2 py-1.5 text-left text-[12px] leading-snug text-zinc-600 transition-colors hover:bg-white/85 hover:text-zinc-900"
-                @click="scrollToContactSection('contact-section-fields')"
+                @click="scrollToTaskSection('task-section-subtasks')"
+              >
+                Subtasks
+              </button>
+              <button
+                type="button"
+                class="flex w-full max-w-full rounded-[var(--ui-control-radius)] px-2 py-1.5 text-left text-[12px] leading-snug text-zinc-600 transition-colors hover:bg-white/85 hover:text-zinc-900"
+                @click="scrollToTaskSection('task-section-fields')"
               >
                 Custom fields
               </button>
@@ -956,15 +1010,58 @@ const kindLabel = computed(() =>
           <div class="mt-8 shrink-0 border-t border-zinc-100/80 pt-5">
             <div class="flex items-center justify-between gap-2">
               <UiSectionLabel>
+                Linked contacts
+              </UiSectionLabel>
+              <button
+                v-if="isEditing"
+                type="button"
+                class="rounded-[var(--ui-control-radius)] px-2 py-0.5 text-[11px] font-semibold text-zinc-600 hover:bg-white/85"
+                @click="openLinkContacts"
+              >
+                + Link
+              </button>
+            </div>
+            <ul v-if="detail.linkedContacts.length" class="mt-3 flex flex-col gap-1">
+              <li
+                v-for="c in detail.linkedContacts"
+                :key="c.id"
+                class="flex items-start justify-between gap-1 rounded-[var(--ui-control-radius)] bg-white/50 px-2 py-1.5 ring-1 ring-zinc-950/[0.04]"
+              >
+                <NuxtLink
+                  class="flex min-w-0 flex-1 flex-col text-left hover:underline"
+                  :to="`/contacts/${c.id}`"
+                >
+                  <span class="line-clamp-2 text-[12px] font-medium leading-snug text-zinc-800">{{ c.displayName }}</span>
+                  <span class="text-[10px] font-medium uppercase tracking-wide text-zinc-400">{{ c.type }}</span>
+                </NuxtLink>
+                <button
+                  v-if="isEditing"
+                  type="button"
+                  class="shrink-0 rounded-[var(--ui-control-radius)] p-1 text-zinc-400 hover:bg-white hover:text-red-600"
+                  aria-label="Unlink contact"
+                  @click="unlinkContact(c.id)"
+                >
+                  <Icon name="i-lucide-x" class="size-3.5" aria-hidden="true" />
+                </button>
+              </li>
+            </ul>
+            <p v-else class="mt-3 text-[11px] leading-relaxed text-zinc-400">
+              No linked contacts yet.
+            </p>
+          </div>
+
+          <div class="mt-8 shrink-0 border-t border-zinc-100/80 pt-5">
+            <div class="flex items-center justify-between gap-2">
+              <UiSectionLabel>
                 Linked files
               </UiSectionLabel>
               <button
                 v-if="isEditing"
                 type="button"
                 class="rounded-[var(--ui-control-radius)] px-2 py-0.5 text-[11px] font-semibold text-zinc-600 hover:bg-white/85"
-                @click="openFilePicker"
+                @click="openLinkFiles"
               >
-                + File
+                + Link
               </button>
             </div>
             <div v-if="detail.linkedFiles.length" class="mt-3 flex flex-col gap-2">
@@ -984,49 +1081,6 @@ const kindLabel = computed(() =>
               No files yet. Attach one to share, preview, or download.
             </p>
           </div>
-
-          <div class="mt-8 shrink-0 border-t border-zinc-100/80 pt-5">
-            <div class="flex items-center justify-between gap-2">
-              <UiSectionLabel>
-                Linked tasks
-              </UiSectionLabel>
-              <button
-                v-if="isEditing"
-                type="button"
-                class="rounded-[var(--ui-control-radius)] px-2 py-0.5 text-[11px] font-semibold text-zinc-600 hover:bg-white/85"
-                @click="openLinkTasks"
-              >
-                + Link
-              </button>
-            </div>
-            <ul v-if="(detail.linkedTasks ?? []).length" class="mt-3 flex flex-col gap-1">
-              <li
-                v-for="t in detail.linkedTasks"
-                :key="t.id"
-                class="flex items-start justify-between gap-1 rounded-[var(--ui-control-radius)] bg-white/50 px-2 py-1.5 ring-1 ring-zinc-950/[0.04]"
-              >
-                <NuxtLink
-                  class="flex min-w-0 flex-1 flex-col text-left hover:underline"
-                  :to="`/tasks/${t.id}`"
-                >
-                  <span class="line-clamp-2 text-[12px] font-medium leading-snug text-zinc-800">{{ t.title || 'Untitled' }}</span>
-                  <span class="text-[10px] uppercase text-zinc-400">{{ t.status.replaceAll('_', ' ') }}</span>
-                </NuxtLink>
-                <button
-                  v-if="isEditing"
-                  type="button"
-                  class="shrink-0 rounded-[var(--ui-control-radius)] p-1 text-zinc-400 hover:bg-white hover:text-red-600"
-                  aria-label="Unlink task"
-                  @click="unlinkTask(t.id)"
-                >
-                  <Icon name="i-lucide-x" class="size-3.5" aria-hidden="true" />
-                </button>
-              </li>
-            </ul>
-            <p v-else class="mt-3 text-[11px] leading-relaxed text-zinc-400">
-              No linked tasks yet.
-            </p>
-          </div>
         </aside>
       </div>
     </div>
@@ -1041,7 +1095,6 @@ const kindLabel = computed(() =>
           <template #header>
             <span class="font-semibold text-zinc-900">Add field</span>
           </template>
-
           <div v-if="missingTemplates.length" class="space-y-2">
             <div class="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
               From template
@@ -1057,9 +1110,7 @@ const kindLabel = computed(() =>
               <span class="ml-auto text-[11px] text-zinc-400">{{ t.fieldType }}</span>
             </button>
           </div>
-
           <div class="my-6 border-t border-zinc-100" />
-
           <div class="space-y-3">
             <div class="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
               Ad-hoc
@@ -1120,30 +1171,62 @@ const kindLabel = computed(() =>
           </template>
         </UCard>
       </div>
+
       <div
-        v-if="linkTaskModal"
+        v-if="linkContactModal"
         class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/35 px-4 backdrop-blur-sm"
-        @click.self="linkTaskModal = false"
+        @click.self="linkContactModal = false"
       >
         <UCard class="ui-scrollbar max-h-[80vh] w-full max-w-md overflow-auto rounded-[var(--ui-panel-radius)]">
           <template #header>
-            <span class="font-semibold text-zinc-900">Pick a task</span>
+            <span class="font-semibold text-zinc-900">Pick a contact</span>
           </template>
           <ul class="space-y-1">
-            <li v-for="t in taskSearchRows" :key="t.id">
+            <li v-for="c in contactSearchRows" :key="c.id">
               <button
                 type="button"
                 class="flex w-full rounded-[var(--ui-control-radius)] px-4 py-2.5 text-left text-[13px] hover:bg-zinc-100"
-                :disabled="linkingTask"
-                @click="linkTask(t.id)"
+                :disabled="linking"
+                @click="linkContact(c.id)"
               >
-                {{ t.title || 'Untitled' }}
+                {{ c.displayName }}
               </button>
             </li>
           </ul>
           <template #footer>
             <div class="flex justify-end">
-              <UButton variant="ghost" color="neutral" class="rounded-[var(--ui-control-radius)]" @click="linkTaskModal = false">
+              <UButton variant="ghost" color="neutral" class="rounded-[var(--ui-control-radius)]" @click="linkContactModal = false">
+                Cancel
+              </UButton>
+            </div>
+          </template>
+        </UCard>
+      </div>
+
+      <div
+        v-if="linkFileModal"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/35 px-4 backdrop-blur-sm"
+        @click.self="linkFileModal = false"
+      >
+        <UCard class="ui-scrollbar max-h-[80vh] w-full max-w-md overflow-auto rounded-[var(--ui-panel-radius)]">
+          <template #header>
+            <span class="font-semibold text-zinc-900">Pick a file</span>
+          </template>
+          <ul class="space-y-1">
+            <li v-for="f in fileSearchRows" :key="f.id">
+              <button
+                type="button"
+                class="flex w-full rounded-[var(--ui-control-radius)] px-4 py-2.5 text-left text-[13px] hover:bg-zinc-100"
+                :disabled="linking"
+                @click="linkFile(f.id)"
+              >
+                {{ f.title && f.title.trim() ? f.title : f.originalName }}
+              </button>
+            </li>
+          </ul>
+          <template #footer>
+            <div class="flex justify-end">
+              <UButton variant="ghost" color="neutral" class="rounded-[var(--ui-control-radius)]" @click="linkFileModal = false">
                 Cancel
               </UButton>
             </div>
@@ -1153,17 +1236,17 @@ const kindLabel = computed(() =>
     </Teleport>
 
     <UiConfirmDeleteDialog
-      v-model:open="showDeleteContactConfirm"
-      title="Delete contact"
-      description="This contact will be permanently removed. This action cannot be undone."
+      v-model:open="showDeleteConfirm"
+      title="Delete task"
+      description="This task will be permanently removed. Subtasks become top-level tasks."
       :loading="deleting"
-      @confirm="confirmDeleteContact"
+      @confirm="confirmDelete"
     />
 
     <UiConfirmDeleteDialog
       v-model:open="showDeleteFieldConfirm"
       title="Delete field"
-      description="This custom field will be permanently removed from this contact."
+      description="This custom field will be permanently removed from this task."
       :loading="removingField"
       @confirm="confirmRemoveField"
     />

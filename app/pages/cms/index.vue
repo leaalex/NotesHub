@@ -2,6 +2,7 @@
 const links = [
   { to: '/cms/folders', label: 'Folders', desc: 'All folders (any user)', icon: 'i-lucide-folder-tree' },
   { to: '/cms/notes', label: 'Notes', desc: 'All notes — no heavy editor payload', icon: 'i-lucide-file-text' },
+  { to: '/cms/tasks', label: 'Tasks', desc: 'All tasks', icon: 'i-lucide-list-checks' },
 ]
 </script>
 
