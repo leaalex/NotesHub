@@ -54,7 +54,7 @@ async function submit() {
 </script>
 
 <template>
-  <div class="flex min-h-0 min-w-0 flex-1 flex-col gap-6">
+  <div class="flex w-full min-w-0 flex-col gap-6">
     <header class="space-y-1">
       <h2 class="text-xl font-semibold tracking-tight text-zinc-900">
         New address
@@ -74,22 +74,18 @@ async function submit() {
       <UFormField label="Line 2">
         <UInput v-model="line2" class="rounded-[var(--ui-control-radius)]" />
       </UFormField>
-      <div class="grid gap-3 sm:grid-cols-2">
-        <UFormField label="City">
-          <UInput v-model="city" class="rounded-[var(--ui-control-radius)]" />
-        </UFormField>
-        <UFormField label="Region / state">
-          <UInput v-model="region" class="rounded-[var(--ui-control-radius)]" />
-        </UFormField>
-      </div>
-      <div class="grid gap-3 sm:grid-cols-2">
-        <UFormField label="Postal code">
-          <UInput v-model="postalCode" class="rounded-[var(--ui-control-radius)]" />
-        </UFormField>
-        <UFormField label="Country code">
-          <UInput v-model="countryCode" class="rounded-[var(--ui-control-radius)]" placeholder="ru, cn…" />
-        </UFormField>
-      </div>
+      <UFormField label="City">
+        <UInput v-model="city" class="w-full rounded-[var(--ui-control-radius)]" />
+      </UFormField>
+      <UFormField label="Region / state">
+        <UInput v-model="region" class="w-full rounded-[var(--ui-control-radius)]" />
+      </UFormField>
+      <UFormField label="Postal code">
+        <UInput v-model="postalCode" class="w-full rounded-[var(--ui-control-radius)]" />
+      </UFormField>
+      <UFormField label="Country code">
+        <UInput v-model="countryCode" class="w-full rounded-[var(--ui-control-radius)]" placeholder="ru, cn…" />
+      </UFormField>
     </UiGlassPanel>
 
     <div class="flex justify-end gap-2 pb-2">

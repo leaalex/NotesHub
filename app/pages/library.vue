@@ -287,43 +287,41 @@ function onAddressDeleted() {
       </div>
     </template>
 
-    <main class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-4 sm:p-6">
-      <div class="ui-scrollbar flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
-        <AddressCreatePanel
-          v-if="showAddressRail && showNewAddress"
-          @cancel="clearAddressPanel"
-          @saved="onAddressSaved"
-        />
-        <AddressDetailPanel
-          v-else-if="showAddressRail && selectedAddressId"
-          :key="selectedAddressId"
-          :address-id="selectedAddressId"
-          @deleted="onAddressDeleted"
-          @not-found="clearAddressPanel"
-        />
-        <div
-          v-else-if="showAddressRail"
-          class="flex min-h-0 min-w-0 flex-1 flex-col items-center justify-center px-8 py-12 text-center"
+    <main class="flex min-w-0 flex-1 flex-col p-4 sm:p-6">
+      <AddressCreatePanel
+        v-if="showAddressRail && showNewAddress"
+        @cancel="clearAddressPanel"
+        @saved="onAddressSaved"
+      />
+      <AddressDetailPanel
+        v-else-if="showAddressRail && selectedAddressId"
+        :key="selectedAddressId"
+        :address-id="selectedAddressId"
+        @deleted="onAddressDeleted"
+        @not-found="clearAddressPanel"
+      />
+      <div
+        v-else-if="showAddressRail"
+        class="flex min-h-0 min-w-0 flex-1 flex-col items-center justify-center px-8 py-12 text-center"
+      >
+        <UiEmptyState
+          title="Pick an address"
+          description="Select an address from the list or create a new one."
         >
-          <UiEmptyState
-            title="Pick an address"
-            description="Select an address from the list or create a new one."
-          >
-            <template #actions>
-              <UButton
-                color="neutral"
-                size="md"
-                icon="i-lucide-plus"
-                class="rounded-[var(--ui-control-radius)] px-5 ring-1 ring-zinc-200/80"
-                @click="openNewAddress"
-              >
-                New address
-              </UButton>
-            </template>
-          </UiEmptyState>
-        </div>
-        <NuxtPage v-else />
+          <template #actions>
+            <UButton
+              color="neutral"
+              size="md"
+              icon="i-lucide-plus"
+              class="rounded-[var(--ui-control-radius)] px-5 ring-1 ring-zinc-200/80"
+              @click="openNewAddress"
+            >
+              New address
+            </UButton>
+          </template>
+        </UiEmptyState>
       </div>
+      <NuxtPage v-else />
     </main>
   </LayoutAppThreeColumn>
 </template>

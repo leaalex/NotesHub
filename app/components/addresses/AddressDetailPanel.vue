@@ -213,147 +213,143 @@ async function unlinkContact(contactId: string) {
 </script>
 
 <template>
-  <div class="address-detail-panel flex min-h-0 min-w-0 flex-1 flex-col">
-    <div v-if="hydrating || !detail" class="flex flex-1 items-center justify-center p-16 text-zinc-400">
+  <div class="address-detail-panel flex w-full min-w-0 flex-col">
+    <div v-if="hydrating || !detail" class="flex w-full flex-col items-center justify-center px-8 py-16 text-[13px] text-zinc-400">
       Loading…
     </div>
-    <main v-else class="flex min-w-0 flex-1 flex-col p-4 sm:p-6">
-    <div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--ui-panel-radius)] border border-white/70 bg-white/55 backdrop-blur-md ring-1 ring-zinc-950/[0.04] supports-[backdrop-filter]:bg-white/45">
-      <header class="flex shrink-0 flex-wrap items-start justify-between gap-4 border-b border-zinc-100/90 px-4 py-4 sm:px-6">
-        <div class="flex min-w-0 items-center gap-4">
-          <div
-            class="flex size-14 shrink-0 items-center justify-center rounded-[var(--ui-control-radius)] bg-zinc-900 text-lg font-semibold text-white"
-            aria-hidden="true"
-          >
-            <Icon name="i-lucide-map-pin" class="size-7" />
-          </div>
-          <div class="min-w-0">
-            <span
-              class="mb-1 inline-block rounded-[var(--ui-control-radius)] bg-zinc-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-600"
+    <main v-else class="flex w-full min-w-0 flex-col p-4 sm:p-6">
+      <div class="overflow-hidden rounded-[var(--ui-panel-radius)] border border-white/70 bg-white/55 backdrop-blur-md ring-1 ring-zinc-950/[0.04] supports-[backdrop-filter]:bg-white/45">
+        <header class="flex shrink-0 flex-wrap items-start justify-between gap-4 border-b border-zinc-100/90 px-4 py-4 sm:px-6">
+          <div class="flex min-w-0 items-center gap-4">
+            <div
+              class="flex size-14 shrink-0 items-center justify-center rounded-[var(--ui-control-radius)] bg-zinc-900 text-lg font-semibold text-white"
+              aria-hidden="true"
             >
-              {{ detail.countryCode?.toUpperCase() || '—' }}
-            </span>
-            <h1 class="truncate text-2xl font-semibold tracking-tight text-zinc-900">
-              {{ coreLabel.trim() || 'Untitled address' }}
-            </h1>
+              <Icon name="i-lucide-map-pin" class="size-7" />
+            </div>
+            <div class="min-w-0">
+              <span
+                class="mb-1 inline-block rounded-[var(--ui-control-radius)] bg-zinc-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-600"
+              >
+                {{ detail.countryCode?.toUpperCase() || '—' }}
+              </span>
+              <h1 class="truncate text-2xl font-semibold tracking-tight text-zinc-900">
+                {{ coreLabel.trim() || 'Untitled address' }}
+              </h1>
+            </div>
           </div>
-        </div>
-        <div class="flex shrink-0 flex-wrap items-center gap-1.5 rounded-[var(--ui-control-radius)] bg-zinc-50/90 p-1 ring-1 ring-zinc-950/[0.04]">
-          <UButton
-            v-if="!isEditing"
-            icon="i-lucide-pencil"
-            color="neutral"
-            variant="ghost"
-            size="xs"
-            class="rounded-[var(--ui-control-radius)] px-3"
-            @click="isEditing = true"
-          >
-            Edit
-          </UButton>
-          <template v-else>
+          <div class="flex shrink-0 flex-wrap items-center gap-1.5 rounded-[var(--ui-control-radius)] bg-zinc-50/90 p-1 ring-1 ring-zinc-950/[0.04]">
             <UButton
-              icon="i-lucide-check"
+              v-if="!isEditing"
+              icon="i-lucide-pencil"
               color="neutral"
               variant="ghost"
               size="xs"
               class="rounded-[var(--ui-control-radius)] px-3"
-              :loading="finishingEdit"
-              @click="finishEditing"
+              @click="isEditing = true"
             >
-              Done
+              Edit
             </UButton>
-            <UButton
-              icon="i-lucide-trash-2"
-              color="error"
-              variant="ghost"
-              size="xs"
-              class="rounded-[var(--ui-control-radius)] px-3"
-              :loading="deletingAddr"
-              @click="showDeleteAddr = true"
-            >
-              Delete
-            </UButton>
-          </template>
-        </div>
-      </header>
-
-      <div class="relative flex min-h-0 flex-1 overflow-hidden">
-        <div class="ui-scrollbar relative min-h-0 flex-1 overflow-y-auto px-3 pb-10 pt-2 sm:px-8">
-          <UiSectionLabel>Address</UiSectionLabel>
-          <div class="mt-3 space-y-3">
-            <UFormField label="Label">
-              <UInput v-model="coreLabel" :disabled="!isEditing" class="rounded-[var(--ui-control-radius)]" />
-            </UFormField>
-            <UFormField label="Line 1">
-              <UInput v-model="coreLine1" :disabled="!isEditing" class="rounded-[var(--ui-control-radius)]" />
-            </UFormField>
-            <UFormField label="Line 2">
-              <UInput v-model="coreLine2" :disabled="!isEditing" class="rounded-[var(--ui-control-radius)]" />
-            </UFormField>
-            <div class="grid gap-3 sm:grid-cols-2">
-              <UFormField label="City">
-                <UInput v-model="coreCity" :disabled="!isEditing" class="rounded-[var(--ui-control-radius)]" />
-              </UFormField>
-              <UFormField label="Region">
-                <UInput v-model="coreRegion" :disabled="!isEditing" class="rounded-[var(--ui-control-radius)]" />
-              </UFormField>
-            </div>
-            <div class="grid gap-3 sm:grid-cols-2">
-              <UFormField label="Postal code">
-                <UInput v-model="corePostal" :disabled="!isEditing" class="rounded-[var(--ui-control-radius)]" />
-              </UFormField>
-              <UFormField label="Country code">
-                <UInput v-model="coreCountry" :disabled="!isEditing" class="rounded-[var(--ui-control-radius)]" />
-              </UFormField>
-            </div>
-          </div>
-        </div>
-
-        <aside
-          class="ui-scrollbar hidden w-[17rem] shrink-0 overflow-y-auto border-l border-zinc-100/90 bg-white/20 px-3 py-5 xl:flex xl:flex-col xl:gap-0"
-        >
-          <div class="flex items-center justify-between gap-2">
-            <UiSectionLabel>
-              Linked contacts
-            </UiSectionLabel>
-            <button
-              v-if="isEditing"
-              type="button"
-              class="rounded-[var(--ui-control-radius)] px-2 py-0.5 text-[11px] font-semibold text-zinc-600 hover:bg-white/85"
-              @click="openLinkContacts"
-            >
-              + Link
-            </button>
-          </div>
-          <ul v-if="linkedContacts.length" class="mt-3 flex flex-col gap-1">
-            <li
-              v-for="c in linkedContacts"
-              :key="c.id"
-              class="flex items-start justify-between gap-1 rounded-[var(--ui-control-radius)] bg-white/50 px-2 py-1.5 ring-1 ring-zinc-950/[0.04]"
-            >
-              <NuxtLink
-                class="flex min-w-0 flex-1 flex-col text-left hover:underline"
-                :to="`/contacts/${c.id}`"
+            <template v-else>
+              <UButton
+                icon="i-lucide-check"
+                color="neutral"
+                variant="ghost"
+                size="xs"
+                class="rounded-[var(--ui-control-radius)] px-3"
+                :loading="finishingEdit"
+                @click="finishEditing"
               >
-                <span class="line-clamp-2 text-[12px] font-medium leading-snug text-zinc-800">{{ c.displayName }}</span>
-                <span class="text-[10px] uppercase text-zinc-400">{{ c.role }}<template v-if="c.isPrimary"> · primary</template></span>
-              </NuxtLink>
+                Done
+              </UButton>
+              <UButton
+                icon="i-lucide-trash-2"
+                color="error"
+                variant="ghost"
+                size="xs"
+                class="rounded-[var(--ui-control-radius)] px-3"
+                :loading="deletingAddr"
+                @click="showDeleteAddr = true"
+              >
+                Delete
+              </UButton>
+            </template>
+          </div>
+        </header>
+
+        <div class="flex flex-col xl:flex-row xl:items-stretch">
+          <div class="min-w-0 flex-1 px-3 pb-10 pt-2 sm:px-8">
+            <UiSectionLabel>Address</UiSectionLabel>
+            <div class="mt-3 w-full max-w-full space-y-3">
+              <UFormField label="Label" class="w-full">
+                <UInput v-model="coreLabel" :disabled="!isEditing" class="w-full rounded-[var(--ui-control-radius)]" />
+              </UFormField>
+              <UFormField label="Line 1" class="w-full">
+                <UInput v-model="coreLine1" :disabled="!isEditing" class="w-full rounded-[var(--ui-control-radius)]" />
+              </UFormField>
+              <UFormField label="Line 2" class="w-full">
+                <UInput v-model="coreLine2" :disabled="!isEditing" class="w-full rounded-[var(--ui-control-radius)]" />
+              </UFormField>
+              <UFormField label="City" class="w-full">
+                <UInput v-model="coreCity" :disabled="!isEditing" class="w-full rounded-[var(--ui-control-radius)]" />
+              </UFormField>
+              <UFormField label="Region" class="w-full">
+                <UInput v-model="coreRegion" :disabled="!isEditing" class="w-full rounded-[var(--ui-control-radius)]" />
+              </UFormField>
+              <UFormField label="Postal code" class="w-full">
+                <UInput v-model="corePostal" :disabled="!isEditing" class="w-full rounded-[var(--ui-control-radius)]" />
+              </UFormField>
+              <UFormField label="Country code" class="w-full">
+                <UInput v-model="coreCountry" :disabled="!isEditing" class="w-full rounded-[var(--ui-control-radius)]" />
+              </UFormField>
+            </div>
+          </div>
+
+          <aside
+            class="flex min-w-0 flex-col border-t border-zinc-100/90 bg-white/20 px-3 py-5 xl:w-[17rem] xl:shrink-0 xl:border-l xl:border-t-0"
+          >
+            <div class="flex items-center justify-between gap-2">
+              <UiSectionLabel>
+                Linked contacts
+              </UiSectionLabel>
               <button
                 v-if="isEditing"
                 type="button"
-                class="shrink-0 rounded-[var(--ui-control-radius)] p-1 text-zinc-400 hover:bg-white hover:text-red-600"
-                aria-label="Unlink contact"
-                @click="unlinkContact(c.id)"
+                class="rounded-[var(--ui-control-radius)] px-2 py-0.5 text-[11px] font-semibold text-zinc-600 hover:bg-white/85"
+                @click="openLinkContacts"
               >
-                <Icon name="i-lucide-x" class="size-3.5" aria-hidden="true" />
+                + Link
               </button>
-            </li>
-          </ul>
-          <p v-else class="mt-3 text-[11px] leading-relaxed text-zinc-400">
-            No linked contacts. Use + Link while editing.
-          </p>
-        </aside>
-      </div>
+            </div>
+            <ul v-if="linkedContacts.length" class="mt-3 flex flex-col gap-1">
+              <li
+                v-for="c in linkedContacts"
+                :key="c.id"
+                class="flex items-start justify-between gap-1 rounded-[var(--ui-control-radius)] bg-white/50 px-2 py-1.5 ring-1 ring-zinc-950/[0.04]"
+              >
+                <NuxtLink
+                  class="flex min-w-0 flex-1 flex-col text-left hover:underline"
+                  :to="`/contacts/${c.id}`"
+                >
+                  <span class="line-clamp-2 text-[12px] font-medium leading-snug text-zinc-800">{{ c.displayName }}</span>
+                  <span class="text-[10px] uppercase text-zinc-400">{{ c.role }}<template v-if="c.isPrimary"> · primary</template></span>
+                </NuxtLink>
+                <button
+                  v-if="isEditing"
+                  type="button"
+                  class="shrink-0 rounded-[var(--ui-control-radius)] p-1 text-zinc-400 hover:bg-white hover:text-red-600"
+                  aria-label="Unlink contact"
+                  @click="unlinkContact(c.id)"
+                >
+                  <Icon name="i-lucide-x" class="size-3.5" aria-hidden="true" />
+                </button>
+              </li>
+            </ul>
+            <p v-else class="mt-3 text-[11px] leading-relaxed text-zinc-400">
+              No linked contacts. Use + Link while editing.
+            </p>
+          </aside>
+        </div>
     </div>
 
     <Teleport to="body">

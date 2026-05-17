@@ -621,7 +621,7 @@ function tableRowClasses(n: NoteList) {
 </script>
 
 <template>
-  <LayoutAppThreeColumn :view-mode="viewMode">
+  <LayoutAppThreeColumn right-pane-scrollable :view-mode="viewMode">
     <template #subheader>
       <UButton
         variant="ghost"

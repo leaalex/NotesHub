@@ -553,7 +553,7 @@ function tableRowClassesForFile(f: AppFile) {
 </script>
 
 <template>
-  <LayoutAppThreeColumn :view-mode="viewMode">
+  <LayoutAppThreeColumn right-pane-scrollable :view-mode="viewMode">
     <template #subheader>
       <UButton
         variant="ghost"
@@ -781,9 +781,9 @@ function tableRowClassesForFile(f: AppFile) {
       </div>
     </template>
 
-    <div class="flex min-h-0 flex-1 flex-col p-4 sm:p-6">
-      <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <template v-if="selectedFile && attachmentFilePayload">
+    <template v-if="selectedFile && attachmentFilePayload">
+      <main class="flex min-w-0 flex-1 flex-col p-4 sm:p-6">
+        <div class="overflow-hidden rounded-[var(--ui-panel-radius)] border border-white/70 bg-white/55 backdrop-blur-md ring-1 ring-zinc-950/[0.04] supports-[backdrop-filter]:bg-white/45">
           <header class="flex shrink-0 flex-wrap items-start gap-3 border-b border-zinc-100/90 px-4 py-3 sm:px-6">
             <div class="min-w-0 flex-1">
               <template v-if="!isEditing">
@@ -896,7 +896,7 @@ function tableRowClassesForFile(f: AppFile) {
             <span class="break-all font-mono text-emerald-900/90">{{ fileShareBannerUrl }}</span>
           </div>
 
-          <div class="ui-scrollbar min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
+          <div class="px-3 pb-10 pt-2 sm:px-8">
             <FilesFileAttachmentItem
               :file="attachmentFilePayload"
               :show-share="false"
@@ -1054,29 +1054,30 @@ function tableRowClassesForFile(f: AppFile) {
               </div>
             </div>
           </div>
-        </template>
-
-        <div v-else class="flex min-h-0 flex-1 items-center justify-center p-8 text-center">
-          <UiEmptyState
-            icon="i-lucide-file"
-            title="No file selected"
-            description="Pick a file from the list on the left or upload a new one."
-          >
-            <template #actions>
-              <UButton
-                color="neutral"
-                :loading="uploading"
-                class="rounded-[var(--ui-control-radius)] px-4 ring-1 ring-zinc-900/10"
-                @click="openFilePicker"
-              >
-                <Icon name="i-lucide-upload" class="mr-2 size-4" aria-hidden="true" />
-                Upload file
-              </UButton>
-            </template>
-          </UiEmptyState>
         </div>
-      </div>
+      </main>
+    </template>
+
+    <div v-else class="flex min-w-0 flex-1 flex-col items-center justify-center p-8 text-center">
+      <UiEmptyState
+        icon="i-lucide-file"
+        title="No file selected"
+        description="Pick a file from the list on the left or upload a new one."
+      >
+        <template #actions>
+          <UButton
+            color="neutral"
+            :loading="uploading"
+            class="rounded-[var(--ui-control-radius)] px-4 ring-1 ring-zinc-900/10"
+            @click="openFilePicker"
+          >
+            <Icon name="i-lucide-upload" class="mr-2 size-4" aria-hidden="true" />
+            Upload file
+          </UButton>
+        </template>
+      </UiEmptyState>
     </div>
+
   </LayoutAppThreeColumn>
 
   <UiNewFolderDialog
