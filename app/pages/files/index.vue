@@ -39,7 +39,6 @@ type FileDetail = AppFile & {
 const apiFetch = useRequestFetch()
 const toast = useToast()
 const runtimeConfig = useRuntimeConfig()
-const router = useRouter()
 
 const folderFilter = ref<'all' | 'unfiled' | string>('all')
 const folders = ref<FolderRow[]>([])
@@ -154,10 +153,6 @@ const detailTitleHeading = computed(() => {
 
 function openFilePicker() {
   fileInput.value?.click()
-}
-
-function manageFields() {
-  void router.push('/library/file-fields')
 }
 
 async function onFilePicked(event: Event) {
@@ -660,14 +655,17 @@ function tableRowClassesForFile(f: AppFile) {
     </template>
 
     <template #cards>
-      <div class="flex items-center justify-between gap-2 px-4 pb-3 pt-4">
+      <div class="flex flex-wrap items-center justify-between gap-2 px-4 pb-3 pt-4">
         <UiSectionLabel>
           Files
         </UiSectionLabel>
         <div class="flex shrink-0 items-center gap-2">
-          <UButton variant="ghost" color="neutral" size="xs" class="rounded-[var(--ui-control-radius)]" @click="manageFields">
+          <NuxtLink
+            to="/library/file-fields"
+            class="rounded-[var(--ui-control-radius)] px-3 py-1.5 text-[12px] font-medium text-zinc-600 underline decoration-zinc-300 underline-offset-[4px] hover:text-zinc-900"
+          >
             Manage fields
-          </UButton>
+          </NuxtLink>
           <input ref="fileInput" type="file" class="hidden" @change="onFilePicked">
           <UButton
             size="xs"
@@ -682,57 +680,47 @@ function tableRowClassesForFile(f: AppFile) {
           />
         </div>
       </div>
-      <template v-if="viewMode === 'cards'">
-        <ul
+      <div class="ui-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-8 pt-2">
+        <div
           v-if="filesLoading"
-          class="ui-scrollbar flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-3 pb-4"
+          class="flex min-h-[12rem] items-center justify-center py-16 text-zinc-400"
+          role="status"
+          aria-live="polite"
+          aria-label="Loading files"
         >
-          <li
-            class="flex min-h-[12rem] list-none items-center justify-center py-16 text-zinc-400"
-            role="status"
-            aria-live="polite"
-            aria-label="Loading files"
+          <Icon name="i-lucide-loader-circle" class="size-8 animate-spin" aria-hidden="true" />
+        </div>
+        <template v-else-if="!files.length">
+          <UiEmptyState
+            icon="i-lucide-image"
+            title="No files yet"
+            description="Upload a file to start linking it to notes and contacts."
+          />
+        </template>
+        <template v-else-if="viewMode === 'cards'">
+          <ul v-if="filteredFiles.length" class="space-y-2">
+            <li v-for="f in filteredFiles" :key="f.id">
+              <button
+                type="button"
+                class="flex w-full flex-col items-start rounded-[var(--ui-control-radius)] border px-3 py-2 text-left transition-all"
+                :class="selectedFileId === f.id
+                  ? 'border-zinc-900/20 bg-white shadow-sm ring-1 ring-zinc-900/[0.06]'
+                  : 'border-transparent bg-white/50 ring-1 ring-zinc-950/[0.03] hover:bg-white/80'"
+                @click="selectedFileId = f.id"
+              >
+                <span class="line-clamp-1 text-[13px] font-medium text-zinc-900">{{ displayFileName(f) }}</span>
+                <span class="mt-1 text-[10px] uppercase tracking-wide text-zinc-400">{{ f.mimeType }}</span>
+              </button>
+            </li>
+          </ul>
+          <div
+            v-else
+            class="rounded-[var(--ui-panel-radius)] border border-dashed border-zinc-200/80 px-6 py-10 text-center text-sm text-zinc-400"
           >
-            <Icon name="i-lucide-loader-circle" class="size-8 animate-spin" aria-hidden="true" />
-          </li>
-        </ul>
-        <ul
-          v-else-if="!files.length"
-          class="ui-scrollbar flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-3 pb-4"
-        >
-          <li
-            class="w-full list-none rounded-[var(--ui-panel-radius)] border border-dashed border-zinc-200/80 px-6 py-10 text-center text-sm text-zinc-400"
-          >
-            No files yet.
-          </li>
-        </ul>
-        <ul
-          v-else
-          class="ui-scrollbar flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-3 pb-4"
-        >
-          <li v-for="f in filteredFiles" :key="f.id" class="list-none">
-            <button
-              type="button"
-              class="flex w-full flex-col items-start rounded-[var(--ui-control-radius)] border px-3 py-2 text-left transition-all"
-              :class="selectedFileId === f.id
-                ? 'border-zinc-900/20 bg-white shadow-sm ring-1 ring-zinc-900/[0.06]'
-                : 'border-transparent bg-white/50 ring-1 ring-zinc-950/[0.03] hover:bg-white/80'"
-              @click="selectedFileId = f.id"
-            >
-              <span class="line-clamp-1 text-[13px] font-medium text-zinc-900">{{ displayFileName(f) }}</span>
-              <span class="mt-1 text-[10px] uppercase tracking-wide text-zinc-400">{{ f.mimeType }}</span>
-            </button>
-          </li>
-          <li
-            v-if="filteredFiles.length === 0"
-            class="w-full list-none rounded-[var(--ui-panel-radius)] border border-dashed border-zinc-200/80 px-6 py-10 text-center text-sm text-zinc-400"
-          >
-            No files yet.
-          </li>
-        </ul>
-      </template>
-      <div v-else class="ui-scrollbar min-h-0 flex-1 overflow-auto px-2 pb-4 pt-2 sm:px-3">
-        <div class="overflow-x-auto">
+            No files match your filters.
+          </div>
+        </template>
+        <div v-else class="overflow-x-auto">
           <table class="w-full min-w-[20rem] border-collapse text-left text-[13px]">
             <thead>
               <tr class="sticky top-0 z-[1] border-b border-zinc-200/80 bg-white/85 text-[11px] font-semibold uppercase tracking-wide text-zinc-400 backdrop-blur-sm">
@@ -769,17 +757,18 @@ function tableRowClassesForFile(f: AppFile) {
           </table>
           <div
             v-if="filteredFiles.length === 0"
-            class="w-full rounded-[var(--ui-panel-radius)] border border-dashed border-zinc-200/80 px-6 py-10 text-center text-sm text-zinc-400"
+            class="rounded-[var(--ui-panel-radius)] border border-dashed border-zinc-200/80 px-6 py-10 text-center text-sm text-zinc-400"
           >
-            No files yet.
+            No files match your filters.
           </div>
         </div>
       </div>
     </template>
 
-    <main v-if="selectedFile && attachmentFilePayload" class="flex min-w-0 flex-1 flex-col p-4 sm:p-6">
+    <div class="flex min-h-0 flex-1 flex-col p-4 sm:p-6">
       <div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--ui-panel-radius)] border border-white/70 bg-white/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] backdrop-blur-md ring-1 ring-zinc-950/[0.04] supports-[backdrop-filter]:bg-white/45">
-        <header class="flex shrink-0 flex-wrap items-center gap-2 border-b border-zinc-100/90 px-4 py-3 sm:px-6">
+        <template v-if="selectedFile && attachmentFilePayload">
+          <header class="flex shrink-0 flex-wrap items-start gap-3 border-b border-zinc-100/90 px-4 py-3 sm:px-6">
             <div class="min-w-0 flex-1">
               <template v-if="!isEditing">
                 <h1 class="truncate text-xl font-semibold tracking-tight text-zinc-900 sm:text-[1.35rem]">
@@ -1049,30 +1038,28 @@ function tableRowClassesForFile(f: AppFile) {
               </div>
             </div>
           </div>
-        </div>
-    </main>
-
-    <div
-      v-else
-      class="flex min-w-0 flex-1 flex-col items-center justify-center px-8 py-12 text-center"
-    >
-      <UiEmptyState
-        title="Pick a file"
-        description="Choose a file from the list or upload a new one."
-      >
-        <template #actions>
-          <UButton
-            class="rounded-[var(--ui-control-radius)] px-5 ring-1 ring-zinc-200/80"
-            color="neutral"
-            size="md"
-            icon="i-lucide-upload"
-            :loading="uploading"
-            @click="openFilePicker"
-          >
-            Upload file
-          </UButton>
         </template>
-      </UiEmptyState>
+
+        <div v-else class="flex min-h-0 flex-1 items-center justify-center p-8 text-center">
+          <UiEmptyState
+            icon="i-lucide-file"
+            title="No file selected"
+            description="Pick a file from the list on the left or upload a new one."
+          >
+            <template #actions>
+              <UButton
+                color="neutral"
+                :loading="uploading"
+                class="rounded-[var(--ui-control-radius)] px-4 shadow-sm ring-1 ring-zinc-900/10"
+                @click="openFilePicker"
+              >
+                <Icon name="i-lucide-upload" class="mr-2 size-4" aria-hidden="true" />
+                Upload file
+              </UButton>
+            </template>
+          </UiEmptyState>
+        </div>
+      </div>
     </div>
   </LayoutAppThreeColumn>
 

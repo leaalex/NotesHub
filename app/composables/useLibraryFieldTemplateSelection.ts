@@ -15,6 +15,7 @@ const initial = (): LibraryFieldTemplateSelection => ({
 export function useLibraryFieldTemplateSelection() {
   const route = useRoute()
   const sel = useState<LibraryFieldTemplateSelection>('library:fieldTemplateSelection', initial)
+  const showContactCreate = useState<boolean>('library:fieldTemplate:showContactCreate', () => false)
 
   function detectPage(path: string): LibraryFieldTemplatesPage | null {
     if (path.startsWith('/library/contact-fields'))
@@ -30,13 +31,16 @@ export function useLibraryFieldTemplateSelection() {
     () => route.path,
     (path) => {
       const next = detectPage(path)
-      if (next !== sel.value.page)
+      if (next !== sel.value.page) {
         sel.value = { page: next, contactSubset: null, selectedId: null }
+        showContactCreate.value = false
+      }
     },
     { immediate: true },
   )
 
   function selectContact(subset: 'person' | 'organization', id: string) {
+    showContactCreate.value = false
     sel.value = { page: 'contact', contactSubset: subset, selectedId: id }
   }
 
@@ -50,6 +54,15 @@ export function useLibraryFieldTemplateSelection() {
 
   function clearSelectedId() {
     sel.value = { ...sel.value, selectedId: null }
+  }
+
+  function openContactCreate() {
+    sel.value = { page: 'contact', contactSubset: null, selectedId: null }
+    showContactCreate.value = true
+  }
+
+  function closeContactCreate() {
+    showContactCreate.value = false
   }
 
   function neighborId(sortedIds: string[], current: string | null): string | null {
@@ -67,10 +80,13 @@ export function useLibraryFieldTemplateSelection() {
 
   return {
     sel,
+    showContactCreate,
     selectContact,
     selectTask,
     selectFile,
     clearSelectedId,
+    openContactCreate,
+    closeContactCreate,
     neighborId,
   }
 }

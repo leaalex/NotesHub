@@ -255,7 +255,7 @@ function tableRowClasses(c: ContactRow) {
         </div>
       </div>
       <template v-if="viewMode === 'cards'">
-        <ul class="ui-scrollbar flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-3 pb-4">
+        <ul class="ui-scrollbar flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-4 pb-6">
           <li v-for="c in filteredContacts" :key="c.id">
             <button
               type="button"
@@ -273,11 +273,8 @@ function tableRowClasses(c: ContactRow) {
               </span>
             </button>
           </li>
-          <li
-            v-if="filteredContacts.length === 0"
-            class="w-full rounded-[var(--ui-panel-radius)] border border-dashed border-zinc-200/80 px-6 py-10 text-center text-sm text-zinc-400"
-          >
-            No contacts yet.
+          <li v-if="filteredContacts.length === 0" class="rounded-[var(--ui-panel-radius)] border border-dashed border-zinc-200/80 px-6 py-10 text-center text-sm text-zinc-400">
+            No contacts match your filters.
           </li>
         </ul>
       </template>
@@ -320,9 +317,9 @@ function tableRowClasses(c: ContactRow) {
         </table>
         <div
           v-if="filteredContacts.length === 0"
-          class="w-full rounded-[var(--ui-panel-radius)] border border-dashed border-zinc-200/80 px-6 py-10 text-center text-sm text-zinc-400"
+          class="rounded-[var(--ui-panel-radius)] border border-dashed border-zinc-200/80 px-6 py-10 text-center text-sm text-zinc-400"
         >
-          No contacts yet.
+          No contacts match your filters.
         </div>
       </div>
     </template>

@@ -779,9 +779,9 @@ function tableRowClasses(n: NoteList) {
           </li>
           <li
             v-if="filteredNotes.length === 0"
-            class="w-full rounded-[var(--ui-panel-radius)] border border-dashed border-zinc-200/80 px-6 py-10 text-center text-sm text-zinc-400"
+            class="rounded-[var(--ui-panel-radius)] border border-dashed border-zinc-200/80 px-6 py-10 text-center text-sm text-zinc-400"
           >
-            No notes yet.
+            No notes match your filters.
           </li>
         </ul>
       </template>
@@ -832,9 +832,9 @@ function tableRowClasses(n: NoteList) {
         </table>
         <div
           v-if="filteredNotes.length === 0"
-          class="w-full rounded-[var(--ui-panel-radius)] border border-dashed border-zinc-200/80 px-6 py-10 text-center text-sm text-zinc-400"
+          class="rounded-[var(--ui-panel-radius)] border border-dashed border-zinc-200/80 px-6 py-10 text-center text-sm text-zinc-400"
         >
-          No notes yet.
+          No notes match your filters.
         </div>
       </div>
     </template>
@@ -1084,7 +1084,7 @@ function tableRowClasses(n: NoteList) {
       >
         <template #actions>
           <UButton
-            class="rounded-[var(--ui-control-radius)] px-5 ring-1 ring-zinc-200/80"
+            class="rounded-[var(--ui-control-radius)] px-6 shadow-md ring-1 ring-zinc-900/10"
             color="neutral"
             size="md"
             icon="i-lucide-plus"

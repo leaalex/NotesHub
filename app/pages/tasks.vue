@@ -309,11 +309,8 @@ function tableRowClasses(t: TaskRow) {
               </span>
             </button>
           </li>
-          <li
-            v-if="filteredTasks.length === 0"
-            class="w-full rounded-[var(--ui-panel-radius)] border border-dashed border-zinc-200/80 px-6 py-10 text-center text-sm text-zinc-400"
-          >
-            No tasks yet.
+          <li v-if="filteredTasks.length === 0" class="rounded-[var(--ui-panel-radius)] border border-dashed border-zinc-200/80 px-6 py-10 text-center text-sm text-zinc-400">
+            No tasks match your filters.
           </li>
         </ul>
       </template>
@@ -370,9 +367,9 @@ function tableRowClasses(t: TaskRow) {
         </table>
         <div
           v-if="filteredTasks.length === 0"
-          class="w-full rounded-[var(--ui-panel-radius)] border border-dashed border-zinc-200/80 px-6 py-10 text-center text-sm text-zinc-400"
+          class="rounded-[var(--ui-panel-radius)] border border-dashed border-zinc-200/80 px-6 py-10 text-center text-sm text-zinc-400"
         >
-          No tasks yet.
+          No tasks match your filters.
         </div>
       </div>
     </template>

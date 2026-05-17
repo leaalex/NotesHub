@@ -280,11 +280,8 @@ function tableRowClasses(a: AddressRow) {
               </span>
             </button>
           </li>
-          <li
-            v-if="filteredAddresses.length === 0"
-            class="w-full rounded-[var(--ui-panel-radius)] border border-dashed border-zinc-200/80 px-6 py-10 text-center text-sm text-zinc-400"
-          >
-            No addresses yet.
+          <li v-if="filteredAddresses.length === 0" class="rounded-[var(--ui-panel-radius)] border border-dashed border-zinc-200/80 px-6 py-10 text-center text-sm text-zinc-400">
+            No saved addresses match your filters.
           </li>
         </ul>
       </template>
@@ -337,9 +334,9 @@ function tableRowClasses(a: AddressRow) {
         </table>
         <div
           v-if="filteredAddresses.length === 0"
-          class="w-full rounded-[var(--ui-panel-radius)] border border-dashed border-zinc-200/80 px-6 py-10 text-center text-sm text-zinc-400"
+          class="rounded-[var(--ui-panel-radius)] border border-dashed border-zinc-200/80 px-6 py-10 text-center text-sm text-zinc-400"
         >
-          No addresses yet.
+          No saved addresses match your filters.
         </div>
       </div>
     </template>

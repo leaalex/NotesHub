@@ -41,11 +41,11 @@ export function useLibraryContactFieldTemplates() {
     )
   }
 
-  async function addTemplate(contactType: 'person' | 'organization', label: string): Promise<string | null> {
+  async function addTemplate(contactType: 'person' | 'organization', label: string, fieldType = 'text'): Promise<string | null> {
     try {
       const row = await apiFetch<LibraryContactTplRow>('/api/contact-field-templates', {
         method: 'POST',
-        body: { contactType, label, fieldType: 'text' },
+        body: { contactType, label, fieldType },
       })
       await reload()
       return row?.id ?? null
