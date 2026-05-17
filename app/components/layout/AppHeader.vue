@@ -77,7 +77,7 @@ const menuItems = computed(() => {
 
 <template>
   <header
-    class="sticky top-0 z-40 border-b border-white/60 bg-white/55 backdrop-blur-xl ring-1 ring-zinc-950/[0.04] supports-[backdrop-filter]:bg-white/45"
+    class="sticky top-0 z-40 border-b border-zinc-200/80 bg-white"
   >
     <div class="flex h-14 w-full items-center gap-3 px-4 sm:gap-4 sm:px-6">
       <div class="flex min-w-0 shrink-0 items-center gap-1 sm:gap-2">
@@ -91,15 +91,17 @@ const menuItems = computed(() => {
       </div>
 
       <nav class="flex min-w-0 flex-1 justify-center" aria-label="Main">
-        <div class="flex items-center gap-1 rounded-[var(--ui-control-radius)] bg-zinc-50/90 p-1 ring-1 ring-zinc-950/[0.04]">
+        <div
+          class="flex items-center gap-1 rounded-[var(--ui-control-radius)] bg-slate-50 p-1 ring-1 ring-zinc-950/[0.04]"
+        >
           <NuxtLink
             v-for="l in links"
             :key="l.to"
             :to="l.to"
             class="flex items-center gap-2 rounded-[var(--ui-control-radius)] px-3 py-1.5 text-[13px] font-medium transition-colors"
             :class="isActive(l.to)
-              ? 'bg-zinc-900 text-white shadow-sm'
-              : 'text-zinc-600 hover:bg-white/70'"
+              ? 'bg-zinc-900 text-white'
+              : 'bg-transparent text-zinc-600 hover:bg-slate-900/[0.07]'"
           >
             <Icon :name="l.icon" class="size-4 shrink-0 opacity-90" aria-hidden="true" />
             <span class="truncate">{{ l.label }}</span>
@@ -113,7 +115,7 @@ const menuItems = computed(() => {
           to="/login"
           color="neutral"
           size="sm"
-          class="rounded-[var(--ui-control-radius)] px-4 shadow-sm ring-1 ring-zinc-900/10"
+          class="rounded-[var(--ui-control-radius)] px-4 ring-1 ring-zinc-900/10"
         >
           Sign in
         </UButton>

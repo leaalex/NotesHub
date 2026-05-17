@@ -39,6 +39,7 @@ type FileDetail = AppFile & {
 const apiFetch = useRequestFetch()
 const toast = useToast()
 const runtimeConfig = useRuntimeConfig()
+const router = useRouter()
 
 const folderFilter = ref<'all' | 'unfiled' | string>('all')
 const folders = ref<FolderRow[]>([])
@@ -69,6 +70,10 @@ const { open: foldersRailOpen, toggle: toggleFoldersRail } = useFoldersRail()
 
 const searchQuery = ref('')
 const viewMode = ref<'cards' | 'table'>('cards')
+
+function manageFields() {
+  void router.push('/library/file-fields')
+}
 
 function displayFileName(f: AppFile) {
   const t = f.title?.trim()
@@ -619,7 +624,7 @@ function tableRowClassesForFile(f: AppFile) {
             type="button"
             class="flex w-full items-center gap-2 rounded-[var(--ui-control-radius)] px-3 py-2 text-left font-medium transition-colors"
             :class="folderFilter === 'all'
-              ? 'bg-zinc-900 text-white shadow-sm'
+              ? 'bg-zinc-900 text-white'
               : 'text-zinc-600 hover:bg-white/70'"
             @click="folderFilter = 'all'"
           >
@@ -630,7 +635,7 @@ function tableRowClassesForFile(f: AppFile) {
             type="button"
             class="flex w-full items-center gap-2 rounded-[var(--ui-control-radius)] px-3 py-2 text-left font-medium transition-colors"
             :class="folderFilter === 'unfiled'
-              ? 'bg-zinc-900 text-white shadow-sm'
+              ? 'bg-zinc-900 text-white'
               : 'text-zinc-600 hover:bg-white/70'"
             @click="folderFilter = 'unfiled'"
           >
@@ -643,7 +648,7 @@ function tableRowClassesForFile(f: AppFile) {
             type="button"
             class="flex w-full items-center gap-2 rounded-[var(--ui-control-radius)] px-3 py-2 text-left font-medium transition-colors"
             :class="folderFilter === f.id
-              ? 'bg-zinc-900 text-white shadow-sm'
+              ? 'bg-zinc-900 text-white'
               : 'text-zinc-600 hover:bg-white/70'"
             @click="folderFilter = f.id"
           >
@@ -655,17 +660,14 @@ function tableRowClassesForFile(f: AppFile) {
     </template>
 
     <template #cards>
-      <div class="flex flex-wrap items-center justify-between gap-2 px-4 pb-3 pt-4">
+      <div class="flex flex-wrap items-center justify-between gap-3 px-4 pb-3 pt-4">
         <UiSectionLabel>
           Files
         </UiSectionLabel>
         <div class="flex shrink-0 items-center gap-2">
-          <NuxtLink
-            to="/library/file-fields"
-            class="rounded-[var(--ui-control-radius)] px-3 py-1.5 text-[12px] font-medium text-zinc-600 underline decoration-zinc-300 underline-offset-[4px] hover:text-zinc-900"
-          >
+          <UButton variant="ghost" color="neutral" size="xs" class="rounded-[var(--ui-control-radius)]" @click="manageFields">
             Manage fields
-          </NuxtLink>
+          </UButton>
           <input ref="fileInput" type="file" class="hidden" @change="onFilePicked">
           <UButton
             size="xs"
@@ -675,53 +677,68 @@ function tableRowClassesForFile(f: AppFile) {
             :loading="uploading"
             icon="i-lucide-plus"
             aria-label="Upload file"
-            class="rounded-[var(--ui-control-radius)] shadow-sm ring-1 ring-zinc-900/10"
+            class="rounded-[var(--ui-control-radius)] ring-1 ring-zinc-900/10"
             @click="openFilePicker"
           />
         </div>
       </div>
-      <div class="ui-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-8 pt-2">
+      <div
+        v-if="filesLoading"
+        class="ui-scrollbar flex min-h-0 flex-1 flex-col overflow-y-auto px-3 pb-4"
+      >
         <div
-          v-if="filesLoading"
-          class="flex min-h-[12rem] items-center justify-center py-16 text-zinc-400"
+          class="flex min-h-[12rem] flex-1 items-center justify-center py-16 text-zinc-400"
           role="status"
           aria-live="polite"
           aria-label="Loading files"
         >
           <Icon name="i-lucide-loader-circle" class="size-8 animate-spin" aria-hidden="true" />
         </div>
-        <template v-else-if="!files.length">
+      </div>
+      <div
+        v-else-if="!files.length"
+        class="ui-scrollbar flex min-h-0 flex-1 flex-col overflow-y-auto px-3 pb-4"
+      >
+        <div class="flex min-h-0 flex-1 flex-col items-center justify-center px-4 py-12">
           <UiEmptyState
             icon="i-lucide-image"
             title="No files yet"
             description="Upload a file to start linking it to notes and contacts."
           />
-        </template>
-        <template v-else-if="viewMode === 'cards'">
-          <ul v-if="filteredFiles.length" class="space-y-2">
-            <li v-for="f in filteredFiles" :key="f.id">
-              <button
-                type="button"
-                class="flex w-full flex-col items-start rounded-[var(--ui-control-radius)] border px-3 py-2 text-left transition-all"
-                :class="selectedFileId === f.id
-                  ? 'border-zinc-900/20 bg-white shadow-sm ring-1 ring-zinc-900/[0.06]'
-                  : 'border-transparent bg-white/50 ring-1 ring-zinc-950/[0.03] hover:bg-white/80'"
-                @click="selectedFileId = f.id"
-              >
-                <span class="line-clamp-1 text-[13px] font-medium text-zinc-900">{{ displayFileName(f) }}</span>
-                <span class="mt-1 text-[10px] uppercase tracking-wide text-zinc-400">{{ f.mimeType }}</span>
-              </button>
-            </li>
-          </ul>
+        </div>
+      </div>
+      <template v-else-if="viewMode === 'cards'">
+        <ul
+          v-if="filteredFiles.length"
+          class="ui-scrollbar flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-3 pb-4"
+        >
+          <li v-for="f in filteredFiles" :key="f.id">
+            <button
+              type="button"
+              class="group flex w-full flex-col items-start rounded-[var(--ui-control-radius)] border px-4 py-3 text-left ring-1 transition-all"
+              :class="selectedFileId === f.id
+                ? 'border-zinc-900/15 bg-white ring-zinc-900/[0.06]'
+                  : 'border-transparent bg-white ring-zinc-950/[0.03] hover:border-zinc-200/80'"
+              @click="selectedFileId = f.id"
+            >
+              <span class="line-clamp-1 text-[13px] font-medium text-zinc-900">{{ displayFileName(f) }}</span>
+              <span class="mt-1 text-[10px] uppercase tracking-wide text-zinc-400">{{ f.mimeType }}</span>
+            </button>
+          </li>
+        </ul>
+        <div
+          v-else
+          class="ui-scrollbar flex min-h-0 flex-1 flex-col overflow-y-auto px-3 pb-4"
+        >
           <div
-            v-else
             class="rounded-[var(--ui-panel-radius)] border border-dashed border-zinc-200/80 px-6 py-10 text-center text-sm text-zinc-400"
           >
             No files match your filters.
           </div>
-        </template>
-        <div v-else class="overflow-x-auto">
-          <table class="w-full min-w-[20rem] border-collapse text-left text-[13px]">
+        </div>
+      </template>
+      <div v-else class="ui-scrollbar flex min-h-0 flex-1 flex-col overflow-x-auto overflow-y-auto px-3 pb-4">
+        <table class="w-full min-w-[20rem] border-collapse text-left text-[13px]">
             <thead>
               <tr class="sticky top-0 z-[1] border-b border-zinc-200/80 bg-white/85 text-[11px] font-semibold uppercase tracking-wide text-zinc-400 backdrop-blur-sm">
                 <th class="px-2 py-2 font-semibold">
@@ -754,19 +771,18 @@ function tableRowClassesForFile(f: AppFile) {
                 </td>
               </tr>
             </tbody>
-          </table>
-          <div
-            v-if="filteredFiles.length === 0"
-            class="rounded-[var(--ui-panel-radius)] border border-dashed border-zinc-200/80 px-6 py-10 text-center text-sm text-zinc-400"
-          >
-            No files match your filters.
-          </div>
+        </table>
+        <div
+          v-if="filteredFiles.length === 0"
+          class="rounded-[var(--ui-panel-radius)] border border-dashed border-zinc-200/80 px-6 py-10 text-center text-sm text-zinc-400"
+        >
+          No files match your filters.
         </div>
       </div>
     </template>
 
     <div class="flex min-h-0 flex-1 flex-col p-4 sm:p-6">
-      <div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--ui-panel-radius)] border border-white/70 bg-white/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] backdrop-blur-md ring-1 ring-zinc-950/[0.04] supports-[backdrop-filter]:bg-white/45">
+      <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
         <template v-if="selectedFile && attachmentFilePayload">
           <header class="flex shrink-0 flex-wrap items-start gap-3 border-b border-zinc-100/90 px-4 py-3 sm:px-6">
             <div class="min-w-0 flex-1">
@@ -1050,7 +1066,7 @@ function tableRowClassesForFile(f: AppFile) {
               <UButton
                 color="neutral"
                 :loading="uploading"
-                class="rounded-[var(--ui-control-radius)] px-4 shadow-sm ring-1 ring-zinc-900/10"
+                class="rounded-[var(--ui-control-radius)] px-4 ring-1 ring-zinc-900/10"
                 @click="openFilePicker"
               >
                 <Icon name="i-lucide-upload" class="mr-2 size-4" aria-hidden="true" />

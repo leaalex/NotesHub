@@ -21,7 +21,7 @@ const links = [
       <li v-for="l in links" :key="l.to">
         <NuxtLink
           :to="l.to"
-          class="flex items-start gap-3 rounded-[var(--ui-panel-radius)] border border-zinc-200 bg-white/90 p-4 shadow-sm ring-1 ring-zinc-950/[0.03] transition hover:border-zinc-300 hover:bg-white"
+          class="flex items-start gap-3 rounded-[var(--ui-panel-radius)] border border-zinc-200 bg-white/90 p-4 ring-1 ring-zinc-950/[0.03] transition hover:border-zinc-300 hover:bg-white"
         >
           <Icon :name="l.icon" class="mt-0.5 size-5 text-zinc-500" aria-hidden="true" />
           <div>

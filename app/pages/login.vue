@@ -8,7 +8,7 @@ const loginInputUi = {
   base: 'rounded-[var(--ui-control-radius)]',
 }
 const loginButtonUi = {
-  base: 'rounded-[var(--ui-control-radius)] shadow-md ring-1 ring-zinc-900/10',
+  base: 'rounded-[var(--ui-control-radius)] ring-1 ring-zinc-900/10',
 }
 /** UCard темизирует корень слотом `root`, не `base`. */
 const loginCardUi = {
@@ -60,11 +60,8 @@ async function submit() {
 </script>
 
 <template>
-  <div class="relative flex min-h-dvh items-center justify-center overflow-hidden px-4 py-14">
-    <div class="pointer-events-none absolute inset-0 bg-gradient-to-br from-zinc-50 via-white to-zinc-100" />
-    <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_75%_55%_at_50%_-10%,rgba(24,24,27,0.07),transparent)]" />
-
-    <UiGlassPanel class="relative z-10 w-full max-w-[420px] overflow-hidden bg-white/70 shadow-[0_28px_90px_-40px_rgba(24,24,27,0.45)] supports-[backdrop-filter]:bg-white/55">
+  <div class="relative flex min-h-dvh items-center justify-center overflow-hidden bg-slate-100 px-4 py-14">
+    <UiGlassPanel class="relative z-10 w-full max-w-[420px] overflow-hidden bg-white/70 supports-[backdrop-filter]:bg-white/55">
       <UCard :ui="loginCardUi" class="my-0 border-0 bg-transparent ring-0 shadow-none">
       <template #header>
         <div class="text-center">

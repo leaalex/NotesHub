@@ -65,19 +65,21 @@ function cancel() {
 
 <template>
   <main class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-4 sm:p-6">
-    <div class="mx-auto w-full max-w-lg">
-      <h1 class="text-xl font-semibold tracking-tight text-zinc-900">
-        New contact
-      </h1>
-      <p class="mt-1 text-sm text-zinc-500">
-        Choose a type and fill in the basics. Folder follows the sidebar filter.
-      </p>
+    <div class="ui-scrollbar flex min-h-0 min-w-0 flex-1 flex-col gap-6 overflow-y-auto">
+      <header class="space-y-1">
+        <h1 class="text-xl font-semibold tracking-tight text-zinc-900">
+          New contact
+        </h1>
+        <p class="text-sm text-zinc-500">
+          Choose a type and fill in the basics. Folder follows the sidebar filter.
+        </p>
+      </header>
 
-      <div class="mt-6 flex rounded-[var(--ui-control-radius)] bg-zinc-100 p-1">
+      <div class="flex rounded-[var(--ui-control-radius)] bg-zinc-100 p-1">
         <button
           type="button"
           class="flex-1 rounded-[var(--ui-control-radius)] px-3 py-2 text-[12px] font-semibold transition-all"
-          :class="newTab === 'person' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500'"
+          :class="newTab === 'person' ? 'bg-white text-zinc-900' : 'text-zinc-500'"
           @click="newTab = 'person'"
         >
           Person
@@ -85,14 +87,14 @@ function cancel() {
         <button
           type="button"
           class="flex-1 rounded-[var(--ui-control-radius)] px-3 py-2 text-[12px] font-semibold transition-all"
-          :class="newTab === 'organization' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500'"
+          :class="newTab === 'organization' ? 'bg-white text-zinc-900' : 'text-zinc-500'"
           @click="newTab = 'organization'"
         >
           Organization
         </button>
       </div>
 
-      <UiGlassPanel class="mt-6 space-y-3 p-5">
+      <UiGlassPanel class="space-y-3 p-5">
         <template v-if="newTab === 'person'">
           <UFormField label="First name">
             <UInput v-model="newFirst" class="rounded-[var(--ui-control-radius)]" />
@@ -111,7 +113,7 @@ function cancel() {
         </UFormField>
       </UiGlassPanel>
 
-      <div class="mt-6 flex justify-end gap-2">
+      <div class="flex justify-end gap-2 pb-2">
         <UButton variant="ghost" color="neutral" class="rounded-[var(--ui-control-radius)]" @click="cancel">
           Cancel
         </UButton>

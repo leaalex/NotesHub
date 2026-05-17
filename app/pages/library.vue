@@ -77,11 +77,11 @@ const currentSearch = computed({
 function addressCardClasses(a: LibraryAddressRow) {
   const active = selectedAddressId.value === a.id && !!a.id
   const base =
-    'group flex w-full flex-col items-start rounded-[var(--ui-control-radius)] border px-4 py-3 text-left shadow-sm ring-1 transition-all'
+    'group flex w-full flex-col items-start rounded-[var(--ui-control-radius)] border px-4 py-3 text-left ring-1 transition-all'
   if (active)
-    return `${base} border-zinc-900/15 bg-white shadow-[0_1px_0_rgba(0,0,0,0.04),0_12px_40px_-18px_rgba(24,24,27,0.35)] ring-zinc-900/[0.06]`
+    return `${base} border-zinc-900/15 bg-white ring-zinc-900/[0.06]`
 
-  return `${base} border-transparent bg-white/50 ring-zinc-950/[0.03] hover:border-zinc-200/80 hover:bg-white/80 hover:shadow-md`
+  return `${base} border-transparent bg-white ring-zinc-950/[0.03] hover:border-zinc-200/80`
 }
 
 function addressTableRowClasses(a: LibraryAddressRow) {
@@ -153,7 +153,7 @@ function onAddressDeleted() {
             role="tab"
             class="flex w-full items-center gap-2 rounded-[var(--ui-control-radius)] px-3 py-2 text-left font-medium transition-colors"
             :class="isNavActive(t.to)
-              ? 'bg-zinc-900 text-white shadow-sm'
+              ? 'bg-zinc-900 text-white'
               : 'text-zinc-600 hover:bg-white/70'"
             :aria-selected="isNavActive(t.to)"
           >
@@ -174,7 +174,7 @@ function onAddressDeleted() {
             size="xs"
             color="neutral"
             square
-            class="shrink-0 rounded-[var(--ui-control-radius)] shadow-sm ring-1 ring-zinc-900/10"
+            class="shrink-0 rounded-[var(--ui-control-radius)] ring-1 ring-zinc-900/10"
             :class="showNewAddress ? 'ring-zinc-900/30 bg-zinc-100' : ''"
             icon="i-lucide-plus"
             aria-label="New address"

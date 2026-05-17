@@ -173,7 +173,7 @@ export const BlockToolbar = Extension.create({
 
           const pill = document.createElement('div')
           pill.className
-            = 'pointer-events-auto flex items-center gap-px rounded-[var(--ui-control-radius)] border border-zinc-200/90 bg-white/95 px-0.5 py-px shadow-[0_12px_36px_-20px_rgba(24,24,27,0.5)] backdrop-blur-xl ring-1 ring-zinc-950/[0.04]'
+            = 'pointer-events-auto flex items-center gap-px rounded-[var(--ui-control-radius)] border border-zinc-200/90 bg-white/95 px-0.5 py-px backdrop-blur-xl ring-1 ring-zinc-950/[0.04]'
 
           const grip = document.createElement('button')
           grip.type = 'button'
@@ -208,7 +208,7 @@ export const BlockToolbar = Extension.create({
 
           const menu = document.createElement('div')
           menu.className
-            = 'pointer-events-auto hidden min-w-[220px] rounded-[var(--ui-panel-radius)] border border-zinc-200/90 bg-white/95 py-1.5 shadow-[0_22px_55px_-28px_rgba(24,24,27,0.55)] backdrop-blur-xl ring-1 ring-zinc-950/[0.04]'
+            = 'pointer-events-auto hidden min-w-[220px] rounded-[var(--ui-panel-radius)] border border-zinc-200/90 bg-white/95 py-1.5 backdrop-blur-xl ring-1 ring-zinc-950/[0.04]'
           root.appendChild(menu)
 
           document.body.appendChild(root)

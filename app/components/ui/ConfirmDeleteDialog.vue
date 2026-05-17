@@ -31,7 +31,7 @@ function closeDialog() {
       class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/40 px-4 backdrop-blur-[2px]"
       @click.self="closeDialog"
     >
-      <UCard class="w-full max-w-md overflow-hidden rounded-[var(--ui-panel-radius)] border border-white/60 bg-white/95 shadow-2xl ring-1 ring-zinc-950/[0.06] backdrop-blur-xl">
+      <UCard class="w-full max-w-md overflow-hidden rounded-[var(--ui-panel-radius)] border border-white/60 bg-white/95 ring-1 ring-zinc-950/[0.06] backdrop-blur-xl">
         <template #header>
           <span class="font-semibold tracking-tight text-zinc-900">{{ title }}</span>
         </template>

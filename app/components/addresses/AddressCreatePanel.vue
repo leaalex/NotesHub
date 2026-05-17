@@ -54,51 +54,51 @@ async function submit() {
 </script>
 
 <template>
-  <div class="flex min-h-0 flex-1 flex-col">
-    <div class="w-full max-w-lg">
+  <div class="flex min-h-0 min-w-0 flex-1 flex-col gap-6">
+    <header class="space-y-1">
       <h2 class="text-xl font-semibold tracking-tight text-zinc-900">
         New address
       </h2>
-      <p class="mt-1 text-sm text-zinc-500">
+      <p class="text-sm text-zinc-500">
         Enter the address manually. Folder follows the sidebar filter on the Addresses screen.
       </p>
+    </header>
 
-      <UiGlassPanel class="mt-6 space-y-3 p-5">
-        <UFormField label="Label / display">
-          <UInput v-model="label" class="rounded-[var(--ui-control-radius)]" />
+    <UiGlassPanel class="space-y-3 p-5">
+      <UFormField label="Label / display">
+        <UInput v-model="label" class="rounded-[var(--ui-control-radius)]" />
+      </UFormField>
+      <UFormField label="Street / line 1">
+        <UInput v-model="line1" class="rounded-[var(--ui-control-radius)]" />
+      </UFormField>
+      <UFormField label="Line 2">
+        <UInput v-model="line2" class="rounded-[var(--ui-control-radius)]" />
+      </UFormField>
+      <div class="grid gap-3 sm:grid-cols-2">
+        <UFormField label="City">
+          <UInput v-model="city" class="rounded-[var(--ui-control-radius)]" />
         </UFormField>
-        <UFormField label="Street / line 1">
-          <UInput v-model="line1" class="rounded-[var(--ui-control-radius)]" />
+        <UFormField label="Region / state">
+          <UInput v-model="region" class="rounded-[var(--ui-control-radius)]" />
         </UFormField>
-        <UFormField label="Line 2">
-          <UInput v-model="line2" class="rounded-[var(--ui-control-radius)]" />
-        </UFormField>
-        <div class="grid gap-3 sm:grid-cols-2">
-          <UFormField label="City">
-            <UInput v-model="city" class="rounded-[var(--ui-control-radius)]" />
-          </UFormField>
-          <UFormField label="Region / state">
-            <UInput v-model="region" class="rounded-[var(--ui-control-radius)]" />
-          </UFormField>
-        </div>
-        <div class="grid gap-3 sm:grid-cols-2">
-          <UFormField label="Postal code">
-            <UInput v-model="postalCode" class="rounded-[var(--ui-control-radius)]" />
-          </UFormField>
-          <UFormField label="Country code">
-            <UInput v-model="countryCode" class="rounded-[var(--ui-control-radius)]" placeholder="ru, cn…" />
-          </UFormField>
-        </div>
-      </UiGlassPanel>
-
-      <div class="mt-6 flex justify-end gap-2">
-        <UButton variant="ghost" color="neutral" class="rounded-[var(--ui-control-radius)]" @click="emit('cancel')">
-          Cancel
-        </UButton>
-        <UButton color="neutral" class="rounded-[var(--ui-control-radius)]" :loading="creating" icon="i-lucide-check" @click="submit">
-          Save
-        </UButton>
       </div>
+      <div class="grid gap-3 sm:grid-cols-2">
+        <UFormField label="Postal code">
+          <UInput v-model="postalCode" class="rounded-[var(--ui-control-radius)]" />
+        </UFormField>
+        <UFormField label="Country code">
+          <UInput v-model="countryCode" class="rounded-[var(--ui-control-radius)]" placeholder="ru, cn…" />
+        </UFormField>
+      </div>
+    </UiGlassPanel>
+
+    <div class="flex justify-end gap-2 pb-2">
+      <UButton variant="ghost" color="neutral" class="rounded-[var(--ui-control-radius)]" @click="emit('cancel')">
+        Cancel
+      </UButton>
+      <UButton color="neutral" class="rounded-[var(--ui-control-radius)]" :loading="creating" icon="i-lucide-check" @click="submit">
+        Save
+      </UButton>
     </div>
   </div>
 </template>

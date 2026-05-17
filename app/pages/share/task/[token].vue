@@ -59,10 +59,7 @@ function fileSizeLabel(size: number) {
 </script>
 
 <template>
-  <div class="relative min-h-dvh overflow-hidden px-4 py-12 sm:py-16">
-    <div class="pointer-events-none absolute inset-0 bg-gradient-to-br from-zinc-50 via-white to-zinc-100" />
-    <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_45%_at_50%_-15%,rgba(24,24,27,0.06),transparent)]" />
-
+  <div class="relative min-h-dvh overflow-hidden bg-slate-100 px-4 py-12 sm:py-16">
     <div class="relative z-10 mx-auto max-w-3xl">
       <UiGlassPanel v-if="pending" class="px-6 py-16 text-center text-sm text-zinc-500">
         Loading…

@@ -692,7 +692,7 @@ function tableRowClasses(n: NoteList) {
             type="button"
             class="flex w-full items-center gap-2 rounded-[var(--ui-control-radius)] px-3 py-2 text-left font-medium transition-colors"
             :class="folderFilter === 'all'
-              ? 'bg-zinc-900 text-white shadow-sm'
+              ? 'bg-zinc-900 text-white'
               : 'text-zinc-600 hover:bg-white/70'"
             @click="folderFilter = 'all'"
           >
@@ -703,7 +703,7 @@ function tableRowClasses(n: NoteList) {
             type="button"
             class="flex w-full items-center gap-2 rounded-[var(--ui-control-radius)] px-3 py-2 text-left font-medium transition-colors"
             :class="folderFilter === 'unfiled'
-              ? 'bg-zinc-900 text-white shadow-sm'
+              ? 'bg-zinc-900 text-white'
               : 'text-zinc-600 hover:bg-white/70'"
             @click="folderFilter = 'unfiled'"
           >
@@ -716,7 +716,7 @@ function tableRowClasses(n: NoteList) {
             type="button"
             class="flex w-full items-center gap-2 rounded-[var(--ui-control-radius)] px-3 py-2 text-left font-medium transition-colors"
             :class="folderFilter === f.id
-              ? 'bg-zinc-900 text-white shadow-sm'
+              ? 'bg-zinc-900 text-white'
               : 'text-zinc-600 hover:bg-white/70'"
             @click="folderFilter = f.id"
           >
@@ -728,7 +728,7 @@ function tableRowClasses(n: NoteList) {
     </template>
 
     <template #cards>
-      <div class="flex items-center justify-between gap-2 px-4 pb-3 pt-4">
+      <div class="flex flex-wrap items-center justify-between gap-3 px-4 pb-3 pt-4">
         <UiSectionLabel>
           Notes
         </UiSectionLabel>
@@ -737,7 +737,7 @@ function tableRowClasses(n: NoteList) {
           color="neutral"
           type="button"
           square
-          class="rounded-[var(--ui-control-radius)] shadow-sm ring-1 ring-zinc-900/10"
+          class="rounded-[var(--ui-control-radius)] ring-1 ring-zinc-900/10"
           icon="i-lucide-plus"
           aria-label="New note"
           :loading="creatingNote"
@@ -749,10 +749,10 @@ function tableRowClasses(n: NoteList) {
           <li v-for="n in filteredNotes" :key="n.id">
             <button
               type="button"
-              class="group flex w-full flex-col items-start rounded-[var(--ui-control-radius)] border px-4 py-3 text-left shadow-sm ring-1 transition-all"
+              class="group flex w-full flex-col items-start rounded-[var(--ui-control-radius)] border px-4 py-3 text-left ring-1 transition-all"
               :class="selectedNoteId === n.id
-                ? 'border-zinc-900/15 bg-white shadow-[0_1px_0_rgba(0,0,0,0.04),0_12px_40px_-18px_rgba(24,24,27,0.35)] ring-zinc-900/[0.06]'
-                : 'border-transparent bg-white/50 ring-zinc-950/[0.03] hover:border-zinc-200/80 hover:bg-white/80 hover:shadow-md'"
+                ? 'border-zinc-900/15 bg-white ring-zinc-900/[0.06]'
+                : 'border-transparent bg-white ring-zinc-950/[0.03] hover:border-zinc-200/80'"
               @click="void selectNote(n.id)"
             >
               <div class="flex w-full items-start justify-between gap-2">
@@ -840,7 +840,7 @@ function tableRowClasses(n: NoteList) {
     </template>
 
     <main v-if="currentNote" class="flex min-w-0 flex-1 flex-col p-4 sm:p-6">
-      <div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--ui-panel-radius)] border border-white/70 bg-white/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] backdrop-blur-md ring-1 ring-zinc-950/[0.04] supports-[backdrop-filter]:bg-white/45">
+      <div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--ui-panel-radius)] border border-white/70 bg-white/55 backdrop-blur-md ring-1 ring-zinc-950/[0.04] supports-[backdrop-filter]:bg-white/45">
         <header class="flex shrink-0 flex-wrap items-center gap-2 border-b border-zinc-100/90 px-4 py-3 sm:px-6">
           <div class="min-w-[12rem] flex-1">
             <h1
@@ -1084,7 +1084,7 @@ function tableRowClasses(n: NoteList) {
       >
         <template #actions>
           <UButton
-            class="rounded-[var(--ui-control-radius)] px-6 shadow-md ring-1 ring-zinc-900/10"
+            class="rounded-[var(--ui-control-radius)] px-6 ring-1 ring-zinc-900/10"
             color="neutral"
             size="md"
             icon="i-lucide-plus"
@@ -1119,7 +1119,7 @@ function tableRowClasses(n: NoteList) {
       class="fixed inset-0 z-[60] flex items-center justify-center bg-zinc-950/40 px-4 backdrop-blur-[2px]"
       @click.self="showLinkContact = false"
     >
-      <UCard class="max-h-[80vh] w-full max-w-md overflow-hidden rounded-[var(--ui-panel-radius)] border border-white/60 bg-white/95 shadow-2xl ring-1 ring-zinc-950/[0.06] backdrop-blur-xl">
+      <UCard class="max-h-[80vh] w-full max-w-md overflow-hidden rounded-[var(--ui-panel-radius)] border border-white/60 bg-white/95 ring-1 ring-zinc-950/[0.06] backdrop-blur-xl">
         <template #header>
           <span class="font-semibold text-zinc-900">Link a contact</span>
         </template>

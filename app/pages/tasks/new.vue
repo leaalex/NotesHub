@@ -88,15 +88,17 @@ function cancel() {
 
 <template>
   <main class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-4 sm:p-6">
-    <div class="mx-auto w-full max-w-lg">
-      <h1 class="text-xl font-semibold tracking-tight text-zinc-900">
-        New task
-      </h1>
-      <p class="mt-1 text-sm text-zinc-500">
-        Folder follows the sidebar filter. You can link notes, contacts, and files after saving.
-      </p>
+    <div class="ui-scrollbar flex min-h-0 min-w-0 flex-1 flex-col gap-6 overflow-y-auto">
+      <header class="space-y-1">
+        <h1 class="text-xl font-semibold tracking-tight text-zinc-900">
+          New task
+        </h1>
+        <p class="text-sm text-zinc-500">
+          Folder follows the sidebar filter. You can link notes, contacts, and files after saving.
+        </p>
+      </header>
 
-      <UiGlassPanel class="mt-6 space-y-3 p-5">
+      <UiGlassPanel class="space-y-3 p-5">
         <UFormField label="Title">
           <UInput v-model="title" class="rounded-[var(--ui-control-radius)]" />
         </UFormField>
@@ -119,7 +121,7 @@ function cancel() {
         </UFormField>
       </UiGlassPanel>
 
-      <div class="mt-6 flex justify-end gap-2">
+      <div class="flex justify-end gap-2 pb-2">
         <UButton variant="ghost" color="neutral" class="rounded-[var(--ui-control-radius)]" @click="cancel">
           Cancel
         </UButton>

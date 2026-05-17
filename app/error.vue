@@ -29,7 +29,7 @@ const detail = computed(() => {
 
 <template>
   <div class="relative grid min-h-dvh place-content-center overflow-hidden px-6 py-14 antialiased tracking-wide">
-    <div class="pointer-events-none absolute inset-0 bg-gradient-to-br from-zinc-50 via-white to-zinc-100 dark:from-[#020420] dark:via-[#020420] dark:to-zinc-950" />
+    <div class="pointer-events-none absolute inset-0 bg-slate-100 dark:bg-[#020420]" />
 
     <div class="relative z-10 mx-auto max-w-[520px] text-center text-[#020420] dark:text-white">
       <p class="text-6xl font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">

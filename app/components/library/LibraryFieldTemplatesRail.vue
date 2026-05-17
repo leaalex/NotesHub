@@ -47,10 +47,10 @@ const props = withDefaults(defineProps<Props>(), {
 
 function rowClasses(active: boolean) {
   const base =
-    'flex w-full flex-col items-start rounded-[var(--ui-control-radius)] border px-3 py-2.5 text-left shadow-sm ring-1 transition-all'
+    'group flex w-full flex-col items-start rounded-[var(--ui-control-radius)] border px-4 py-3 text-left ring-1 transition-all'
   if (active)
-    return `${base} border-zinc-900/15 bg-white shadow-[0_1px_0_rgba(0,0,0,0.04),0_12px_40px_-18px_rgba(24,24,27,0.35)] ring-zinc-900/[0.06]`
-  return `${base} border-transparent bg-white/50 ring-zinc-950/[0.03] hover:border-zinc-200/80 hover:bg-white/80 hover:shadow-md`
+    return `${base} border-zinc-900/15 bg-white ring-zinc-900/[0.06]`
+  return `${base} border-transparent bg-white ring-zinc-950/[0.03] hover:border-zinc-200/80`
 }
 
 function tableRowClasses(active: boolean) {
@@ -120,8 +120,8 @@ async function addFile() {
 <template>
   <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
     <template v-if="route.path.startsWith('/library/contact-fields')">
-      <div class="flex min-h-0 flex-1 flex-col px-3 pb-4 pt-4">
-        <div class="mb-2 flex items-center justify-between gap-2 px-1">
+      <div class="flex min-h-0 flex-1 flex-col overflow-hidden pb-4">
+        <div class="flex flex-wrap items-center justify-between gap-3 px-4 pb-3 pt-4">
           <UiSectionLabel class="mb-0">
             Contact fields
           </UiSectionLabel>
@@ -142,7 +142,7 @@ async function addFile() {
         </template>
         <ul
           v-else-if="props.viewMode === 'cards'"
-          class="ui-scrollbar mt-2 flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto"
+          class="ui-scrollbar flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-3 pb-4"
         >
           <li v-for="{ row, subset } in contactFieldsMergedRows" :key="`${subset}-${row.id}`">
             <button
@@ -171,7 +171,7 @@ async function addFile() {
             No contact fields match your search.
           </li>
         </ul>
-        <div v-else class="ui-scrollbar mt-2 flex min-h-0 flex-1 flex-col overflow-x-auto overflow-y-auto">
+        <div v-else class="ui-scrollbar flex min-h-0 flex-1 flex-col overflow-x-auto overflow-y-auto px-3 pb-4">
           <table class="w-full min-w-[17rem] border-collapse text-left text-[13px]">
             <thead>
               <tr class="sticky top-0 z-[1] border-b border-zinc-200/80 bg-white/85 text-[11px] font-semibold uppercase tracking-wide text-zinc-400 backdrop-blur-sm">
@@ -220,8 +220,8 @@ async function addFile() {
     </template>
 
     <template v-else-if="route.path.startsWith('/library/task-fields')">
-      <div class="flex min-h-0 flex-1 flex-col px-3 pb-4 pt-4">
-        <div class="mb-2 flex items-center justify-between gap-2 px-1">
+      <div class="flex min-h-0 flex-1 flex-col overflow-hidden pb-4">
+        <div class="flex flex-wrap items-center justify-between gap-3 px-4 pb-3 pt-4">
           <UiSectionLabel class="mb-0">
             Task fields
           </UiSectionLabel>
@@ -240,7 +240,7 @@ async function addFile() {
             Loading…
           </p>
         </template>
-        <ul v-else-if="props.viewMode === 'cards'" class="ui-scrollbar mt-2 flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto">
+        <ul v-else-if="props.viewMode === 'cards'" class="ui-scrollbar flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-3 pb-4">
           <li v-for="row in filteredTaskRows" :key="row.id">
             <button
               type="button"
@@ -253,7 +253,7 @@ async function addFile() {
             </button>
           </li>
         </ul>
-        <div v-else class="ui-scrollbar mt-2 flex min-h-0 flex-1 flex-col overflow-x-auto overflow-y-auto">
+        <div v-else class="ui-scrollbar flex min-h-0 flex-1 flex-col overflow-x-auto overflow-y-auto px-3 pb-4">
           <table class="w-full min-w-[12rem] border-collapse text-left text-[13px]">
             <thead>
               <tr class="sticky top-0 z-[1] border-b border-zinc-200/80 bg-white/85 text-[11px] font-semibold uppercase tracking-wide text-zinc-400 backdrop-blur-sm">
@@ -292,8 +292,8 @@ async function addFile() {
     </template>
 
     <template v-else-if="route.path.startsWith('/library/file-fields')">
-      <div class="flex min-h-0 flex-1 flex-col px-3 pb-4 pt-4">
-        <div class="mb-2 flex items-center justify-between gap-2 px-1">
+      <div class="flex min-h-0 flex-1 flex-col overflow-hidden pb-4">
+        <div class="flex flex-wrap items-center justify-between gap-3 px-4 pb-3 pt-4">
           <UiSectionLabel class="mb-0">
             File fields
           </UiSectionLabel>
@@ -312,7 +312,7 @@ async function addFile() {
             Loading…
           </p>
         </template>
-        <ul v-else-if="props.viewMode === 'cards'" class="ui-scrollbar mt-2 flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto">
+        <ul v-else-if="props.viewMode === 'cards'" class="ui-scrollbar flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-3 pb-4">
           <li v-for="row in filteredFileRows" :key="row.id">
             <button
               type="button"
@@ -325,7 +325,7 @@ async function addFile() {
             </button>
           </li>
         </ul>
-        <div v-else class="ui-scrollbar mt-2 flex min-h-0 flex-1 flex-col overflow-x-auto overflow-y-auto">
+        <div v-else class="ui-scrollbar flex min-h-0 flex-1 flex-col overflow-x-auto overflow-y-auto px-3 pb-4">
           <table class="w-full min-w-[12rem] border-collapse text-left text-[13px]">
             <thead>
               <tr class="sticky top-0 z-[1] border-b border-zinc-200/80 bg-white/85 text-[11px] font-semibold uppercase tracking-wide text-zinc-400 backdrop-blur-sm">

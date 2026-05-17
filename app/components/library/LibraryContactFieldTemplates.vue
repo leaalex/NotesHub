@@ -131,19 +131,21 @@ async function confirmRemove() {
     <template v-else>
       <!-- create form -->
       <template v-if="showContactCreate">
-        <div class="mx-auto w-full max-w-lg">
-          <h1 class="text-xl font-semibold tracking-tight text-zinc-900">
-            New contact field
-          </h1>
-          <p class="mt-1 text-sm text-zinc-500">
-            Choose a contact type and define the field details.
-          </p>
+        <div class="ui-scrollbar flex min-h-0 min-w-0 flex-1 flex-col gap-6 overflow-y-auto pt-4">
+          <header class="space-y-1">
+            <h1 class="text-xl font-semibold tracking-tight text-zinc-900">
+              New contact field
+            </h1>
+            <p class="text-sm text-zinc-500">
+              Choose a contact type and define the field details.
+            </p>
+          </header>
 
-          <div class="mt-6 flex rounded-[var(--ui-control-radius)] bg-zinc-100 p-1">
+          <div class="flex rounded-[var(--ui-control-radius)] bg-zinc-100 p-1">
             <button
               type="button"
               class="flex-1 rounded-[var(--ui-control-radius)] px-3 py-2 text-[12px] font-semibold transition-all"
-              :class="createTab === 'person' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500'"
+              :class="createTab === 'person' ? 'bg-white text-zinc-900' : 'text-zinc-500'"
               @click="createTab = 'person'"
             >
               Person
@@ -151,14 +153,14 @@ async function confirmRemove() {
             <button
               type="button"
               class="flex-1 rounded-[var(--ui-control-radius)] px-3 py-2 text-[12px] font-semibold transition-all"
-              :class="createTab === 'organization' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500'"
+              :class="createTab === 'organization' ? 'bg-white text-zinc-900' : 'text-zinc-500'"
               @click="createTab = 'organization'"
             >
               Organization
             </button>
           </div>
 
-          <UiGlassPanel class="mt-6 space-y-4 p-5">
+          <UiGlassPanel class="space-y-4 p-5">
             <UFormField label="Label">
               <UInput
                 v-model="createLabel"
@@ -170,7 +172,7 @@ async function confirmRemove() {
             <UFormField label="Field type">
               <select
                 v-model="createFieldType"
-                class="ui-select w-full max-w-md"
+                class="ui-select w-full"
               >
                 <option
                   v-for="opt in FIELD_TYPE_OPTIONS"
@@ -183,7 +185,7 @@ async function confirmRemove() {
             </UFormField>
           </UiGlassPanel>
 
-          <div class="mt-6 flex justify-end gap-2">
+          <div class="flex justify-end gap-2 pb-2">
             <UButton
               variant="ghost"
               color="neutral"

@@ -38,10 +38,7 @@ function scrollShareToHeading(id: string) {
 </script>
 
 <template>
-  <div class="relative min-h-dvh overflow-hidden px-4 py-12 sm:py-16">
-    <div class="pointer-events-none absolute inset-0 bg-gradient-to-br from-zinc-50 via-white to-zinc-100" />
-    <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_45%_at_50%_-15%,rgba(24,24,27,0.06),transparent)]" />
-
+  <div class="relative min-h-dvh overflow-hidden bg-slate-100 px-4 py-12 sm:py-16">
     <div class="relative z-10 mx-auto max-w-5xl">
       <UiGlassPanel v-if="pending" class="px-6 py-16 text-center text-sm text-zinc-500">
         Loading…
@@ -63,7 +60,7 @@ function scrollShareToHeading(id: string) {
           Updated {{ new Date(data.updatedAt).toLocaleString() }}
         </p>
 
-        <div class="mt-10 overflow-hidden rounded-[var(--ui-panel-radius)] border border-white/70 bg-white/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] backdrop-blur-md ring-1 ring-zinc-950/[0.04] supports-[backdrop-filter]:bg-white/45">
+        <div class="mt-10 overflow-hidden rounded-[var(--ui-panel-radius)] border border-white/70 bg-white/55 backdrop-blur-md ring-1 ring-zinc-950/[0.04] supports-[backdrop-filter]:bg-white/45">
           <div class="flex max-h-[min(72vh,52rem)] min-h-[min(40vh,28rem)] overflow-hidden">
             <div class="ui-scrollbar min-h-0 flex-1 overflow-y-auto p-5 sm:p-8">
               <ClientOnly>

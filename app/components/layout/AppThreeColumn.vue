@@ -31,10 +31,7 @@ const mainPaneClasses = computed(() =>
         'ui-scrollbar',
         'overflow-y-auto',
         'border-l',
-        'border-zinc-100/90',
-        'bg-white/25',
-        'backdrop-blur-md',
-        'supports-[backdrop-filter]:bg-white/20',
+        'border-zinc-200/70',
       ]
     : ['overflow-hidden'])
 
@@ -49,11 +46,9 @@ const showMainPane = computed(() => props.viewMode === 'cards')
 
 <template>
   <div class="relative flex h-full min-h-0 flex-col overflow-hidden">
-    <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(24,24,27,0.06),transparent)]" />
-
     <div
       v-if="hasSubheader"
-      class="relative z-20 flex shrink-0 items-center gap-3 border-b border-white/60 bg-white/55 px-4 py-2 backdrop-blur-xl ring-1 ring-zinc-950/[0.04] supports-[backdrop-filter]:bg-white/45"
+      class="relative z-20 flex shrink-0 items-center gap-3 border-b border-zinc-200/80 bg-slate-50 px-4 py-2"
     >
       <slot name="subheader" />
     </div>
@@ -61,14 +56,14 @@ const showMainPane = computed(() => props.viewMode === 'cards')
     <div class="relative z-10 flex min-h-0 flex-1 overflow-hidden">
       <aside
         v-if="hasFolders && (foldersPinned || foldersRailOpen)"
-        class="ui-scrollbar relative z-10 flex min-h-0 w-[13.5rem] shrink-0 flex-col overflow-y-auto border-r border-white/60 bg-white/45 backdrop-blur-xl supports-[backdrop-filter]:bg-white/35"
+        class="ui-scrollbar relative z-10 flex min-h-0 w-[13.5rem] shrink-0 flex-col overflow-y-auto border-r border-zinc-200/70"
       >
         <slot name="folders" />
       </aside>
 
       <section
         v-if="hasCards"
-        class="relative z-10 flex min-h-0 flex-col overflow-hidden border-r border-white/50 bg-white/30 backdrop-blur-md supports-[backdrop-filter]:bg-white/25"
+        class="relative z-10 flex min-h-0 flex-col overflow-hidden border-r border-zinc-200/70"
         :class="cardsColumnClasses"
       >
         <slot name="cards" />
