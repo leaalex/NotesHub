@@ -87,7 +87,7 @@ function cancel() {
 </script>
 
 <template>
-  <div class="flex min-h-0 flex-1 flex-col p-6 sm:p-8">
+  <main class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-4 sm:p-6">
     <div class="mx-auto w-full max-w-lg">
       <h1 class="text-xl font-semibold tracking-tight text-zinc-900">
         New task
@@ -128,5 +128,5 @@ function cancel() {
         </UButton>
       </div>
     </div>
-  </div>
+  </main>
 </template>

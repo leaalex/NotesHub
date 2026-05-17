@@ -39,10 +39,12 @@ type FileDetail = AppFile & {
 const apiFetch = useRequestFetch()
 const toast = useToast()
 const runtimeConfig = useRuntimeConfig()
+const router = useRouter()
 
 const folderFilter = ref<'all' | 'unfiled' | string>('all')
 const folders = ref<FolderRow[]>([])
 const files = ref<AppFile[]>([])
+const filesLoading = ref(false)
 const selectedFileId = ref<string | null>(null)
 const fileDetail = ref<FileDetail | null>(null)
 const uploading = ref(false)
@@ -63,6 +65,11 @@ const {
   creatingFolder,
   createFolder,
 } = useNewFolderModal(folders)
+
+const { open: foldersRailOpen, toggle: toggleFoldersRail } = useFoldersRail()
+
+const searchQuery = ref('')
+const viewMode = ref<'cards' | 'table'>('cards')
 
 function displayFileName(f: AppFile) {
   const t = f.title?.trim()
@@ -107,12 +114,18 @@ async function refreshFolders() {
 }
 
 async function refreshFiles() {
-  const query: Record<string, string> = {}
-  if (folderFilter.value === 'unfiled') query.folderId = 'unfiled'
-  else if (folderFilter.value !== 'all') query.folderId = folderFilter.value
-  files.value = await apiFetch<AppFile[]>('/api/files', { query })
-  if (selectedFileId.value && !files.value.some(f => f.id === selectedFileId.value))
-    selectedFileId.value = null
+  filesLoading.value = true
+  try {
+    const query: Record<string, string> = {}
+    if (folderFilter.value === 'unfiled') query.folderId = 'unfiled'
+    else if (folderFilter.value !== 'all') query.folderId = folderFilter.value
+    files.value = await apiFetch<AppFile[]>('/api/files', { query })
+    if (selectedFileId.value && !files.value.some(f => f.id === selectedFileId.value))
+      selectedFileId.value = null
+  }
+  finally {
+    filesLoading.value = false
+  }
 }
 
 const selectedFile = computed(() => files.value.find(f => f.id === selectedFileId.value) ?? null)
@@ -141,6 +154,10 @@ const detailTitleHeading = computed(() => {
 
 function openFilePicker() {
   fileInput.value?.click()
+}
+
+function manageFields() {
+  void router.push('/library/file-fields')
 }
 
 async function onFilePicked(event: Event) {
@@ -501,10 +518,88 @@ function previewAlt() {
     return ''
   return displayFileName(f)
 }
+
+const filteredFiles = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase()
+  if (!q)
+    return files.value
+  return files.value.filter((f) => {
+    const name = displayFileName(f).toLowerCase()
+    const mime = String(f.mimeType ?? '').toLowerCase()
+    return name.includes(q) || mime.includes(q)
+  })
+})
+
+function formatFileSize(n: number) {
+  if (!Number.isFinite(n) || n < 0)
+    return '—'
+  if (n < 1024)
+    return `${n} B`
+  const kb = n / 1024
+  if (kb < 1024)
+    return `${kb < 10 ? kb.toFixed(1) : Math.round(kb)} KB`
+  const mb = kb / 1024
+  return `${mb < 10 ? mb.toFixed(1) : Math.round(mb)} MB`
+}
+
+function tableRowClassesForFile(f: AppFile) {
+  const active = selectedFileId.value === f.id
+  const base = 'cursor-pointer transition-colors text-left text-[13px]'
+  if (active)
+    return `${base} bg-zinc-900/8 font-medium text-zinc-900`
+  return `${base} text-zinc-800 hover:bg-white/75`
+}
+
 </script>
 
 <template>
-  <LayoutAppThreeColumn>
+  <LayoutAppThreeColumn :view-mode="viewMode">
+    <template #subheader>
+      <UButton
+        variant="ghost"
+        color="neutral"
+        square
+        size="sm"
+        class="shrink-0 rounded-[var(--ui-control-radius)] ring-1 ring-zinc-200/80 hover:bg-white/80"
+        :icon="foldersRailOpen ? 'i-lucide-panel-left-close' : 'i-lucide-panel-left-open'"
+        :aria-label="foldersRailOpen ? 'Hide folders' : 'Show folders'"
+        :aria-pressed="foldersRailOpen"
+        @click="toggleFoldersRail()"
+      />
+      <div class="flex min-w-0 flex-1 justify-center">
+        <UInput
+          v-model="searchQuery"
+          placeholder="Search files…"
+          size="sm"
+          icon="i-lucide-search"
+          class="w-full max-w-sm"
+          :ui="{ base: 'rounded-[var(--ui-control-radius)]' }"
+        />
+      </div>
+      <div class="flex shrink-0 items-center gap-1 rounded-[var(--ui-control-radius)] bg-zinc-50/90 p-1 ring-1 ring-zinc-950/[0.04]">
+        <UButton
+          size="xs"
+          :variant="viewMode === 'cards' ? 'solid' : 'ghost'"
+          color="neutral"
+          icon="i-lucide-layout-list"
+          square
+          class="rounded-[var(--ui-control-radius)]"
+          aria-label="Card view"
+          @click="viewMode = 'cards'"
+        />
+        <UButton
+          size="xs"
+          :variant="viewMode === 'table' ? 'solid' : 'ghost'"
+          color="neutral"
+          icon="i-lucide-table-2"
+          square
+          class="rounded-[var(--ui-control-radius)]"
+          aria-label="Table view"
+          @click="viewMode = 'table'"
+        />
+      </div>
+    </template>
+
     <template #folders>
       <div class="flex flex-col gap-4 border-b border-zinc-200/40 p-4 pb-3">
         <div class="flex items-start justify-between gap-2">
@@ -565,34 +660,57 @@ function previewAlt() {
     </template>
 
     <template #cards>
-      <div class="flex flex-wrap items-center justify-between gap-2 px-4 pb-3 pt-4">
+      <div class="flex items-center justify-between gap-2 px-4 pb-3 pt-4">
         <UiSectionLabel>
-          Library
+          Files
         </UiSectionLabel>
         <div class="flex shrink-0 items-center gap-2">
-          <NuxtLink
-            to="/library/file-fields"
-            class="rounded-[var(--ui-control-radius)] px-3 py-1.5 text-[12px] font-medium text-zinc-600 underline decoration-zinc-300 underline-offset-[4px] hover:text-zinc-900"
-          >
+          <UButton variant="ghost" color="neutral" size="xs" class="rounded-[var(--ui-control-radius)]" @click="manageFields">
             Manage fields
-          </NuxtLink>
+          </UButton>
           <input ref="fileInput" type="file" class="hidden" @change="onFilePicked">
           <UButton
             size="xs"
             color="neutral"
             type="button"
+            square
             :loading="uploading"
-            class="rounded-[var(--ui-control-radius)] px-3 shadow-sm ring-1 ring-zinc-900/10"
+            icon="i-lucide-plus"
+            aria-label="Upload file"
+            class="rounded-[var(--ui-control-radius)] shadow-sm ring-1 ring-zinc-900/10"
             @click="openFilePicker"
-          >
-            <Icon name="i-lucide-plus" class="mr-1 size-3.5" aria-hidden="true" />
-            Upload
-          </UButton>
+          />
         </div>
       </div>
-      <div class="ui-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-8 pt-2">
-        <ul v-if="files.length" class="space-y-2">
-          <li v-for="f in files" :key="f.id">
+      <template v-if="viewMode === 'cards'">
+        <ul
+          v-if="filesLoading"
+          class="ui-scrollbar flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-3 pb-4"
+        >
+          <li
+            class="flex min-h-[12rem] list-none items-center justify-center py-16 text-zinc-400"
+            role="status"
+            aria-live="polite"
+            aria-label="Loading files"
+          >
+            <Icon name="i-lucide-loader-circle" class="size-8 animate-spin" aria-hidden="true" />
+          </li>
+        </ul>
+        <ul
+          v-else-if="!files.length"
+          class="ui-scrollbar flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-3 pb-4"
+        >
+          <li
+            class="w-full list-none rounded-[var(--ui-panel-radius)] border border-dashed border-zinc-200/80 px-6 py-10 text-center text-sm text-zinc-400"
+          >
+            No files yet.
+          </li>
+        </ul>
+        <ul
+          v-else
+          class="ui-scrollbar flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-3 pb-4"
+        >
+          <li v-for="f in filteredFiles" :key="f.id" class="list-none">
             <button
               type="button"
               class="flex w-full flex-col items-start rounded-[var(--ui-control-radius)] border px-3 py-2 text-left transition-all"
@@ -605,20 +723,63 @@ function previewAlt() {
               <span class="mt-1 text-[10px] uppercase tracking-wide text-zinc-400">{{ f.mimeType }}</span>
             </button>
           </li>
+          <li
+            v-if="filteredFiles.length === 0"
+            class="w-full list-none rounded-[var(--ui-panel-radius)] border border-dashed border-zinc-200/80 px-6 py-10 text-center text-sm text-zinc-400"
+          >
+            No files yet.
+          </li>
         </ul>
-        <UiEmptyState
-          v-else
-          icon="i-lucide-image"
-          title="No files yet"
-          description="Upload a file to start linking it to notes and contacts."
-        />
+      </template>
+      <div v-else class="ui-scrollbar min-h-0 flex-1 overflow-auto px-2 pb-4 pt-2 sm:px-3">
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-[20rem] border-collapse text-left text-[13px]">
+            <thead>
+              <tr class="sticky top-0 z-[1] border-b border-zinc-200/80 bg-white/85 text-[11px] font-semibold uppercase tracking-wide text-zinc-400 backdrop-blur-sm">
+                <th class="px-2 py-2 font-semibold">
+                  Name
+                </th>
+                <th class="px-2 py-2 font-semibold">
+                  Type
+                </th>
+                <th class="hidden px-2 py-2 font-semibold md:table-cell">
+                  Size
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="f in filteredFiles"
+                :key="f.id"
+                class="border-b border-zinc-100/90"
+                :class="tableRowClassesForFile(f)"
+                @click="selectedFileId = f.id"
+              >
+                <td class="max-w-[12rem] truncate px-2 py-2 font-medium text-zinc-900">
+                  {{ displayFileName(f) }}
+                </td>
+                <td class="truncate px-2 py-2 text-[11px] uppercase tracking-wide text-zinc-500">
+                  {{ f.mimeType }}
+                </td>
+                <td class="hidden whitespace-nowrap tabular-nums px-2 py-2 text-zinc-600 md:table-cell">
+                  {{ formatFileSize(f.size) }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div
+            v-if="filteredFiles.length === 0"
+            class="w-full rounded-[var(--ui-panel-radius)] border border-dashed border-zinc-200/80 px-6 py-10 text-center text-sm text-zinc-400"
+          >
+            No files yet.
+          </div>
+        </div>
       </div>
     </template>
 
-    <div class="flex min-h-0 flex-1 flex-col p-4 sm:p-6">
+    <main v-if="selectedFile && attachmentFilePayload" class="flex min-w-0 flex-1 flex-col p-4 sm:p-6">
       <div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--ui-panel-radius)] border border-white/70 bg-white/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] backdrop-blur-md ring-1 ring-zinc-950/[0.04] supports-[backdrop-filter]:bg-white/45">
-        <template v-if="selectedFile && attachmentFilePayload">
-          <header class="flex shrink-0 flex-wrap items-start gap-3 border-b border-zinc-100/90 px-4 py-3 sm:px-6">
+        <header class="flex shrink-0 flex-wrap items-center gap-2 border-b border-zinc-100/90 px-4 py-3 sm:px-6">
             <div class="min-w-0 flex-1">
               <template v-if="!isEditing">
                 <h1 class="truncate text-xl font-semibold tracking-tight text-zinc-900 sm:text-[1.35rem]">
@@ -888,28 +1049,30 @@ function previewAlt() {
               </div>
             </div>
           </div>
-        </template>
-
-        <div v-else class="flex min-h-0 flex-1 items-center justify-center p-8 text-center">
-          <UiEmptyState
-            icon="i-lucide-file"
-            title="No file selected"
-            description="Pick a file from the list on the left or upload a new one."
-          >
-            <template #actions>
-              <UButton
-                color="neutral"
-                :loading="uploading"
-                class="rounded-[var(--ui-control-radius)] px-4 shadow-sm ring-1 ring-zinc-900/10"
-                @click="openFilePicker"
-              >
-                <Icon name="i-lucide-upload" class="mr-2 size-4" aria-hidden="true" />
-                Upload file
-              </UButton>
-            </template>
-          </UiEmptyState>
         </div>
-      </div>
+    </main>
+
+    <div
+      v-else
+      class="flex min-w-0 flex-1 flex-col items-center justify-center px-8 py-12 text-center"
+    >
+      <UiEmptyState
+        title="Pick a file"
+        description="Choose a file from the list or upload a new one."
+      >
+        <template #actions>
+          <UButton
+            class="rounded-[var(--ui-control-radius)] px-5 ring-1 ring-zinc-200/80"
+            color="neutral"
+            size="md"
+            icon="i-lucide-upload"
+            :loading="uploading"
+            @click="openFilePicker"
+          >
+            Upload file
+          </UButton>
+        </template>
+      </UiEmptyState>
     </div>
   </LayoutAppThreeColumn>
 

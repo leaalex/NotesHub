@@ -114,10 +114,66 @@ function cardClasses(c: ContactRow) {
 
   return `${base} border-transparent bg-white/50 ring-zinc-950/[0.03] hover:border-zinc-200/80 hover:bg-white/80 hover:shadow-md`
 }
+
+function tableRowClasses(c: ContactRow) {
+  const active = selectedContactId.value === c.id
+    && !isNewRoute.value
+    && !!c.id
+  const base = 'cursor-pointer transition-colors text-left text-[13px]'
+  if (active)
+    return `${base} bg-zinc-900/8 font-medium text-zinc-900`
+  return `${base} text-zinc-800 hover:bg-white/75`
+}
 </script>
 
 <template>
-  <LayoutAppThreeColumn right-pane-scrollable>
+  <LayoutAppThreeColumn right-pane-scrollable :view-mode="viewMode">
+    <template #subheader>
+      <UButton
+        variant="ghost"
+        color="neutral"
+        square
+        size="sm"
+        class="shrink-0 rounded-[var(--ui-control-radius)] ring-1 ring-zinc-200/80 hover:bg-white/80"
+        :icon="foldersRailOpen ? 'i-lucide-panel-left-close' : 'i-lucide-panel-left-open'"
+        :aria-label="foldersRailOpen ? 'Hide folders' : 'Show folders'"
+        :aria-pressed="foldersRailOpen"
+        @click="toggleFoldersRail()"
+      />
+      <div class="flex min-w-0 flex-1 justify-center">
+        <UInput
+          v-model="searchQuery"
+          placeholder="Search contacts…"
+          size="sm"
+          icon="i-lucide-search"
+          class="w-full max-w-sm"
+          :ui="{ base: 'rounded-[var(--ui-control-radius)]' }"
+        />
+      </div>
+      <div class="flex shrink-0 items-center gap-1 rounded-[var(--ui-control-radius)] bg-zinc-50/90 p-1 ring-1 ring-zinc-950/[0.04]">
+        <UButton
+          size="xs"
+          :variant="viewMode === 'cards' ? 'solid' : 'ghost'"
+          color="neutral"
+          icon="i-lucide-layout-list"
+          square
+          class="rounded-[var(--ui-control-radius)]"
+          aria-label="Card view"
+          @click="viewMode = 'cards'"
+        />
+        <UButton
+          size="xs"
+          :variant="viewMode === 'table' ? 'solid' : 'ghost'"
+          color="neutral"
+          icon="i-lucide-table-2"
+          square
+          class="rounded-[var(--ui-control-radius)]"
+          aria-label="Table view"
+          @click="viewMode = 'table'"
+        />
+      </div>
+    </template>
+
     <template #folders>
       <div class="flex flex-col gap-4 border-b border-zinc-200/40 p-4 pb-3">
         <div class="flex items-start justify-between gap-2">
@@ -180,7 +236,7 @@ function cardClasses(c: ContactRow) {
     <template #cards>
       <div class="flex flex-wrap items-center justify-between gap-3 px-4 pb-2 pt-4">
         <UiSectionLabel>
-          Library
+          Contacts
         </UiSectionLabel>
         <div class="flex shrink-0 items-center gap-2">
           <UButton variant="ghost" color="neutral" size="xs" class="rounded-[var(--ui-control-radius)]" @click="manageFields">
@@ -189,37 +245,86 @@ function cardClasses(c: ContactRow) {
           <UButton
             size="xs"
             color="neutral"
-            class="rounded-[var(--ui-control-radius)] px-4 shadow-sm ring-1 ring-zinc-900/10"
+            square
+            class="rounded-[var(--ui-control-radius)] shadow-sm ring-1 ring-zinc-900/10"
             :class="isNewRoute ? 'ring-zinc-900/30 bg-zinc-100' : ''"
             icon="i-lucide-plus"
+            aria-label="New contact"
             @click="openNewContact"
-          >
-            New
-          </UButton>
+          />
         </div>
       </div>
-      <ul class="ui-scrollbar flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-4 pb-6">
-        <li v-for="c in contacts" :key="c.id">
-          <button
-            type="button"
-            :class="cardClasses(c)"
-            @click="openContact(c)"
-          >
-            <div class="flex w-full items-center justify-between gap-2">
-              <span class="line-clamp-1 text-[13px] font-semibold tracking-tight text-zinc-900">{{ c.displayName }}</span>
-              <span class="rounded-[var(--ui-control-radius)] bg-zinc-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-600">
-                {{ c.type }}
+      <template v-if="viewMode === 'cards'">
+        <ul class="ui-scrollbar flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-3 pb-4">
+          <li v-for="c in filteredContacts" :key="c.id">
+            <button
+              type="button"
+              :class="cardClasses(c)"
+              @click="openContact(c)"
+            >
+              <div class="flex w-full items-center justify-between gap-2">
+                <span class="line-clamp-1 text-[13px] font-semibold tracking-tight text-zinc-900">{{ c.displayName }}</span>
+                <span class="rounded-[var(--ui-control-radius)] bg-zinc-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-600">
+                  {{ c.type }}
+                </span>
+              </div>
+              <span class="mt-1 text-[10px] tabular-nums text-zinc-400">
+                {{ new Date(c.updatedAt as string).toLocaleString() }}
               </span>
-            </div>
-            <span class="mt-1 text-[10px] tabular-nums text-zinc-400">
-              {{ new Date(c.updatedAt as string).toLocaleString() }}
-            </span>
-          </button>
-        </li>
-        <li v-if="contacts.length === 0" class="rounded-[var(--ui-panel-radius)] border border-dashed border-zinc-200/80 px-6 py-10 text-center text-sm text-zinc-400">
-          No contacts match your filters.
-        </li>
-      </ul>
+            </button>
+          </li>
+          <li
+            v-if="filteredContacts.length === 0"
+            class="w-full rounded-[var(--ui-panel-radius)] border border-dashed border-zinc-200/80 px-6 py-10 text-center text-sm text-zinc-400"
+          >
+            No contacts yet.
+          </li>
+        </ul>
+      </template>
+      <div v-else class="ui-scrollbar min-h-0 flex-1 overflow-auto px-2 pb-4 pt-2 sm:px-3">
+        <table class="w-full border-collapse text-left text-[13px]">
+          <thead>
+            <tr class="sticky top-0 z-[1] border-b border-zinc-200/80 bg-white/85 text-[11px] font-semibold uppercase tracking-wide text-zinc-400 backdrop-blur-sm">
+              <th class="px-2 py-2 font-semibold">
+                Name
+              </th>
+              <th class="px-2 py-2 font-semibold">
+                Type
+              </th>
+              <th class="hidden px-2 py-2 font-semibold sm:table-cell">
+                Updated
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="c in filteredContacts"
+              :key="c.id"
+              class="border-b border-zinc-100/90"
+              :class="tableRowClasses(c)"
+              @click="openContact(c)"
+            >
+              <td class="max-w-[10rem] truncate px-2 py-2 font-medium text-zinc-900">
+                {{ c.displayName }}
+              </td>
+              <td class="whitespace-nowrap px-2 py-2">
+                <span class="rounded-[var(--ui-control-radius)] bg-zinc-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-600">
+                  {{ c.type }}
+                </span>
+              </td>
+              <td class="hidden whitespace-nowrap tabular-nums px-2 py-2 text-zinc-500 sm:table-cell">
+                {{ new Date(c.updatedAt as string).toLocaleString() }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div
+          v-if="filteredContacts.length === 0"
+          class="w-full rounded-[var(--ui-panel-radius)] border border-dashed border-zinc-200/80 px-6 py-10 text-center text-sm text-zinc-400"
+        >
+          No contacts yet.
+        </div>
+      </div>
     </template>
 
     <NuxtPage />

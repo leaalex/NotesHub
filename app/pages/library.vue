@@ -65,9 +65,9 @@ function onAddressDeleted() {
     <template #folders>
       <div class="flex flex-col gap-4 border-b border-zinc-200/40 p-4 pb-3">
         <div class="min-w-0">
-          <UiSectionLabel>Library</UiSectionLabel>
+          <UiSectionLabel>Templates</UiSectionLabel>
         </div>
-        <nav class="flex flex-col gap-1 text-[13px]" role="tablist" aria-label="Library sections">
+        <nav class="flex flex-col gap-1 text-[13px]" role="tablist" aria-label="Templates sections">
           <NuxtLink
             v-for="t in navItems"
             :key="t.to"
@@ -95,13 +95,13 @@ function onAddressDeleted() {
           <UButton
             size="xs"
             color="neutral"
-            class="shrink-0 rounded-[var(--ui-control-radius)] px-4 shadow-sm ring-1 ring-zinc-900/10"
+            square
+            class="shrink-0 rounded-[var(--ui-control-radius)] shadow-sm ring-1 ring-zinc-900/10"
             :class="showNewAddress ? 'ring-zinc-900/30 bg-zinc-100' : ''"
             icon="i-lucide-plus"
+            aria-label="New address"
             @click="openNewAddress"
-          >
-            New
-          </UButton>
+          />
         </div>
         <div class="px-4 pb-3">
           <UInput
@@ -144,8 +144,11 @@ function onAddressDeleted() {
                 </span>
               </button>
             </li>
-            <li v-if="!filteredAddresses.length" class="rounded-[var(--ui-panel-radius)] border border-dashed border-zinc-200/80 px-4 py-8 text-center text-[12px] text-zinc-400">
-              {{ addressSearch.trim() ? 'No matches.' : 'No addresses yet.' }}
+            <li
+              v-if="!filteredAddresses.length"
+              class="w-full rounded-[var(--ui-panel-radius)] border border-dashed border-zinc-200/80 px-6 py-10 text-center text-sm text-zinc-400"
+            >
+              No addresses yet.
             </li>
           </template>
         </ul>
@@ -156,8 +159,8 @@ function onAddressDeleted() {
       </div>
     </template>
 
-    <div class="flex min-h-0 min-w-0 flex-1 flex-col">
-      <div class="ui-scrollbar flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto px-5 pb-10 pt-5 sm:px-8">
+    <main class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-4 sm:p-6">
+      <div class="ui-scrollbar flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
         <AddressCreatePanel
           v-if="showAddressRail && showNewAddress"
           @cancel="clearAddressPanel"
@@ -170,8 +173,29 @@ function onAddressDeleted() {
           @deleted="onAddressDeleted"
           @not-found="clearAddressPanel"
         />
+        <div
+          v-else-if="showAddressRail"
+          class="flex min-h-0 min-w-0 flex-1 flex-col items-center justify-center px-8 py-12 text-center"
+        >
+          <UiEmptyState
+            title="Pick an address"
+            description="Select an address from the list or create a new one."
+          >
+            <template #actions>
+              <UButton
+                color="neutral"
+                size="md"
+                icon="i-lucide-plus"
+                class="rounded-[var(--ui-control-radius)] px-5 ring-1 ring-zinc-200/80"
+                @click="openNewAddress"
+              >
+                New address
+              </UButton>
+            </template>
+          </UiEmptyState>
+        </div>
         <NuxtPage v-else />
       </div>
-    </div>
+    </main>
   </LayoutAppThreeColumn>
 </template>

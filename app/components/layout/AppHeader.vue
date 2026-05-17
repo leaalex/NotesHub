@@ -11,7 +11,7 @@ const links = [
   { to: '/files', label: 'Files', icon: 'i-lucide-image' },
   { to: '/contacts', label: 'Contacts', icon: 'i-lucide-contact' },
   { to: '/tasks', label: 'Tasks', icon: 'i-lucide-list-checks' },
-  { to: '/library/addresses', label: 'Library', icon: 'i-lucide-library' },
+  { to: '/library/addresses', label: 'Templates', icon: 'i-lucide-library' },
 ] as const
 
 function isActive(to: string) {

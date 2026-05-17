@@ -56,6 +56,21 @@ const {
   createFolder,
 } = useNewFolderModal(folders)
 
+const { open: foldersRailOpen, toggle: toggleFoldersRail } = useFoldersRail()
+
+const searchQuery = ref('')
+const viewMode = ref<'cards' | 'table'>('cards')
+
+const filteredNotes = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase()
+  if (!q)
+    return notes.value
+  return notes.value.filter(n =>
+    String(n.title ?? '').toLowerCase().includes(q)
+    || String(n.excerpt ?? '').toLowerCase().includes(q),
+  )
+})
+
 /** Заголовки текущей заметки для Notion-like навигации (клиент-only). */
 const noteOutline = ref<NoteOutlineItem[]>([])
 
@@ -595,10 +610,64 @@ async function disableShareLink() {
   }
 }
 
+function tableRowClasses(n: NoteList) {
+  const active = selectedNoteId.value === n.id && !!n.id
+  const base = 'cursor-pointer transition-colors text-left text-[13px]'
+  if (active)
+    return `${base} bg-zinc-900/8 font-medium text-zinc-900`
+  return `${base} text-zinc-800 hover:bg-white/75`
+}
+
 </script>
 
 <template>
-  <LayoutAppThreeColumn>
+  <LayoutAppThreeColumn :view-mode="viewMode">
+    <template #subheader>
+      <UButton
+        variant="ghost"
+        color="neutral"
+        square
+        size="sm"
+        class="shrink-0 rounded-[var(--ui-control-radius)] ring-1 ring-zinc-200/80 hover:bg-white/80"
+        :icon="foldersRailOpen ? 'i-lucide-panel-left-close' : 'i-lucide-panel-left-open'"
+        :aria-label="foldersRailOpen ? 'Hide folders' : 'Show folders'"
+        :aria-pressed="foldersRailOpen"
+        @click="toggleFoldersRail()"
+      />
+      <div class="flex min-w-0 flex-1 justify-center">
+        <UInput
+          v-model="searchQuery"
+          placeholder="Search notes…"
+          size="sm"
+          icon="i-lucide-search"
+          class="w-full max-w-sm"
+          :ui="{ base: 'rounded-[var(--ui-control-radius)]' }"
+        />
+      </div>
+      <div class="flex shrink-0 items-center gap-1 rounded-[var(--ui-control-radius)] bg-zinc-50/90 p-1 ring-1 ring-zinc-950/[0.04]">
+        <UButton
+          size="xs"
+          :variant="viewMode === 'cards' ? 'solid' : 'ghost'"
+          color="neutral"
+          icon="i-lucide-layout-list"
+          square
+          class="rounded-[var(--ui-control-radius)]"
+          aria-label="Card view"
+          @click="viewMode = 'cards'"
+        />
+        <UButton
+          size="xs"
+          :variant="viewMode === 'table' ? 'solid' : 'ghost'"
+          color="neutral"
+          icon="i-lucide-table-2"
+          square
+          class="rounded-[var(--ui-control-radius)]"
+          aria-label="Table view"
+          @click="viewMode = 'table'"
+        />
+      </div>
+    </template>
+
     <template #folders>
       <div class="flex flex-col gap-4 border-b border-zinc-200/40 p-4 pb-3">
         <div class="flex items-start justify-between gap-2">
@@ -661,53 +730,113 @@ async function disableShareLink() {
     <template #cards>
       <div class="flex items-center justify-between gap-2 px-4 pb-3 pt-4">
         <UiSectionLabel>
-          Library
+          Notes
         </UiSectionLabel>
         <UButton
           size="xs"
           color="neutral"
           type="button"
-          class="rounded-[var(--ui-control-radius)] px-3 shadow-sm ring-1 ring-zinc-900/10"
+          square
+          class="rounded-[var(--ui-control-radius)] shadow-sm ring-1 ring-zinc-900/10"
+          icon="i-lucide-plus"
+          aria-label="New note"
           :loading="creatingNote"
           :on-click="createNote"
-        >
-          <Icon name="i-lucide-plus" class="mr-1 size-3.5" aria-hidden="true" />
-          New
-        </UButton>
+        />
       </div>
-      <ul class="ui-scrollbar flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-3 pb-4">
-        <li v-for="n in notes" :key="n.id">
-          <button
-            type="button"
-            class="group flex w-full flex-col items-start rounded-[var(--ui-control-radius)] border px-4 py-3 text-left shadow-sm ring-1 transition-all"
-            :class="selectedNoteId === n.id
-              ? 'border-zinc-900/15 bg-white shadow-[0_1px_0_rgba(0,0,0,0.04),0_12px_40px_-18px_rgba(24,24,27,0.35)] ring-zinc-900/[0.06]'
-              : 'border-transparent bg-white/50 ring-zinc-950/[0.03] hover:border-zinc-200/80 hover:bg-white/80 hover:shadow-md'"
-            @click="selectNote(n.id)"
-          >
-            <div class="flex w-full items-start justify-between gap-2">
-              <span class="line-clamp-1 flex-1 text-[13px] font-semibold tracking-tight text-zinc-900">
-                {{ n.title || 'Untitled' }}
+      <template v-if="viewMode === 'cards'">
+        <ul class="ui-scrollbar flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-3 pb-4">
+          <li v-for="n in filteredNotes" :key="n.id">
+            <button
+              type="button"
+              class="group flex w-full flex-col items-start rounded-[var(--ui-control-radius)] border px-4 py-3 text-left shadow-sm ring-1 transition-all"
+              :class="selectedNoteId === n.id
+                ? 'border-zinc-900/15 bg-white shadow-[0_1px_0_rgba(0,0,0,0.04),0_12px_40px_-18px_rgba(24,24,27,0.35)] ring-zinc-900/[0.06]'
+                : 'border-transparent bg-white/50 ring-zinc-950/[0.03] hover:border-zinc-200/80 hover:bg-white/80 hover:shadow-md'"
+              @click="void selectNote(n.id)"
+            >
+              <div class="flex w-full items-start justify-between gap-2">
+                <span class="line-clamp-1 flex-1 text-[13px] font-semibold tracking-tight text-zinc-900">
+                  {{ n.title || 'Untitled' }}
+                </span>
+                <Icon
+                  v-if="n.shareEnabled"
+                  name="i-lucide-link-2"
+                  class="mt-0.5 size-3.5 shrink-0 text-zinc-400 opacity-70 group-hover:opacity-100"
+                  aria-hidden="true"
+                  title="Shared"
+                />
+              </div>
+              <span class="mt-1 line-clamp-2 text-[11px] leading-snug text-zinc-500">
+                {{ n.excerpt || 'Empty note' }}
               </span>
-              <Icon
-                v-if="n.shareEnabled"
-                name="i-lucide-link-2"
-                class="mt-0.5 size-3.5 shrink-0 text-zinc-400 opacity-70 group-hover:opacity-100"
-                aria-hidden="true"
-                title="Shared"
-              />
-            </div>
-            <span class="mt-1 line-clamp-2 text-[11px] leading-snug text-zinc-500">
-              {{ n.excerpt || 'Empty note' }}
-            </span>
-            <span class="mt-2 text-[10px] tabular-nums text-zinc-400">
-              {{ new Date(n.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) }}
-              ·
-              {{ new Date(n.updatedAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) }}
-            </span>
-          </button>
-        </li>
-      </ul>
+              <span class="mt-2 text-[10px] tabular-nums text-zinc-400">
+                {{ new Date(n.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) }}
+                ·
+                {{ new Date(n.updatedAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) }}
+              </span>
+            </button>
+          </li>
+          <li
+            v-if="filteredNotes.length === 0"
+            class="w-full rounded-[var(--ui-panel-radius)] border border-dashed border-zinc-200/80 px-6 py-10 text-center text-sm text-zinc-400"
+          >
+            No notes yet.
+          </li>
+        </ul>
+      </template>
+      <div v-else class="ui-scrollbar min-h-0 flex-1 overflow-auto px-2 pb-4 pt-2 sm:px-3">
+        <table class="w-full border-collapse text-left text-[13px]">
+          <thead>
+            <tr class="sticky top-0 z-[1] border-b border-zinc-200/80 bg-white/85 text-[11px] font-semibold uppercase tracking-wide text-zinc-400 backdrop-blur-sm">
+              <th class="px-2 py-2 font-semibold">
+                Title
+              </th>
+              <th class="px-2 py-2 font-semibold">
+                Excerpt
+              </th>
+              <th class="hidden px-2 py-2 font-semibold md:table-cell">
+                Updated
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="n in filteredNotes"
+              :key="n.id"
+              class="border-b border-zinc-100/90"
+              :class="tableRowClasses(n)"
+              @click="void selectNote(n.id)"
+            >
+              <td class="max-w-[10rem] px-2 py-2">
+                <div class="flex min-w-0 items-center gap-1.5">
+                  <Icon
+                    v-if="n.shareEnabled"
+                    name="i-lucide-link-2"
+                    class="size-3 shrink-0 text-zinc-400"
+                    aria-hidden="true"
+                  />
+                  <span class="truncate font-medium text-zinc-900">{{ n.title || 'Untitled' }}</span>
+                </div>
+              </td>
+              <td class="max-w-[14rem] truncate px-2 py-2 text-zinc-600">
+                {{ n.excerpt || 'Empty note' }}
+              </td>
+              <td class="hidden whitespace-nowrap tabular-nums px-2 py-2 text-zinc-500 md:table-cell">
+                {{ new Date(n.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) }}
+                ·
+                {{ new Date(n.updatedAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div
+          v-if="filteredNotes.length === 0"
+          class="w-full rounded-[var(--ui-panel-radius)] border border-dashed border-zinc-200/80 px-6 py-10 text-center text-sm text-zinc-400"
+        >
+          No notes yet.
+        </div>
+      </div>
     </template>
 
     <main v-if="currentNote" class="flex min-w-0 flex-1 flex-col p-4 sm:p-6">
@@ -955,7 +1084,7 @@ async function disableShareLink() {
       >
         <template #actions>
           <UButton
-            class="rounded-[var(--ui-control-radius)] px-6 shadow-md ring-1 ring-zinc-900/10"
+            class="rounded-[var(--ui-control-radius)] px-5 ring-1 ring-zinc-200/80"
             color="neutral"
             size="md"
             icon="i-lucide-plus"

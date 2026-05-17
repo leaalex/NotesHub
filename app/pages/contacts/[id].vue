@@ -673,7 +673,7 @@ const kindLabel = computed(() =>
 </script>
 
 <template>
-  <div v-if="hydrating || !detail" class="flex flex-1 items-center justify-center p-16 text-zinc-400">
+  <div v-if="hydrating || !detail" class="flex min-w-0 flex-1 flex-col items-center justify-center px-8 py-12 text-center text-[13px] text-zinc-400">
     Loading…
   </div>
   <main v-else class="flex min-w-0 flex-1 flex-col p-4 sm:p-6">

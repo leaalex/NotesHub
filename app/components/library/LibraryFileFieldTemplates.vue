@@ -13,7 +13,16 @@ const {
   moveTpl,
   removeTpl,
   reload,
+  addTemplate,
 } = useLibraryFileFieldTemplates()
+
+const DEFAULT_NEW_LABEL = 'New field'
+
+async function createField() {
+  const id = await addTemplate(DEFAULT_NEW_LABEL)
+  if (id)
+    selectFile(id)
+}
 
 const deleteOpen = ref(false)
 const deletePending = ref<string | null>(null)
@@ -64,25 +73,40 @@ async function confirmRemove() {
 </script>
 
 <template>
-  <div role="tabpanel">
-    <UiEmptyState
+  <div role="tabpanel" class="flex min-h-0 min-w-0 flex-1 flex-col">
+    <div
       v-if="loading"
-      title="Loading templates"
-      description="Please wait while field templates are fetched."
-    />
-    <div v-else class="max-w-xl space-y-6">
-      <p class="text-sm leading-relaxed text-zinc-500">
-        New uploads get editable values for each field; title and description are set separately.
-      </p>
-
-      <template v-if="!selectedRow">
+      class="flex min-h-0 min-w-0 flex-1 flex-col items-center justify-center px-8 py-12 text-center"
+    >
+      <UiEmptyState
+        title="Loading templates"
+        description="Please wait while field templates are fetched."
+      />
+    </div>
+    <template v-else>
+      <div
+        v-if="!selectedRow"
+        class="flex min-h-0 min-w-0 flex-1 flex-col items-center justify-center px-8 py-12 text-center"
+      >
         <UiEmptyState
           title="No field selected"
-          description="Pick a field in the middle column to edit it, or add a new template there."
-        />
-      </template>
+          description="Choose a template in the middle column to edit its label and type, or add a new one there."
+        >
+          <template #actions>
+            <UButton
+              color="neutral"
+              size="md"
+              icon="i-lucide-plus"
+              class="rounded-[var(--ui-control-radius)] px-5 ring-1 ring-zinc-200/80"
+              @click="createField"
+            >
+              New field
+            </UButton>
+          </template>
+        </UiEmptyState>
+      </div>
 
-      <template v-else>
+      <div v-else class="min-h-0 min-w-0 max-w-xl flex-1 pt-4">
         <UCard class="rounded-[var(--ui-panel-radius)] ring-1 ring-zinc-950/[0.04]">
           <template #header>
             <span class="font-semibold text-zinc-900">File field template</span>
@@ -129,8 +153,8 @@ async function confirmRemove() {
             </div>
           </div>
         </UCard>
-      </template>
-    </div>
+      </div>
+    </template>
 
     <UiConfirmDeleteDialog
       v-model:open="deleteOpen"
