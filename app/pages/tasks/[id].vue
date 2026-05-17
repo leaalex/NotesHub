@@ -870,7 +870,7 @@ function requestDeleteTask() {
                         {{ String(f.value).trim() }}
                       </a>
                     </template>
-                    <p v-else-if="f.fieldType === 'longtext' || f.fieldType === 'address'" class="whitespace-pre-wrap">
+                    <p v-else-if="f.fieldType === 'longtext'" class="whitespace-pre-wrap">
                       {{ viewDash(f.value) }}
                     </p>
                     <template v-else>
@@ -894,7 +894,7 @@ function requestDeleteTask() {
                       <span class="normal-case opacity-70"> · {{ f.fieldType }}</span>
                     </div>
                     <UTextarea
-                      v-if="f.fieldType === 'longtext' || f.fieldType === 'address'"
+                      v-if="f.fieldType === 'longtext'"
                       :model-value="fieldVals[f.id]"
                       class="mt-2 w-full rounded-[var(--ui-control-radius)]"
                       autoresize
@@ -1125,7 +1125,6 @@ function requestDeleteTask() {
                 <option value="phone">Phone</option>
                 <option value="url">URL</option>
                 <option value="date">Date</option>
-                <option value="address">Address</option>
                 <option value="longtext">Long text</option>
               </select>
             </UFormField>

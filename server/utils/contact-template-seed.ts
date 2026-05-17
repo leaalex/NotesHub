@@ -9,7 +9,6 @@ const DEFAULT_PERSON: { label: string, fieldType: string }[] = [
   { label: 'Phone', fieldType: 'phone' },
   { label: 'Job title', fieldType: 'text' },
   { label: 'Company', fieldType: 'text' },
-  { label: 'Address', fieldType: 'address' },
   { label: 'Birthday', fieldType: 'date' },
 ]
 
@@ -17,7 +16,6 @@ const DEFAULT_ORG: { label: string, fieldType: string }[] = [
   { label: 'Email', fieldType: 'email' },
   { label: 'Phone', fieldType: 'phone' },
   { label: 'Website', fieldType: 'url' },
-  { label: 'Address', fieldType: 'address' },
 ]
 
 /**

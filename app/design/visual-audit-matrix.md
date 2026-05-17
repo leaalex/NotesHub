@@ -11,7 +11,7 @@ Strict route-by-route checklist for UI normalization.
 | `/contacts/index` | `app/pages/contacts/index.vue` | duplicated empty-state card surface | fixed |
 | `/contacts/new` | `app/pages/contacts/new.vue` | custom form panel surface differed from glass standard | fixed |
 | `/contacts/:id` | `app/pages/contacts/[id].vue` | modal scrollbars missing global class, select typography mismatch | fixed |
-| `/contacts/templates` | `app/pages/contacts/templates.vue` | loading state differed, select controls inconsistent, title weight mismatch | fixed |
+| `/library` (`?tab=contact-fields`) | `app/pages/library.vue` | contact field templates | — |
 | `/files` | `app/pages/files/index.vue` | duplicated section labels and empty-state card patterns | fixed |
 | `/login` | `app/pages/login.vue` | custom outer card shell duplicated glass panel pattern | fixed |
 | `/share/:token` | `app/pages/share/[token].vue` | local scrollbar CSS, manual section labels, pending state surface mismatch | fixed |

@@ -39,6 +39,15 @@ type ContactDetail = {
   linkedNotes: { id: string, title: string }[]
   linkedFiles: AppFile[]
   linkedTasks: { id: string, title: string, status: string, priority: string }[]
+  linkedAddresses: {
+    id: string
+    label: string
+    line1: string
+    city: string
+    countryCode: string
+    role: string
+    isPrimary: boolean
+  }[]
 }
 
 type TemplateRow = {
@@ -93,10 +102,13 @@ const newFieldType = ref('text')
 
 const linkNoteModal = ref(false)
 const linkTaskModal = ref(false)
+const linkAddressModal = ref(false)
 const noteSearchRows = ref<NoteSearch[]>([])
 const taskSearchRows = ref<{ id: string, title: string }[]>([])
+const addressSearchRows = ref<{ id: string, label: string, city: string, countryCode: string }[]>([])
 const linking = ref(false)
 const linkingTask = ref(false)
+const linkingAddress = ref(false)
 const fileInput = ref<HTMLInputElement | null>(null)
 const contactDetailScroll = ref<HTMLElement | null>(null)
 
@@ -208,6 +220,7 @@ async function load() {
       ...row,
       linkedFiles: row.linkedFiles ?? [],
       linkedTasks: row.linkedTasks ?? [],
+      linkedAddresses: row.linkedAddresses ?? [],
     }
     coreFirst.value = row.firstName ?? ''
     coreLast.value = row.lastName ?? ''
@@ -233,6 +246,7 @@ watch(
     showAddField.value = false
     linkNoteModal.value = false
     linkTaskModal.value = false
+    linkAddressModal.value = false
     load()
   },
   { immediate: true },
@@ -243,7 +257,7 @@ async function persistCoreImmediate(): Promise<boolean> {
     return true
   try {
     const prevDisplay = detail.value.displayName
-    const row = await apiFetch<Omit<ContactDetail, 'fields' | 'linkedNotes'>>(`/api/contacts/${detail.value.id}`, {
+    const row = await apiFetch<Omit<ContactDetail, 'fields' | 'linkedNotes' | 'linkedFiles' | 'linkedTasks' | 'linkedAddresses'>>(`/api/contacts/${detail.value.id}`, {
       method: 'PATCH',
       body: {
         firstName: coreFirst.value,
@@ -259,6 +273,7 @@ async function persistCoreImmediate(): Promise<boolean> {
       linkedNotes: detail.value.linkedNotes,
       linkedFiles: detail.value.linkedFiles,
       linkedTasks: detail.value.linkedTasks,
+      linkedAddresses: detail.value.linkedAddresses,
     }
     if (row.displayName !== prevDisplay)
       bumpContactsList()
@@ -350,6 +365,7 @@ async function finishEditing() {
     showAddField.value = false
     linkNoteModal.value = false
     linkTaskModal.value = false
+    linkAddressModal.value = false
   }
   finally {
     finishingEdit.value = false
@@ -506,6 +522,59 @@ async function unlinkTask(taskId: string) {
     return
   await apiFetch(`/api/contacts/${detail.value.id}/tasks/${taskId}`, { method: 'DELETE' })
   detail.value.linkedTasks = (detail.value.linkedTasks ?? []).filter(t => t.id !== taskId)
+}
+
+async function openLinkAddresses() {
+  linkAddressModal.value = true
+  const rows = await apiFetch<{ id: string, label: string, city: string, countryCode: string }[]>('/api/addresses')
+  const linked = new Set((detail.value?.linkedAddresses ?? []).map(a => a.id))
+  addressSearchRows.value = rows.filter(a => !linked.has(a.id))
+}
+
+async function linkAddress(addrId: string) {
+  if (!detail.value)
+    return
+  linkingAddress.value = true
+  try {
+    await apiFetch(`/api/contacts/${detail.value.id}/addresses`, {
+      method: 'POST',
+      body: { addressId: addrId, role: 'other', isPrimary: false },
+    })
+    const refreshed = await apiFetch<ContactDetail>(`/api/contacts/${detail.value.id}`)
+    detail.value.linkedAddresses = refreshed.linkedAddresses ?? []
+    linkAddressModal.value = false
+  }
+  catch (e) {
+    toast.add({ title: 'Could not link address', color: 'error' })
+    console.error(e)
+  }
+  finally {
+    linkingAddress.value = false
+  }
+}
+
+async function unlinkAddress(addressId: string) {
+  if (!detail.value)
+    return
+  await apiFetch(`/api/contacts/${detail.value.id}/addresses/${addressId}`, { method: 'DELETE' })
+  detail.value.linkedAddresses = (detail.value.linkedAddresses ?? []).filter(a => a.id !== addressId)
+}
+
+async function patchContactAddress(addressId: string, patch: { role?: string, isPrimary?: boolean }) {
+  if (!detail.value || !isEditing.value)
+    return
+  try {
+    await apiFetch(`/api/contacts/${detail.value.id}/addresses/${addressId}`, {
+      method: 'PATCH',
+      body: patch,
+    })
+    const refreshed = await apiFetch<ContactDetail>(`/api/contacts/${detail.value.id}`)
+    detail.value.linkedAddresses = refreshed.linkedAddresses ?? []
+  }
+  catch (e) {
+    toast.add({ title: 'Could not update address link', color: 'error' })
+    console.error(e)
+  }
 }
 
 async function refreshLinkedFiles() {
@@ -822,7 +891,7 @@ const kindLabel = computed(() =>
                         {{ String(f.value).trim() }}
                       </a>
                     </template>
-                    <p v-else-if="f.fieldType === 'longtext' || f.fieldType === 'address'" class="whitespace-pre-wrap">
+                    <p v-else-if="f.fieldType === 'longtext'" class="whitespace-pre-wrap">
                       {{ viewDash(f.value) }}
                     </p>
                     <template v-else>
@@ -847,7 +916,7 @@ const kindLabel = computed(() =>
                       <span class="normal-case opacity-70"> · {{ f.fieldType }}</span>
                     </div>
                     <UTextarea
-                      v-if="f.fieldType === 'longtext' || f.fieldType === 'address'"
+                      v-if="f.fieldType === 'longtext'"
                       :model-value="fieldVals[f.id]"
                       class="mt-2 w-full rounded-[var(--ui-control-radius)]"
                       autoresize
@@ -1027,6 +1096,87 @@ const kindLabel = computed(() =>
               No linked tasks yet.
             </p>
           </div>
+
+          <div class="mt-8 shrink-0 border-t border-zinc-100/80 pt-5">
+            <div class="flex items-center justify-between gap-2">
+              <UiSectionLabel>
+                Linked addresses
+              </UiSectionLabel>
+              <button
+                v-if="isEditing"
+                type="button"
+                class="rounded-[var(--ui-control-radius)] px-2 py-0.5 text-[11px] font-semibold text-zinc-600 hover:bg-white/85"
+                @click="openLinkAddresses"
+              >
+                + Link
+              </button>
+            </div>
+            <ul v-if="(detail.linkedAddresses ?? []).length" class="mt-3 flex flex-col gap-2">
+              <li
+                v-for="a in detail.linkedAddresses"
+                :key="a.id"
+                class="flex flex-col gap-1.5 rounded-[var(--ui-control-radius)] bg-white/50 px-2 py-2 ring-1 ring-zinc-950/[0.04]"
+              >
+                <div class="flex items-start justify-between gap-1">
+                  <NuxtLink
+                    class="flex min-w-0 flex-1 flex-col text-left hover:underline"
+                    :to="`/addresses/${a.id}`"
+                  >
+                    <span class="line-clamp-2 text-[12px] font-medium leading-snug text-zinc-800">{{ a.label || a.line1 || 'Address' }}</span>
+                    <span class="text-[10px] text-zinc-500">{{ [a.city, a.countryCode?.toUpperCase()].filter(Boolean).join(' · ') }}</span>
+                  </NuxtLink>
+                  <button
+                    v-if="isEditing"
+                    type="button"
+                    class="shrink-0 rounded-[var(--ui-control-radius)] p-1 text-zinc-400 hover:bg-white hover:text-red-600"
+                    aria-label="Unlink address"
+                    @click="unlinkAddress(a.id)"
+                  >
+                    <Icon name="i-lucide-x" class="size-3.5" aria-hidden="true" />
+                  </button>
+                </div>
+                <div v-if="isEditing" class="flex flex-wrap items-center gap-2 text-[11px]">
+                  <label class="flex items-center gap-1 text-zinc-600">
+                    <span class="shrink-0 text-zinc-400">Role</span>
+                    <select
+                      class="ui-select max-w-[8rem] rounded-[var(--ui-control-radius)] py-0.5 text-[11px]"
+                      :value="a.role"
+                      @change="patchContactAddress(a.id, { role: ($event.target as HTMLSelectElement).value })"
+                    >
+                      <option value="shipping">
+                        Shipping
+                      </option>
+                      <option value="billing">
+                        Billing
+                      </option>
+                      <option value="production">
+                        Production
+                      </option>
+                      <option value="other">
+                        Other
+                      </option>
+                    </select>
+                  </label>
+                  <label class="flex cursor-pointer items-center gap-1.5 text-zinc-600">
+                    <input
+                      type="checkbox"
+                      class="size-3.5 rounded border-zinc-300"
+                      :checked="a.isPrimary"
+                      @change="patchContactAddress(a.id, { isPrimary: ($event.target as HTMLInputElement).checked })"
+                    >
+                    <span>Primary</span>
+                  </label>
+                </div>
+                <div v-else class="flex flex-wrap gap-2 text-[10px] uppercase tracking-wide text-zinc-400">
+                  <span>{{ a.role }}</span>
+                  <span v-if="a.isPrimary">· primary</span>
+                </div>
+              </li>
+            </ul>
+            <p v-else class="mt-3 text-[11px] leading-relaxed text-zinc-400">
+              No saved addresses linked. Use + Link while editing.
+            </p>
+          </div>
         </aside>
       </div>
     </div>
@@ -1074,7 +1224,6 @@ const kindLabel = computed(() =>
                 <option value="phone">Phone</option>
                 <option value="url">URL</option>
                 <option value="date">Date</option>
-                <option value="address">Address</option>
                 <option value="longtext">Long text</option>
               </select>
             </UFormField>
@@ -1144,6 +1293,40 @@ const kindLabel = computed(() =>
           <template #footer>
             <div class="flex justify-end">
               <UButton variant="ghost" color="neutral" class="rounded-[var(--ui-control-radius)]" @click="linkTaskModal = false">
+                Cancel
+              </UButton>
+            </div>
+          </template>
+        </UCard>
+      </div>
+      <div
+        v-if="linkAddressModal"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/35 px-4 backdrop-blur-sm"
+        @click.self="linkAddressModal = false"
+      >
+        <UCard class="ui-scrollbar max-h-[80vh] w-full max-w-md overflow-auto rounded-[var(--ui-panel-radius)]">
+          <template #header>
+            <span class="font-semibold text-zinc-900">Link a saved address</span>
+          </template>
+          <p v-if="!addressSearchRows.length" class="px-1 py-2 text-[13px] text-zinc-500">
+            No addresses left to link. Create one in Addresses first.
+          </p>
+          <ul v-else class="space-y-1">
+            <li v-for="addr in addressSearchRows" :key="addr.id">
+              <button
+                type="button"
+                class="flex w-full flex-col rounded-[var(--ui-control-radius)] px-4 py-2.5 text-left text-[13px] hover:bg-zinc-100"
+                :disabled="linkingAddress"
+                @click="linkAddress(addr.id)"
+              >
+                <span class="font-medium text-zinc-900">{{ addr.label || 'Address' }}</span>
+                <span class="text-[11px] text-zinc-500">{{ [addr.city, addr.countryCode?.toUpperCase()].filter(Boolean).join(' · ') }}</span>
+              </button>
+            </li>
+          </ul>
+          <template #footer>
+            <div class="flex justify-end">
+              <UButton variant="ghost" color="neutral" class="rounded-[var(--ui-control-radius)]" @click="linkAddressModal = false">
                 Cancel
               </UButton>
             </div>

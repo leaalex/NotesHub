@@ -1,6 +1,6 @@
 // Tables filled by `npx better-auth generate` and extended with app models.
 import { relations, sql } from 'drizzle-orm'
-import { sqliteTable, text, integer, index, primaryKey } from 'drizzle-orm/sqlite-core'
+import { sqliteTable, text, integer, index, primaryKey, uniqueIndex } from 'drizzle-orm/sqlite-core'
 
 export const user = sqliteTable('user', {
   id: text('id').primaryKey(),
@@ -348,6 +348,66 @@ export const contactFiles = sqliteTable(
   ]
 )
 
+/** Normalized postal address (library + links from contacts, future shipments). */
+export const addresses = sqliteTable(
+  'addresses',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    folderId: text('folder_id').references(() => folders.id, {
+      onDelete: 'set null',
+    }),
+    label: text('label').notNull().default(''),
+    line1: text('line1').notNull().default(''),
+    line2: text('line2').notNull().default(''),
+    city: text('city').notNull().default(''),
+    region: text('region').notNull().default(''),
+    postalCode: text('postal_code').notNull().default(''),
+    countryCode: text('country_code').notNull().default(''),
+    lat: text('lat'),
+    lng: text('lng'),
+    provider: text('provider').notNull().default('nominatim'),
+    providerId: text('provider_id'),
+    rawJson: text('raw_json'),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .default(sql`(strftime('%s','now') * 1000)`),
+    updatedAt: integer('updated_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .default(sql`(strftime('%s','now') * 1000)`),
+  },
+  (t) => [
+    index('addr_user_idx').on(t.userId),
+    index('addr_folder_idx').on(t.folderId),
+    index('addr_user_country_idx').on(t.userId, t.countryCode),
+  ],
+)
+
+export const contactAddresses = sqliteTable(
+  'contact_addresses',
+  {
+    id: text('id').primaryKey(),
+    contactId: text('contact_id')
+      .notNull()
+      .references(() => contacts.id, { onDelete: 'cascade' }),
+    addressId: text('address_id')
+      .notNull()
+      .references(() => addresses.id, { onDelete: 'cascade' }),
+    role: text('role').notNull().default('other'),
+    isPrimary: integer('is_primary', { mode: 'boolean' }).notNull().default(false),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .default(sql`(strftime('%s','now') * 1000)`),
+  },
+  (t) => [
+    uniqueIndex('ca_contact_address_uid').on(t.contactId, t.addressId),
+    index('ca_contact_idx').on(t.contactId),
+    index('ca_address_idx').on(t.addressId),
+  ],
+)
+
 export const tasks = sqliteTable(
   'tasks',
   {
@@ -497,6 +557,7 @@ export const folderRelations = relations(folders, ({ one, many }) => ({
   contacts: many(contacts),
   files: many(files),
   tasks: many(tasks),
+  addresses: many(addresses),
 }))
 
 export const noteRelations = relations(notes, ({ one, many }) => ({
@@ -526,6 +587,7 @@ export const contactRelations = relations(contacts, ({ one, many }) => ({
   linkedNotes: many(noteContacts),
   linkedFiles: many(contactFiles),
   linkedTasks: many(contactTasks),
+  contactAddresses: many(contactAddresses),
 }))
 
 export const contactFieldTemplateRelations = relations(
@@ -617,6 +679,29 @@ export const contactFileRelations = relations(contactFiles, ({ one }) => ({
   file: one(files, {
     fields: [contactFiles.fileId],
     references: [files.id],
+  }),
+}))
+
+export const addressRelations = relations(addresses, ({ one, many }) => ({
+  user: one(user, {
+    fields: [addresses.userId],
+    references: [user.id],
+  }),
+  folder: one(folders, {
+    fields: [addresses.folderId],
+    references: [folders.id],
+  }),
+  contactLinks: many(contactAddresses),
+}))
+
+export const contactAddressRelations = relations(contactAddresses, ({ one }) => ({
+  contact: one(contacts, {
+    fields: [contactAddresses.contactId],
+    references: [contacts.id],
+  }),
+  address: one(addresses, {
+    fields: [contactAddresses.addressId],
+    references: [addresses.id],
   }),
 }))
 

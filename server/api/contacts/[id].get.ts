@@ -1,5 +1,7 @@
 import { and, asc, eq } from 'drizzle-orm'
 import {
+  addresses,
+  contactAddresses,
   contactFiles,
   contactFieldValues,
   contactTasks,
@@ -65,6 +67,21 @@ export default defineEventHandler(async (event) => {
     .where(and(eq(contactTasks.contactId, id), eq(tasks.userId, session.user.id)))
     .orderBy(tasks.title)
 
+  const linkedAddresses = await db
+    .select({
+      id: addresses.id,
+      label: addresses.label,
+      line1: addresses.line1,
+      city: addresses.city,
+      countryCode: addresses.countryCode,
+      role: contactAddresses.role,
+      isPrimary: contactAddresses.isPrimary,
+    })
+    .from(contactAddresses)
+    .innerJoin(addresses, eq(contactAddresses.addressId, addresses.id))
+    .where(and(eq(contactAddresses.contactId, id), eq(addresses.userId, session.user.id)))
+    .orderBy(asc(addresses.label))
+
   const config = useRuntimeConfig()
   return {
     ...contact,
@@ -72,5 +89,6 @@ export default defineEventHandler(async (event) => {
     linkedNotes,
     linkedFiles: linkedFiles.map(x => toFileDto(x.file, config.public.siteUrl as string)),
     linkedTasks,
+    linkedAddresses,
   }
 })

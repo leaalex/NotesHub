@@ -53,6 +53,12 @@ export default defineNuxtConfig({
     preset: process.env.NITRO_PRESET || undefined,
   },
 
+  routeRules: {
+    '/contacts/templates': { redirect: '/library/contact-fields' },
+    '/tasks/templates': { redirect: '/library/task-fields' },
+    '/files/templates': { redirect: '/library/file-fields' },
+  },
+
   runtimeConfig: {
     databaseUrl: process.env.NUXT_DATABASE_URL || process.env.DATABASE_URL || 'file:./data/dev.sqlite',
     betterAuthSecret: process.env.BETTER_AUTH_SECRET || '',

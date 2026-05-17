@@ -196,7 +196,7 @@ const kindLabel = computed(() =>
                         {{ String(f.value).trim() }}
                       </a>
                     </template>
-                    <p v-else-if="f.fieldType === 'longtext' || f.fieldType === 'address'" class="whitespace-pre-wrap">
+                    <p v-else-if="f.fieldType === 'longtext'" class="whitespace-pre-wrap">
                       {{ viewDash(f.value) }}
                     </p>
                     <template v-else>

@@ -34,14 +34,13 @@ const {
   createFolder,
 } = useNewFolderModal(folders)
 
-const isTemplatesOnly = computed(() => route.path === '/tasks/templates')
 const isNewRoute = computed(() => route.path === '/tasks/new')
 const selectedTaskId = computed(() => {
   const m = route.path.match(/^\/tasks\/([^/]+)\/?$/)
   if (!m?.[1])
     return ''
   const seg = m[1]
-  if (seg === 'new' || seg === 'templates')
+  if (seg === 'new')
     return ''
   return seg
 })
@@ -87,11 +86,6 @@ watch(listVersion, () => {
   refreshTasks()
 })
 
-watch(isTemplatesOnly, (only, was) => {
-  if (was && !only)
-    ensureTreeData()
-})
-
 async function ensureTreeData() {
   await Promise.all([refreshFolders(), refreshTasks()])
 }
@@ -107,13 +101,12 @@ function openNewTask() {
 }
 
 function manageFields() {
-  router.push('/tasks/templates')
+  void router.push('/library/task-fields')
 }
 
 function cardClasses(t: TaskRow) {
   const active = selectedTaskId.value === t.id
     && !isNewRoute.value
-    && !isTemplatesOnly.value
     && !!t.id
 
   const base =
@@ -126,8 +119,7 @@ function cardClasses(t: TaskRow) {
 </script>
 
 <template>
-  <NuxtPage v-if="isTemplatesOnly" />
-  <LayoutAppThreeColumn v-else right-pane-scrollable>
+  <LayoutAppThreeColumn right-pane-scrollable>
     <template #folders>
       <div class="flex flex-col gap-4 border-b border-zinc-200/40 p-4 pb-3">
         <div class="flex items-start justify-between gap-2">

@@ -6,7 +6,6 @@ export type ContactFieldKind =
   | 'phone'
   | 'url'
   | 'date'
-  | 'address'
   | 'longtext'
 
 export type NoteContactSource = 'manual' | 'mention'

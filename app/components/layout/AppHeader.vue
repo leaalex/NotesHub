@@ -3,17 +3,6 @@ const route = useRoute()
 const auth = useNotesAuth()
 const sessionQuery = auth.useSession()
 
-const { open: foldersRailOpen, toggle: toggleFoldersRail } = useFoldersRail()
-
-const showFoldersRailToggle = computed(() => {
-  if (route.path === '/contacts/templates' || route.path === '/tasks/templates')
-    return false
-  return route.path === '/'
-    || route.path.startsWith('/contacts')
-    || route.path.startsWith('/files')
-    || route.path.startsWith('/tasks')
-})
-
 const user = computed(() => sessionQuery.value?.data?.user)
 const isAdmin = computed(() => (user.value as { role?: string } | undefined)?.role === 'admin')
 
@@ -22,11 +11,14 @@ const links = [
   { to: '/files', label: 'Files', icon: 'i-lucide-image' },
   { to: '/contacts', label: 'Contacts', icon: 'i-lucide-contact' },
   { to: '/tasks', label: 'Tasks', icon: 'i-lucide-list-checks' },
+  { to: '/library/addresses', label: 'Library', icon: 'i-lucide-library' },
 ] as const
 
 function isActive(to: string) {
   if (to === '/')
     return route.path === '/'
+  if (to === '/library/addresses')
+    return route.path.startsWith('/library')
   return route.path.startsWith(to)
 }
 
@@ -96,19 +88,6 @@ const menuItems = computed(() => {
         >
           <BrandLockup />
         </NuxtLink>
-        <div v-if="showFoldersRailToggle" class="flex shrink-0">
-          <UButton
-            variant="ghost"
-            color="neutral"
-            square
-            size="sm"
-            class="rounded-[var(--ui-control-radius)] ring-1 ring-zinc-200/80 hover:bg-white/80"
-            :icon="foldersRailOpen ? 'i-lucide-panel-left-close' : 'i-lucide-panel-left-open'"
-            :aria-label="foldersRailOpen ? 'Hide folders' : 'Show folders'"
-            :aria-pressed="foldersRailOpen"
-            @click="toggleFoldersRail()"
-          />
-        </div>
       </div>
 
       <nav class="flex min-w-0 flex-1 justify-center" aria-label="Main">

@@ -571,7 +571,7 @@ function previewAlt() {
         </UiSectionLabel>
         <div class="flex shrink-0 items-center gap-2">
           <NuxtLink
-            to="/files/templates"
+            to="/library/file-fields"
             class="rounded-[var(--ui-control-radius)] px-3 py-1.5 text-[12px] font-medium text-zinc-600 underline decoration-zinc-300 underline-offset-[4px] hover:text-zinc-900"
           >
             Manage fields
@@ -786,7 +786,7 @@ function previewAlt() {
                           {{ String(f.value).trim() }}
                         </a>
                       </template>
-                      <p v-else-if="f.fieldType === 'longtext' || f.fieldType === 'address'" class="whitespace-pre-wrap">
+                      <p v-else-if="f.fieldType === 'longtext'" class="whitespace-pre-wrap">
                         {{ viewDash(f.value) }}
                       </p>
                       <template v-else>
@@ -805,7 +805,7 @@ function previewAlt() {
                       <span class="normal-case opacity-70"> · {{ f.fieldType }}</span>
                     </div>
                     <UTextarea
-                      v-if="f.fieldType === 'longtext' || f.fieldType === 'address'"
+                      v-if="f.fieldType === 'longtext'"
                       :model-value="fieldVals[f.id]"
                       class="mt-2 w-full rounded-[var(--ui-control-radius)]"
                       autoresize

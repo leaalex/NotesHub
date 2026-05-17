@@ -50,6 +50,20 @@
       "when": 1778810000000,
       "tag": "0006_unusual_azazel",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1778900000000,
+      "tag": "0007_addresses",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1778910000000,
+      "tag": "0008_remove_custom_field_address_type",
+      "breakpoints": true
     }
   ]
 }

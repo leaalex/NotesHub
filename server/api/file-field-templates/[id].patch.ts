@@ -10,7 +10,6 @@ const FIELD_TYPES: ContactFieldKind[] = [
   'phone',
   'url',
   'date',
-  'address',
   'longtext',
 ]
 

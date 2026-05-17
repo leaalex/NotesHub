@@ -27,6 +27,22 @@ const listVersion = useState<number>('contacts:listVersion', () => 0)
 const folders = ref<FolderRow[]>([])
 const contacts = ref<ContactRow[]>([])
 
+const { open: foldersRailOpen, toggle: toggleFoldersRail } = useFoldersRail()
+
+const searchQuery = ref('')
+const viewMode = ref<'cards' | 'table'>('cards')
+
+const filteredContacts = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase()
+  if (!q)
+    return contacts.value
+  return contacts.value.filter((c) => {
+    const name = String(c.displayName ?? '').toLowerCase()
+    const type = String(c.type ?? '').toLowerCase()
+    return name.includes(q) || type.includes(q)
+  })
+})
+
 const {
   newFolderName,
   showNewFolder,
@@ -34,7 +50,6 @@ const {
   createFolder,
 } = useNewFolderModal(folders)
 
-const isTemplatesOnly = computed(() => route.path === '/contacts/templates')
 const isNewRoute = computed(() => route.path === '/contacts/new')
 /** Parent layout route may omit child `:id`; parse from path so list highlight works. */
 const selectedContactId = computed(() => {
@@ -42,7 +57,7 @@ const selectedContactId = computed(() => {
   if (!m?.[1])
     return ''
   const seg = m[1]
-  if (seg === 'new' || seg === 'templates')
+  if (seg === 'new')
     return ''
   return seg
 })
@@ -69,11 +84,6 @@ watch(listVersion, () => {
   refreshContacts()
 })
 
-watch(isTemplatesOnly, (only, was) => {
-  if (was && !only)
-    ensureTreeData()
-})
-
 async function ensureTreeData() {
   await Promise.all([refreshFolders(), refreshContacts()])
 }
@@ -89,13 +99,12 @@ function openNewContact() {
 }
 
 function manageFields() {
-  router.push('/contacts/templates')
+  void router.push('/library/contact-fields')
 }
 
 function cardClasses(c: ContactRow) {
   const active = selectedContactId.value === c.id
     && !isNewRoute.value
-    && !isTemplatesOnly.value
     && !!c.id
 
   const base =
@@ -108,8 +117,7 @@ function cardClasses(c: ContactRow) {
 </script>
 
 <template>
-  <NuxtPage v-if="isTemplatesOnly" />
-  <LayoutAppThreeColumn v-else right-pane-scrollable>
+  <LayoutAppThreeColumn right-pane-scrollable>
     <template #folders>
       <div class="flex flex-col gap-4 border-b border-zinc-200/40 p-4 pb-3">
         <div class="flex items-start justify-between gap-2">
