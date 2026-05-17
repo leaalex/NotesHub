@@ -783,7 +783,7 @@ function tableRowClassesForFile(f: AppFile) {
 
     <template v-if="selectedFile && attachmentFilePayload">
       <main class="flex min-w-0 flex-1 flex-col p-4 sm:p-6">
-        <div class="overflow-hidden rounded-[var(--ui-panel-radius)] border border-white/70 bg-white/55 backdrop-blur-md ring-1 ring-zinc-950/[0.04] supports-[backdrop-filter]:bg-white/45">
+        <div class="overflow-hidden rounded-[var(--ui-panel-radius)] border border-zinc-100 bg-white ring-1 ring-zinc-950/[0.04]">
           <header class="flex shrink-0 flex-wrap items-start gap-3 border-b border-zinc-100/90 px-4 py-3 sm:px-6">
             <div class="min-w-0 flex-1">
               <template v-if="!isEditing">
@@ -904,102 +904,112 @@ function tableRowClassesForFile(f: AppFile) {
               @delete="deleteFileEverywhere"
             />
 
-            <div v-if="fileDetail" class="mt-6 space-y-5">
+            <div v-if="fileDetail" class="mt-6">
               <div>
-                <p class="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+                <UiSectionLabel>
                   Description
-                </p>
-                <p v-if="!isEditing" class="mt-2 whitespace-pre-wrap text-[13px] text-zinc-900">
-                  {{ viewDash(draftDescription) }}
-                </p>
-                <UTextarea
-                  v-else
-                  v-model="draftDescription"
-                  class="mt-2 rounded-[var(--ui-control-radius)]"
-                  autoresize
-                  :max-rows="8"
-                  @update:model-value="onMetaTitleDescChange"
-                />
+                </UiSectionLabel>
+                <div class="mt-3">
+                  <p v-if="!isEditing" class="whitespace-pre-wrap text-[13px] text-zinc-900">
+                    {{ viewDash(draftDescription) }}
+                  </p>
+                  <UTextarea
+                    v-else
+                    v-model="draftDescription"
+                    class="w-full rounded-[var(--ui-control-radius)]"
+                    autoresize
+                    :max-rows="8"
+                    @update:model-value="onMetaTitleDescChange"
+                  />
+                </div>
               </div>
 
-              <div>
-                <p class="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+              <div id="file-section-fields" class="mt-8 border-t border-zinc-100/90 pt-6">
+                <UiSectionLabel>
                   Custom fields
-                </p>
-                <template v-if="!isEditing">
-                  <div
-                    v-for="f in sortedDetailFields()"
-                    :key="f.id"
-                    class="mt-3 rounded-[var(--ui-control-radius)] border border-zinc-100 bg-zinc-50/70 p-3"
-                  >
-                    <div class="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
-                      {{ f.label }}
-                      <span class="normal-case opacity-70"> · {{ f.fieldType }}</span>
+                </UiSectionLabel>
+                <div class="mt-3">
+                  <template v-if="!isEditing">
+                    <div
+                      v-for="f in sortedDetailFields()"
+                      :key="f.id"
+                      class="mb-4 rounded-[var(--ui-control-radius)] border border-zinc-100 bg-white p-3 last:mb-0"
+                    >
+                      <div class="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+                        {{ f.label }}
+                        <span class="normal-case opacity-70"> · {{ f.fieldType }}</span>
+                      </div>
+                      <div class="mt-2 min-w-0 text-[13px] text-zinc-900">
+                        <template v-if="f.fieldType === 'email' && String(f.value || '').trim()">
+                          <a :href="`mailto:${String(f.value).trim()}`" class="font-medium underline decoration-zinc-300 underline-offset-2 hover:text-zinc-700">
+                            {{ String(f.value).trim() }}
+                          </a>
+                        </template>
+                        <template v-else-if="f.fieldType === 'url' && String(f.value || '').trim()">
+                          <a
+                            :href="resolvedUrlHref(String(f.value))"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="break-all font-medium underline decoration-zinc-300 underline-offset-2 hover:text-zinc-700"
+                          >
+                            {{ String(f.value).trim() }}
+                          </a>
+                        </template>
+                        <p v-else-if="f.fieldType === 'longtext'" class="whitespace-pre-wrap">
+                          {{ viewDash(f.value) }}
+                        </p>
+                        <template v-else>
+                          {{ viewDash(f.value) }}
+                        </template>
+                      </div>
                     </div>
-                    <div class="mt-2 min-w-0 text-[13px] text-zinc-900">
-                      <template v-if="f.fieldType === 'email' && String(f.value || '').trim()">
-                        <a :href="`mailto:${String(f.value).trim()}`" class="font-medium underline decoration-zinc-300 underline-offset-2 hover:text-zinc-700">
-                          {{ String(f.value).trim() }}
-                        </a>
-                      </template>
-                      <template v-else-if="f.fieldType === 'url' && String(f.value || '').trim()">
-                        <a
-                          :href="resolvedUrlHref(String(f.value))"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          class="break-all font-medium underline decoration-zinc-300 underline-offset-2 hover:text-zinc-700"
-                        >
-                          {{ String(f.value).trim() }}
-                        </a>
-                      </template>
-                      <p v-else-if="f.fieldType === 'longtext'" class="whitespace-pre-wrap">
-                        {{ viewDash(f.value) }}
-                      </p>
-                      <template v-else>
-                        {{ viewDash(f.value) }}
-                      </template>
+                    <p v-if="fileDetail.fields.length === 0" class="text-[13px] text-zinc-400">
+                      No custom fields. Add templates under Manage fields.
+                    </p>
+                  </template>
+                  <template v-else>
+                    <div
+                      v-for="f in sortedDetailFields()"
+                      :key="f.id"
+                      class="mb-4 flex flex-wrap items-start gap-2 rounded-[var(--ui-control-radius)] border border-zinc-100 bg-white p-3"
+                    >
+                      <div class="min-w-0 flex-1">
+                        <div class="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+                          {{ f.label }}
+                          <span class="normal-case opacity-70"> · {{ f.fieldType }}</span>
+                        </div>
+                        <UTextarea
+                          v-if="f.fieldType === 'longtext'"
+                          :model-value="fieldVals[f.id]"
+                          class="mt-2 w-full rounded-[var(--ui-control-radius)]"
+                          autoresize
+                          :max-rows="8"
+                          @update:model-value="v => onFieldUpdate(f.id, v ?? '')"
+                        />
+                        <UInput
+                          v-else-if="f.fieldType === 'date'"
+                          :model-value="fieldVals[f.id]"
+                          type="date"
+                          class="mt-2 w-full rounded-[var(--ui-control-radius)]"
+                          @update:model-value="v => onFieldUpdate(f.id, v ?? '')"
+                        />
+                        <UInput
+                          v-else
+                          :model-value="fieldVals[f.id]"
+                          class="mt-2 w-full rounded-[var(--ui-control-radius)]"
+                          :type="f.fieldType === 'email' ? 'email' : f.fieldType === 'url' ? 'url' : 'text'"
+                          @update:model-value="v => onFieldUpdate(f.id, v ?? '')"
+                        />
+                      </div>
                     </div>
-                  </div>
-                  <p v-if="fileDetail.fields.length === 0" class="mt-2 text-[13px] text-zinc-400">
-                    No custom fields. Add templates under Manage fields.
-                  </p>
-                </template>
-                <template v-else>
-                  <div v-for="f in sortedDetailFields()" :key="f.id" class="mt-3 rounded-[var(--ui-control-radius)] border border-zinc-100 bg-zinc-50/70 p-3">
-                    <div class="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
-                      {{ f.label }}
-                      <span class="normal-case opacity-70"> · {{ f.fieldType }}</span>
-                    </div>
-                    <UTextarea
-                      v-if="f.fieldType === 'longtext'"
-                      :model-value="fieldVals[f.id]"
-                      class="mt-2 w-full rounded-[var(--ui-control-radius)]"
-                      autoresize
-                      :max-rows="8"
-                      @update:model-value="v => onFieldUpdate(f.id, v ?? '')"
-                    />
-                    <UInput
-                      v-else-if="f.fieldType === 'date'"
-                      :model-value="fieldVals[f.id]"
-                      type="date"
-                      class="mt-2 w-full rounded-[var(--ui-control-radius)]"
-                      @update:model-value="v => onFieldUpdate(f.id, v ?? '')"
-                    />
-                    <UInput
-                      v-else
-                      :model-value="fieldVals[f.id]"
-                      class="mt-2 w-full rounded-[var(--ui-control-radius)]"
-                      :type="f.fieldType === 'email' ? 'email' : f.fieldType === 'url' ? 'url' : 'text'"
-                      @update:model-value="v => onFieldUpdate(f.id, v ?? '')"
-                    />
-                  </div>
-                  <p v-if="fileDetail.fields.length === 0" class="mt-2 text-[13px] text-zinc-400">
-                    No custom fields. Add templates under Manage fields.
-                  </p>
-                </template>
+                    <p v-if="fileDetail.fields.length === 0" class="text-[13px] text-zinc-400">
+                      No custom fields. Add templates under Manage fields.
+                    </p>
+                  </template>
+                </div>
               </div>
 
-              <div class="mt-6 rounded-[var(--ui-control-radius)] border border-zinc-100 bg-zinc-50/70 p-4">
+              <div class="mt-6 rounded-[var(--ui-control-radius)] border border-zinc-100 bg-white p-4">
                 <div class="flex items-center justify-between gap-2">
                   <p class="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
                     Linked tasks
@@ -1017,7 +1027,7 @@ function tableRowClassesForFile(f: AppFile) {
                   <li
                     v-for="t in fileDetail.linkedTasks"
                     :key="t.id"
-                    class="flex items-center justify-between gap-2 rounded-[var(--ui-control-radius)] bg-white/60 px-3 py-2 text-[13px]"
+                    class="flex items-center justify-between gap-2 rounded-[var(--ui-control-radius)] bg-white px-3 py-2 text-[13px] ring-1 ring-zinc-950/[0.04]"
                   >
                     <NuxtLink :to="`/tasks/${t.id}`" class="min-w-0 flex-1 font-medium text-zinc-800 hover:underline">
                       {{ t.title || 'Untitled' }}

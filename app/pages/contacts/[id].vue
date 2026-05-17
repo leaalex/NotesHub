@@ -677,7 +677,7 @@ const kindLabel = computed(() =>
     Loading…
   </div>
   <main v-else class="flex min-w-0 flex-1 flex-col p-4 sm:p-6">
-    <div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--ui-panel-radius)] border border-white/70 bg-white/55 backdrop-blur-md ring-1 ring-zinc-950/[0.04] supports-[backdrop-filter]:bg-white/45">
+    <div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--ui-panel-radius)] border border-zinc-100 bg-white ring-1 ring-zinc-950/[0.04]">
       <header class="flex shrink-0 flex-wrap items-start justify-between gap-4 border-b border-zinc-100/90 px-4 py-4 sm:px-6">
         <div class="flex min-w-0 items-center gap-4">
           <div
@@ -869,7 +869,7 @@ const kindLabel = computed(() =>
                 <div
                   v-for="f in sortedFields()"
                   :key="f.id"
-                  class="mb-4 rounded-[var(--ui-control-radius)] border border-zinc-100 bg-zinc-50/70 p-3 last:mb-0"
+                  class="mb-4 rounded-[var(--ui-control-radius)] border border-zinc-100 bg-white p-3 last:mb-0"
                 >
                   <div class="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
                     {{ f.label }}
@@ -908,7 +908,7 @@ const kindLabel = computed(() =>
                 <div
                   v-for="f in sortedFields()"
                   :key="f.id"
-                  class="mb-4 flex flex-wrap items-start gap-2 rounded-[var(--ui-control-radius)] border border-zinc-100 bg-zinc-50/70 p-3"
+                  class="mb-4 flex flex-wrap items-start gap-2 rounded-[var(--ui-control-radius)] border border-zinc-100 bg-white p-3"
                 >
                   <div class="min-w-0 flex-1">
                     <div class="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
@@ -998,7 +998,7 @@ const kindLabel = computed(() =>
               <li
                 v-for="n in detail.linkedNotes"
                 :key="n.id"
-                class="flex items-start justify-between gap-1 rounded-[var(--ui-control-radius)] bg-white/50 px-2 py-1.5 ring-1 ring-zinc-950/[0.04]"
+                class="flex items-start justify-between gap-1 rounded-[var(--ui-control-radius)] bg-white px-2 py-1.5 ring-1 ring-zinc-950/[0.04]"
               >
                 <NuxtLink
                   class="flex min-w-0 flex-1 flex-col text-left hover:underline"
@@ -1072,7 +1072,7 @@ const kindLabel = computed(() =>
               <li
                 v-for="t in detail.linkedTasks"
                 :key="t.id"
-                class="flex items-start justify-between gap-1 rounded-[var(--ui-control-radius)] bg-white/50 px-2 py-1.5 ring-1 ring-zinc-950/[0.04]"
+                class="flex items-start justify-between gap-1 rounded-[var(--ui-control-radius)] bg-white px-2 py-1.5 ring-1 ring-zinc-950/[0.04]"
               >
                 <NuxtLink
                   class="flex min-w-0 flex-1 flex-col text-left hover:underline"
@@ -1115,7 +1115,7 @@ const kindLabel = computed(() =>
               <li
                 v-for="a in detail.linkedAddresses"
                 :key="a.id"
-                class="flex flex-col gap-1.5 rounded-[var(--ui-control-radius)] bg-white/50 px-2 py-2 ring-1 ring-zinc-950/[0.04]"
+                class="flex flex-col gap-1.5 rounded-[var(--ui-control-radius)] bg-white px-2 py-2 ring-1 ring-zinc-950/[0.04]"
               >
                 <div class="flex items-start justify-between gap-1">
                   <NuxtLink

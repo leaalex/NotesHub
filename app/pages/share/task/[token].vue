@@ -39,6 +39,23 @@ function viewDash(v: string | null | undefined) {
   return s.length ? s : '—'
 }
 
+function resolvedUrlHref(raw: string) {
+  const t = raw.trim()
+  if (!t)
+    return ''
+  try {
+    const u = new URL(t.startsWith('//') ? `https:${t}` : t)
+    if (u.protocol === 'http:' || u.protocol === 'https:')
+      return u.href
+    return ''
+  }
+  catch {
+    if (/^[a-zA-Z][a-zA-Z\d+.-]*:\/\//.test(t))
+      return t
+    return `https://${t}`
+  }
+}
+
 function sortedFields(rows: FieldPub[]) {
   return [...rows].sort((a, b) =>
     a.position !== b.position ? a.position - b.position : a.label.localeCompare(b.label),
@@ -88,21 +105,44 @@ function fileSizeLabel(size: number) {
           Updated {{ new Date(data.updatedAt).toLocaleString() }}
         </p>
 
-        <UiGlassPanel v-if="sortedFields(data.fields).length" class="mt-8 space-y-3 p-5">
-          <UiSectionLabel>Fields</UiSectionLabel>
-          <dl class="space-y-2 text-sm">
-            <template v-for="f in sortedFields(data.fields)" :key="f.label + f.position">
-              <div class="flex flex-col gap-0.5 border-b border-zinc-100 pb-2 last:border-0">
-                <dt class="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
-                  {{ f.label }}
-                </dt>
-                <dd class="text-zinc-800">
-                  {{ viewDash(f.value) }}
-                </dd>
+        <div v-if="sortedFields(data.fields).length" class="mt-8 border-t border-zinc-100/90 pt-6">
+          <UiSectionLabel>Custom fields</UiSectionLabel>
+          <div class="mt-3">
+            <div
+              v-for="f in sortedFields(data.fields)"
+              :key="`${f.label}-${f.position}`"
+              class="mb-4 rounded-[var(--ui-control-radius)] border border-zinc-100 bg-white p-3 last:mb-0"
+            >
+              <div class="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+                {{ f.label }}
+                <span class="normal-case opacity-70"> · {{ f.fieldType }}</span>
               </div>
-            </template>
-          </dl>
-        </UiGlassPanel>
+              <div class="mt-2 min-w-0 text-[13px] text-zinc-900">
+                <template v-if="f.fieldType === 'email' && String(f.value || '').trim()">
+                  <a :href="`mailto:${String(f.value).trim()}`" class="font-medium underline decoration-zinc-300 underline-offset-2 hover:text-zinc-700">
+                    {{ String(f.value).trim() }}
+                  </a>
+                </template>
+                <template v-else-if="f.fieldType === 'url' && String(f.value || '').trim()">
+                  <a
+                    :href="resolvedUrlHref(String(f.value))"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="break-all font-medium underline decoration-zinc-300 underline-offset-2 hover:text-zinc-700"
+                  >
+                    {{ String(f.value).trim() }}
+                  </a>
+                </template>
+                <p v-else-if="f.fieldType === 'longtext'" class="whitespace-pre-wrap">
+                  {{ viewDash(f.value) }}
+                </p>
+                <template v-else>
+                  {{ viewDash(f.value) }}
+                </template>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <UiGlassPanel v-if="data.linkedNotes.length" class="mt-6 space-y-2 p-5">
           <UiSectionLabel>Linked notes</UiSectionLabel>

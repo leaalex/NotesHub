@@ -61,7 +61,7 @@ async function submit() {
 
 <template>
   <div class="relative flex min-h-dvh items-center justify-center overflow-hidden bg-slate-100 px-4 py-14">
-    <UiGlassPanel class="relative z-10 w-full max-w-[420px] overflow-hidden bg-white/70 supports-[backdrop-filter]:bg-white/55">
+    <UiGlassPanel class="relative z-10 w-full max-w-[420px] overflow-hidden">
       <UCard :ui="loginCardUi" class="my-0 border-0 bg-transparent ring-0 shadow-none">
       <template #header>
         <div class="text-center">

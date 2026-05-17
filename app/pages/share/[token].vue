@@ -60,7 +60,7 @@ function scrollShareToHeading(id: string) {
           Updated {{ new Date(data.updatedAt).toLocaleString() }}
         </p>
 
-        <div class="mt-10 overflow-hidden rounded-[var(--ui-panel-radius)] border border-white/70 bg-white/55 backdrop-blur-md ring-1 ring-zinc-950/[0.04] supports-[backdrop-filter]:bg-white/45">
+        <div class="mt-10 overflow-hidden rounded-[var(--ui-panel-radius)] border border-zinc-100 bg-white ring-1 ring-zinc-950/[0.04]">
           <div class="flex max-h-[min(72vh,52rem)] min-h-[min(40vh,28rem)] overflow-hidden">
             <div class="ui-scrollbar min-h-0 flex-1 overflow-y-auto p-5 sm:p-8">
               <ClientOnly>

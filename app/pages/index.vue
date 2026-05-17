@@ -840,7 +840,7 @@ function tableRowClasses(n: NoteList) {
     </template>
 
     <main v-if="currentNote" class="flex min-w-0 flex-1 flex-col p-4 sm:p-6">
-      <div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--ui-panel-radius)] border border-white/70 bg-white/55 backdrop-blur-md ring-1 ring-zinc-950/[0.04] supports-[backdrop-filter]:bg-white/45">
+      <div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--ui-panel-radius)] border border-zinc-100 bg-white ring-1 ring-zinc-950/[0.04]">
         <header class="flex shrink-0 flex-wrap items-center gap-2 border-b border-zinc-100/90 px-4 py-3 sm:px-6">
           <div class="min-w-[12rem] flex-1">
             <h1
@@ -1013,7 +1013,7 @@ function tableRowClasses(n: NoteList) {
                 <li
                   v-for="c in linkedContacts"
                   :key="c.contactId"
-                  class="flex items-start justify-between gap-1 rounded-[var(--ui-control-radius)] bg-white/50 px-2 py-1.5 ring-1 ring-zinc-950/[0.04]"
+                  class="flex items-start justify-between gap-1 rounded-[var(--ui-control-radius)] bg-white px-2 py-1.5 ring-1 ring-zinc-950/[0.04]"
                 >
                   <NuxtLink
                     class="flex min-w-0 flex-col text-left hover:underline"

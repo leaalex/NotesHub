@@ -121,7 +121,7 @@ const kindLabel = computed(() =>
           </div>
         </div>
 
-        <div class="mt-10 overflow-hidden rounded-[var(--ui-panel-radius)] border border-white/70 bg-white/55 backdrop-blur-md ring-1 ring-zinc-950/[0.04] supports-[backdrop-filter]:bg-white/45">
+        <div class="mt-10 overflow-hidden rounded-[var(--ui-panel-radius)] border border-zinc-100 bg-white ring-1 ring-zinc-950/[0.04]">
           <div class="ui-scrollbar max-h-[min(70vh,48rem)] overflow-y-auto px-3 py-6 sm:px-8 sm:py-8">
             <UiSectionLabel>
               Basics
@@ -171,7 +171,7 @@ const kindLabel = computed(() =>
                 <div
                   v-for="f in sortedFields(data.fields)"
                   :key="`${f.label}-${f.position}`"
-                  class="mb-4 rounded-[var(--ui-control-radius)] border border-zinc-100 bg-zinc-50/70 p-3 last:mb-0"
+                  class="mb-4 rounded-[var(--ui-control-radius)] border border-zinc-100 bg-white p-3 last:mb-0"
                 >
                   <div class="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
                     {{ f.label }}
@@ -215,7 +215,7 @@ const kindLabel = computed(() =>
                 <li
                   v-for="(n, i) in data.linkedNotes"
                   :key="i"
-                  class="rounded-[var(--ui-control-radius)] bg-zinc-50/80 px-3 py-2"
+                  class="rounded-[var(--ui-control-radius)] bg-white px-3 py-2 ring-1 ring-zinc-950/[0.04]"
                 >
                   <a
                     v-if="n.shareUrl"
@@ -245,7 +245,7 @@ const kindLabel = computed(() =>
                 <li
                   v-for="(file, i) in data.linkedFiles"
                   :key="i"
-                  class="rounded-[var(--ui-control-radius)] border border-zinc-200/80 bg-white/50 px-3 py-2 ring-1 ring-zinc-950/[0.03]"
+                  class="rounded-[var(--ui-control-radius)] border border-zinc-200/80 bg-white px-3 py-2 ring-1 ring-zinc-950/[0.03]"
                 >
                   <a
                     v-if="file.shareUrl"

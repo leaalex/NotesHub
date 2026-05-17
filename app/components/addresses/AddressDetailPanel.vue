@@ -210,6 +210,11 @@ async function unlinkContact(contactId: string) {
   await apiFetch(`/api/contacts/${contactId}/addresses/${detail.value.id}`, { method: 'DELETE' })
   linkedContacts.value = await apiFetch(`/api/addresses/${detail.value.id}/contacts`)
 }
+
+function viewDash(v: string | null | undefined) {
+  const s = String(v ?? '').trim()
+  return s.length ? s : '—'
+}
 </script>
 
 <template>
@@ -218,7 +223,7 @@ async function unlinkContact(contactId: string) {
       Loading…
     </div>
     <main v-else class="flex w-full min-w-0 flex-col p-4 sm:p-6">
-      <div class="overflow-hidden rounded-[var(--ui-panel-radius)] border border-white/70 bg-white/55 backdrop-blur-md ring-1 ring-zinc-950/[0.04] supports-[backdrop-filter]:bg-white/45">
+      <div class="overflow-hidden rounded-[var(--ui-panel-radius)] border border-zinc-100 bg-white ring-1 ring-zinc-950/[0.04]">
         <header class="flex shrink-0 flex-wrap items-start justify-between gap-4 border-b border-zinc-100/90 px-4 py-4 sm:px-6">
           <div class="flex min-w-0 items-center gap-4">
             <div
@@ -280,28 +285,92 @@ async function unlinkContact(contactId: string) {
         <div class="flex flex-col xl:flex-row xl:items-stretch">
           <div class="min-w-0 flex-1 px-3 pb-10 pt-2 sm:px-8">
             <UiSectionLabel>Address</UiSectionLabel>
-            <div class="mt-3 w-full max-w-full space-y-3">
-              <UFormField label="Label" class="w-full">
-                <UInput v-model="coreLabel" :disabled="!isEditing" class="w-full rounded-[var(--ui-control-radius)]" />
-              </UFormField>
-              <UFormField label="Line 1" class="w-full">
-                <UInput v-model="coreLine1" :disabled="!isEditing" class="w-full rounded-[var(--ui-control-radius)]" />
-              </UFormField>
-              <UFormField label="Line 2" class="w-full">
-                <UInput v-model="coreLine2" :disabled="!isEditing" class="w-full rounded-[var(--ui-control-radius)]" />
-              </UFormField>
-              <UFormField label="City" class="w-full">
-                <UInput v-model="coreCity" :disabled="!isEditing" class="w-full rounded-[var(--ui-control-radius)]" />
-              </UFormField>
-              <UFormField label="Region" class="w-full">
-                <UInput v-model="coreRegion" :disabled="!isEditing" class="w-full rounded-[var(--ui-control-radius)]" />
-              </UFormField>
-              <UFormField label="Postal code" class="w-full">
-                <UInput v-model="corePostal" :disabled="!isEditing" class="w-full rounded-[var(--ui-control-radius)]" />
-              </UFormField>
-              <UFormField label="Country code" class="w-full">
-                <UInput v-model="coreCountry" :disabled="!isEditing" class="w-full rounded-[var(--ui-control-radius)]" />
-              </UFormField>
+            <div class="mt-3 w-full max-w-full">
+              <template v-if="!isEditing">
+                <div class="space-y-4">
+                  <div>
+                    <div class="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+                      Label
+                    </div>
+                    <div class="mt-1 text-[13px] text-zinc-900">
+                      {{ viewDash(coreLabel) }}
+                    </div>
+                  </div>
+                  <div>
+                    <div class="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+                      Line 1
+                    </div>
+                    <div class="mt-1 text-[13px] text-zinc-900">
+                      {{ viewDash(coreLine1) }}
+                    </div>
+                  </div>
+                  <div>
+                    <div class="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+                      Line 2
+                    </div>
+                    <div class="mt-1 text-[13px] text-zinc-900">
+                      {{ viewDash(coreLine2) }}
+                    </div>
+                  </div>
+                  <div>
+                    <div class="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+                      City
+                    </div>
+                    <div class="mt-1 text-[13px] text-zinc-900">
+                      {{ viewDash(coreCity) }}
+                    </div>
+                  </div>
+                  <div>
+                    <div class="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+                      Region
+                    </div>
+                    <div class="mt-1 text-[13px] text-zinc-900">
+                      {{ viewDash(coreRegion) }}
+                    </div>
+                  </div>
+                  <div>
+                    <div class="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+                      Postal code
+                    </div>
+                    <div class="mt-1 text-[13px] text-zinc-900">
+                      {{ viewDash(corePostal) }}
+                    </div>
+                  </div>
+                  <div>
+                    <div class="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+                      Country code
+                    </div>
+                    <div class="mt-1 text-[13px] text-zinc-900">
+                      {{ viewDash(coreCountry) }}
+                    </div>
+                  </div>
+                </div>
+              </template>
+              <template v-else>
+                <div class="w-full max-w-full space-y-3">
+                  <UFormField label="Label" class="w-full">
+                    <UInput v-model="coreLabel" class="w-full rounded-[var(--ui-control-radius)]" />
+                  </UFormField>
+                  <UFormField label="Line 1" class="w-full">
+                    <UInput v-model="coreLine1" class="w-full rounded-[var(--ui-control-radius)]" />
+                  </UFormField>
+                  <UFormField label="Line 2" class="w-full">
+                    <UInput v-model="coreLine2" class="w-full rounded-[var(--ui-control-radius)]" />
+                  </UFormField>
+                  <UFormField label="City" class="w-full">
+                    <UInput v-model="coreCity" class="w-full rounded-[var(--ui-control-radius)]" />
+                  </UFormField>
+                  <UFormField label="Region" class="w-full">
+                    <UInput v-model="coreRegion" class="w-full rounded-[var(--ui-control-radius)]" />
+                  </UFormField>
+                  <UFormField label="Postal code" class="w-full">
+                    <UInput v-model="corePostal" class="w-full rounded-[var(--ui-control-radius)]" />
+                  </UFormField>
+                  <UFormField label="Country code" class="w-full">
+                    <UInput v-model="coreCountry" class="w-full rounded-[var(--ui-control-radius)]" />
+                  </UFormField>
+                </div>
+              </template>
             </div>
           </div>
 
@@ -325,7 +394,7 @@ async function unlinkContact(contactId: string) {
               <li
                 v-for="c in linkedContacts"
                 :key="c.id"
-                class="flex items-start justify-between gap-1 rounded-[var(--ui-control-radius)] bg-white/50 px-2 py-1.5 ring-1 ring-zinc-950/[0.04]"
+                class="flex items-start justify-between gap-1 rounded-[var(--ui-control-radius)] bg-white px-2 py-1.5 ring-1 ring-zinc-950/[0.04]"
               >
                 <NuxtLink
                   class="flex min-w-0 flex-1 flex-col text-left hover:underline"
