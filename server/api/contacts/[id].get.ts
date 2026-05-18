@@ -39,6 +39,8 @@ export default defineEventHandler(async (event) => {
     .select({
       id: notes.id,
       title: notes.title,
+      shareEnabled: notes.shareEnabled,
+      shareToken: notes.shareToken,
     })
     .from(noteContacts)
     .innerJoin(notes, eq(noteContacts.noteId, notes.id))
@@ -61,6 +63,8 @@ export default defineEventHandler(async (event) => {
       title: tasks.title,
       status: tasks.status,
       priority: tasks.priority,
+      shareEnabled: tasks.shareEnabled,
+      shareToken: tasks.shareToken,
     })
     .from(contactTasks)
     .innerJoin(tasks, eq(contactTasks.taskId, tasks.id))

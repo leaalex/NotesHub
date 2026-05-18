@@ -13,6 +13,7 @@ export default defineEventHandler(async (event) => {
   const body = await readBody<{
     title?: string
     description?: string
+    shareIncludeLinks?: boolean
   }>(event)
 
   const [existing] = await db
@@ -31,6 +32,9 @@ export default defineEventHandler(async (event) => {
     .set({
       title,
       description,
+      ...(body.shareIncludeLinks !== undefined
+        ? { shareIncludeLinks: body.shareIncludeLinks }
+        : {}),
       updatedAt: new Date(),
     })
     .where(eq(files.id, id))

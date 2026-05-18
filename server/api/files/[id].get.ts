@@ -30,6 +30,8 @@ export default defineEventHandler(async (event) => {
       title: tasks.title,
       status: tasks.status,
       priority: tasks.priority,
+      shareEnabled: tasks.shareEnabled,
+      shareToken: tasks.shareToken,
     })
     .from(taskFiles)
     .innerJoin(tasks, eq(taskFiles.taskId, tasks.id))

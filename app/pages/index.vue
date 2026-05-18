@@ -27,6 +27,7 @@ type NoteDetail = NoteList & {
   content: string
   shareToken: string | null
   shareEnabled: boolean
+  shareIncludeLinks?: boolean
   linkedFiles?: AppFile[]
 }
 
@@ -43,7 +44,6 @@ const currentNote = ref<NoteDetail | null>(null)
 const title = ref('')
 const content = ref('')
 const excerpt = ref('')
-const shareUrl = ref('')
 const creatingNote = ref(false)
 const showDeleteNoteConfirm = ref(false)
 const deletingNote = ref(false)
@@ -74,6 +74,48 @@ const filteredNotes = computed(() => {
   )
 })
 
+const noteShareHref = computed(() => {
+  const n = currentNote.value
+  if (!n?.shareEnabled || !n.shareToken)
+    return ''
+  const base = String(runtimeConfig.public.siteUrl ?? '').replace(/\/$/, '')
+  return base ? `${base}/share/${n.shareToken}` : ''
+})
+
+const noteShareIncludeLinks = ref(true)
+watch(
+  currentNote,
+  (n) => {
+    noteShareIncludeLinks.value = n?.shareIncludeLinks ?? true
+  },
+  { immediate: true },
+)
+
+async function onNoteShareIncludeLinksChange(value: boolean) {
+  const id = selectedNoteId.value
+  const n = currentNote.value
+  if (!id || !n)
+    return
+  const prev = n.shareIncludeLinks ?? true
+  noteShareIncludeLinks.value = value
+  n.shareIncludeLinks = value
+  try {
+    const row = await apiFetch<NoteDetail>(`/api/notes/${id}`, {
+      method: 'PATCH',
+      body: { shareIncludeLinks: value },
+    })
+    if (currentNote.value?.id === row.id)
+      currentNote.value = { ...currentNote.value, ...row }
+    upsertNoteInLocalList(row)
+  }
+  catch (e: unknown) {
+    noteShareIncludeLinks.value = prev
+    if (currentNote.value)
+      currentNote.value.shareIncludeLinks = prev
+    notifyApiError('Could not update share settings', e)
+  }
+}
+
 /** Заголовки текущей заметки для Notion-like навигации (клиент-only). */
 const noteOutline = ref<NoteOutlineItem[]>([])
 
@@ -82,6 +124,8 @@ type LinkedContact = {
   displayName: string
   type: string
   source: string
+  shareEnabled?: boolean
+  shareToken?: string | null
 }
 
 type AppFile = {
@@ -102,6 +146,22 @@ const linkedFiles = ref<AppFile[]>([])
 const showLinkContact = ref(false)
 const linkContactQuery = ref('')
 const noteFileInput = ref<HTMLInputElement | null>(null)
+
+const { isBusy: isLinkedEntityShareBusy, toggleShare: toggleLinkedEntityShare } = useEntityShareToggle()
+
+async function onLinkedContactShareToggle(c: LinkedContact, nextEnabled: boolean) {
+  const prevEnabled = c.shareEnabled ?? false
+  const prevToken = c.shareToken ?? null
+  try {
+    const r = await toggleLinkedEntityShare('contact', c.contactId, nextEnabled)
+    c.shareEnabled = r.shareEnabled
+    c.shareToken = r.shareToken
+  }
+  catch {
+    c.shareEnabled = prevEnabled
+    c.shareToken = prevToken
+  }
+}
 
 const noteEditorRef = ref<{
   tiptapEditor: Ref<Editor | undefined> | Editor | undefined
@@ -310,7 +370,6 @@ function openNoteFromRow(n: NoteDetail) {
   notePersistDebounce.cancel()
   hydratingNote.value = true
   try {
-    shareUrl.value = ''
     selectedNoteId.value = n.id
     currentNote.value = n
     title.value = n.title
@@ -477,7 +536,6 @@ watch(folderFilter, async () => {
 async function selectNote(id: string, opts?: { signal?: AbortSignal }) {
   notePersistDebounce.cancel()
   isEditing.value = false
-  shareUrl.value = ''
   hydratingNote.value = true
   try {
     /** Сначала загружаем заметку: иначе `selectedNoteId` меняется раньше данных, редактор перемонтируется со старым `content` и PATCH затрёт новую запись чужим JSON. */
@@ -574,16 +632,8 @@ async function confirmDeleteNote() {
   }
 }
 
-function currentNoteShareHref(): string {
-  const n = currentNote.value
-  if (!n?.shareEnabled || !n.shareToken)
-    return ''
-  const base = String(runtimeConfig.public.siteUrl ?? '').replace(/\/$/, '')
-  return base ? `${base}/share/${n.shareToken}` : ''
-}
-
 async function copyNoteShareLink() {
-  const href = currentNoteShareHref()
+  const href = noteShareHref.value
   if (!href) {
     toast.add({
       title: 'No share link',
@@ -594,7 +644,6 @@ async function copyNoteShareLink() {
   }
   try {
     await navigator.clipboard.writeText(href)
-    shareUrl.value = href
     toast.add({
       title: 'Link copied',
       color: 'success',
@@ -613,7 +662,6 @@ async function enableShareLink() {
   if (!selectedNoteId.value) return
   try {
     const r = await apiFetch<{ url: string, shareToken?: string }>(`/api/notes/${selectedNoteId.value}/share`, { method: 'POST', body: {} })
-    shareUrl.value = r.url
     await refreshNotes()
     const id = selectedNoteId.value
     if (currentNote.value?.id === id) {
@@ -631,7 +679,6 @@ async function disableShareLink() {
   if (!selectedNoteId.value) return
   try {
     await apiFetch(`/api/notes/${selectedNoteId.value}/share`, { method: 'DELETE' })
-    shareUrl.value = ''
     if (currentNote.value) {
       currentNote.value.shareEnabled = false
       currentNote.value.shareToken = null
@@ -907,16 +954,6 @@ function tableRowClasses(n: NoteList) {
             <template v-else>
               <UButton
                 size="xs"
-                variant="ghost"
-                color="neutral"
-                icon="i-lucide-copy"
-                class="rounded-[var(--ui-control-radius)] px-3"
-                @click="copyNoteShareLink"
-              >
-                Copy link
-              </UButton>
-              <UButton
-                size="xs"
                 color="error"
                 variant="ghost"
                 icon="i-lucide-link-2-off"
@@ -970,11 +1007,31 @@ function tableRowClasses(n: NoteList) {
         </header>
 
         <div
-          v-if="shareUrl"
+          v-if="noteShareHref"
           class="shrink-0 border-b border-emerald-100/90 bg-emerald-50/80 px-4 py-2 text-[11px] text-emerald-950 sm:px-6"
         >
-          <span class="font-semibold text-emerald-900">Shared · </span>
-          <span class="break-all font-mono text-emerald-900/90">{{ shareUrl }}</span>
+          <div class="flex flex-wrap items-center gap-3">
+            <span class="flex min-w-0 flex-1 basis-full items-center gap-2 sm:basis-auto sm:flex-1">
+              <span class="shrink-0 font-semibold text-emerald-900">Shared ·</span>
+              <span class="min-w-0 break-all font-mono text-emerald-900/90">{{ noteShareHref }}</span>
+            </span>
+            <UButton
+              size="xs"
+              variant="ghost"
+              color="neutral"
+              icon="i-lucide-copy"
+              class="rounded-[var(--ui-control-radius)]"
+              @click="copyNoteShareLink"
+            >
+              Copy
+            </UButton>
+            <USwitch
+              :model-value="noteShareIncludeLinks"
+              label="Include links"
+              size="xs"
+              @update:model-value="onNoteShareIncludeLinksChange"
+            />
+          </div>
         </div>
 
         <div class="relative flex min-h-0 flex-1 overflow-hidden">
@@ -1056,23 +1113,28 @@ function tableRowClasses(n: NoteList) {
                   + Link
                 </button>
               </div>
-              <ul v-if="linkedContacts.length" class="mt-3 flex flex-col gap-1">
+              <ul v-if="linkedContacts.length" class="mt-3 flex flex-col gap-2">
                 <li
                   v-for="c in linkedContacts"
                   :key="c.contactId"
-                  class="flex items-start justify-between gap-1 rounded-[var(--ui-control-radius)] bg-white px-2 py-1.5 ring-1 ring-zinc-950/[0.04]"
+                  class="flex items-start gap-1"
                 >
-                  <NuxtLink
-                    class="flex min-w-0 flex-col text-left hover:underline"
+                  <ShareLinkedShareRow
+                    class="min-w-0 flex-1"
+                    kind="contact"
+                    :entity-id="c.contactId"
+                    :title="c.displayName"
+                    :subtitle="c.type"
                     :to="`/contacts/${c.contactId}`"
-                  >
-                    <span class="line-clamp-2 text-[12px] font-medium leading-snug text-zinc-800">{{ c.displayName }}</span>
-                    <span class="text-[10px] font-medium uppercase tracking-wide text-zinc-400">{{ c.type }}</span>
-                  </NuxtLink>
+                    :share-enabled="c.shareEnabled ?? false"
+                    :share-token="c.shareToken ?? null"
+                    :busy="isLinkedEntityShareBusy('contact', c.contactId)"
+                    @toggle="onLinkedContactShareToggle(c, $event)"
+                  />
                   <button
                     v-if="isEditing"
                     type="button"
-                    class="shrink-0 rounded-[var(--ui-control-radius)] p-1 text-zinc-400 hover:bg-white hover:text-red-600"
+                    class="mt-0.5 shrink-0 rounded-[var(--ui-control-radius)] p-1 text-zinc-400 hover:bg-white hover:text-red-600"
                     aria-label="Unlink contact"
                     @click="unlinkContact(c.contactId)"
                   >
@@ -1106,7 +1168,7 @@ function tableRowClasses(n: NoteList) {
                   :file="f"
                   :show-unlink="isEditing"
                   :show-delete="isEditing"
-                  :show-share="isEditing"
+                  :show-share="true"
                   @unlink="unlinkFileFromNote"
                   @delete="deleteFileEverywhere"
                   @toggle-share="(fileId, nextEnabled) => toggleFileShare(fileId, nextEnabled)"

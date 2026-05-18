@@ -27,6 +27,7 @@ export default defineEventHandler(async (event) => {
       updatedAt: contacts.updatedAt,
       shareExpiresAt: contacts.shareExpiresAt,
       shareEnabled: contacts.shareEnabled,
+      shareIncludeLinks: contacts.shareIncludeLinks,
     })
     .from(contacts)
     .where(and(eq(contacts.shareToken, token), eq(contacts.shareEnabled, true)))
@@ -50,32 +51,38 @@ export default defineEventHandler(async (event) => {
     .where(eq(contactFieldValues.contactId, row.id))
     .orderBy(asc(contactFieldValues.position), asc(contactFieldValues.id))
 
-  const linkedNoteRows = await db
-    .select({
-      title: notes.title,
-      shareEnabled: notes.shareEnabled,
-      shareToken: notes.shareToken,
-    })
-    .from(noteContacts)
-    .innerJoin(notes, eq(noteContacts.noteId, notes.id))
-    .where(and(
-      eq(noteContacts.contactId, row.id),
-      eq(notes.userId, row.userId),
-    ))
-    .orderBy(notes.updatedAt)
+  const includeLinks = row.shareIncludeLinks !== false
 
-  const linkedFileRows = await db
-    .select({
-      originalName: files.originalName,
-      mimeType: files.mimeType,
-      size: files.size,
-      shareEnabled: files.shareEnabled,
-      shareToken: files.shareToken,
-    })
-    .from(contactFiles)
-    .innerJoin(files, eq(contactFiles.fileId, files.id))
-    .where(and(eq(contactFiles.contactId, row.id), eq(files.userId, row.userId)))
-    .orderBy(files.updatedAt)
+  const linkedNoteRows = includeLinks
+    ? await db
+        .select({
+          title: notes.title,
+          shareEnabled: notes.shareEnabled,
+          shareToken: notes.shareToken,
+        })
+        .from(noteContacts)
+        .innerJoin(notes, eq(noteContacts.noteId, notes.id))
+        .where(and(
+          eq(noteContacts.contactId, row.id),
+          eq(notes.userId, row.userId),
+        ))
+        .orderBy(notes.updatedAt)
+    : []
+
+  const linkedFileRows = includeLinks
+    ? await db
+        .select({
+          originalName: files.originalName,
+          mimeType: files.mimeType,
+          size: files.size,
+          shareEnabled: files.shareEnabled,
+          shareToken: files.shareToken,
+        })
+        .from(contactFiles)
+        .innerJoin(files, eq(contactFiles.fileId, files.id))
+        .where(and(eq(contactFiles.contactId, row.id), eq(files.userId, row.userId)))
+        .orderBy(files.updatedAt)
+    : []
 
   const config = useRuntimeConfig()
   const base = (config.public.siteUrl as string).replace(/\/$/, '')

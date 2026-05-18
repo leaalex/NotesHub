@@ -15,6 +15,7 @@ export function toFileDto(row: FileRow, siteUrl: string) {
     updatedAt: row.updatedAt,
     shareEnabled: row.shareEnabled,
     shareToken: row.shareToken,
+    shareIncludeLinks: row.shareIncludeLinks,
     downloadUrl: `/api/files/${row.id}/download`,
     shareUrl: row.shareEnabled && row.shareToken ? `${base}/share/file/${row.shareToken}` : null,
   }

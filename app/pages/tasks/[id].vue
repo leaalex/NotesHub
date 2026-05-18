@@ -37,9 +37,10 @@ type TaskDetail = {
   shareEnabled?: boolean
   shareToken?: string | null
   shareExpiresAt?: string | Date | null
+  shareIncludeLinks?: boolean
   fields: FieldRow[]
-  linkedNotes: { id: string, title: string }[]
-  linkedContacts: { id: string, displayName: string, type: string }[]
+  linkedNotes: { id: string, title: string, shareEnabled?: boolean, shareToken?: string | null }[]
+  linkedContacts: { id: string, displayName: string, type: string, shareEnabled?: boolean, shareToken?: string | null }[]
   linkedFiles: AppFile[]
   children: { id: string, title: string, status: string, priority: string }[]
 }
@@ -52,6 +53,7 @@ type FileSearch = { id: string, originalName: string, title?: string }
 const route = useRoute()
 const router = useRouter()
 const toast = useToast()
+const { isBusy: isTaskLinkedShareBusy, toggleShare: toggleTaskLinkedShare } = useEntityShareToggle()
 const apiFetch = useRequestFetch()
 const runtimeConfig = useRuntimeConfig()
 
@@ -139,7 +141,6 @@ async function enableShare() {
     return
   try {
     const r = await apiFetch<{ url: string, shareToken: string }>(`/api/tasks/${detail.value.id}/share`, { method: 'POST', body: {} })
-    taskShareUrl.value = r.url
     detail.value.shareEnabled = true
     detail.value.shareToken = r.shareToken
   }
@@ -165,6 +166,40 @@ async function disableShare() {
   }
 }
 
+async function onTaskLinkedNoteShareToggle(
+  n: TaskDetail['linkedNotes'][number],
+  nextEnabled: boolean,
+) {
+  const prevE = n.shareEnabled ?? false
+  const prevT = n.shareToken ?? null
+  try {
+    const r = await toggleTaskLinkedShare('note', n.id, nextEnabled)
+    n.shareEnabled = r.shareEnabled
+    n.shareToken = r.shareToken
+  }
+  catch {
+    n.shareEnabled = prevE
+    n.shareToken = prevT
+  }
+}
+
+async function onTaskLinkedContactShareToggle(
+  c: TaskDetail['linkedContacts'][number],
+  nextEnabled: boolean,
+) {
+  const prevE = c.shareEnabled ?? false
+  const prevT = c.shareToken ?? null
+  try {
+    const r = await toggleTaskLinkedShare('contact', c.id, nextEnabled)
+    c.shareEnabled = r.shareEnabled
+    c.shareToken = r.shareToken
+  }
+  catch {
+    c.shareEnabled = prevE
+    c.shareToken = prevT
+  }
+}
+
 async function copyShareLink() {
   syncTaskShareUrl()
   const url = taskShareUrl.value.trim()
@@ -182,6 +217,37 @@ async function copyShareLink() {
 }
 
 watch(detail, syncTaskShareUrl, { deep: true })
+
+const taskShareIncludeLinks = ref(true)
+watch(
+  detail,
+  (d) => {
+    taskShareIncludeLinks.value = d?.shareIncludeLinks ?? true
+  },
+  { immediate: true, deep: true },
+)
+
+async function onTaskShareIncludeLinksChange(value: boolean) {
+  if (!detail.value)
+    return
+  const id = detail.value.id
+  const prev = detail.value.shareIncludeLinks ?? true
+  taskShareIncludeLinks.value = value
+  detail.value.shareIncludeLinks = value
+  try {
+    await apiFetch(`/api/tasks/${id}`, {
+      method: 'PATCH',
+      body: { shareIncludeLinks: value },
+    })
+  }
+  catch (e: unknown) {
+    console.error(e)
+    taskShareIncludeLinks.value = prev
+    if (detail.value)
+      detail.value.shareIncludeLinks = prev
+    toast.add({ title: 'Could not update share settings', color: 'error' })
+  }
+}
 
 function refreshFieldVals(rows: FieldRow[]) {
   for (const k of Object.keys(fieldVals))
@@ -651,16 +717,6 @@ function requestDeleteTask() {
           <template v-else>
             <UButton
               size="xs"
-              variant="ghost"
-              color="neutral"
-              icon="i-lucide-copy"
-              class="rounded-[var(--ui-control-radius)] px-3"
-              @click="copyShareLink"
-            >
-              Copy link
-            </UButton>
-            <UButton
-              size="xs"
               color="error"
               variant="ghost"
               icon="i-lucide-link-2-off"
@@ -717,8 +773,28 @@ function requestDeleteTask() {
         v-if="taskShareUrl"
         class="shrink-0 border-b border-emerald-100/90 bg-emerald-50/80 px-4 py-2 text-[11px] text-emerald-950 sm:px-6"
       >
-        <span class="font-semibold text-emerald-900">Shared · </span>
-        <span class="break-all font-mono text-emerald-900/90">{{ taskShareUrl }}</span>
+        <div class="flex flex-wrap items-center gap-3">
+          <span class="flex min-w-0 flex-1 basis-full items-center gap-2 sm:basis-auto sm:flex-1">
+            <span class="shrink-0 font-semibold text-emerald-900">Shared ·</span>
+            <span class="min-w-0 break-all font-mono text-emerald-900/90">{{ taskShareUrl }}</span>
+          </span>
+          <UButton
+            size="xs"
+            variant="ghost"
+            color="neutral"
+            icon="i-lucide-copy"
+            class="rounded-[var(--ui-control-radius)]"
+            @click="copyShareLink"
+          >
+            Copy
+          </UButton>
+          <USwitch
+            :model-value="taskShareIncludeLinks"
+            label="Include links"
+            size="xs"
+            @update:model-value="onTaskShareIncludeLinksChange"
+          />
+        </div>
       </div>
 
       <div class="relative flex min-h-0 flex-1 overflow-hidden">
@@ -979,22 +1055,27 @@ function requestDeleteTask() {
                 + Link
               </button>
             </div>
-            <ul v-if="detail.linkedNotes.length" class="mt-3 flex flex-col gap-1">
+            <ul v-if="detail.linkedNotes.length" class="mt-3 flex flex-col gap-2">
               <li
                 v-for="n in detail.linkedNotes"
                 :key="n.id"
-                class="flex items-start justify-between gap-1 rounded-[var(--ui-control-radius)] bg-white px-2 py-1.5 ring-1 ring-zinc-950/[0.04]"
+                class="flex items-start gap-1"
               >
-                <NuxtLink
-                  class="flex min-w-0 flex-1 flex-col text-left hover:underline"
+                <ShareLinkedShareRow
+                  class="min-w-0 flex-1"
+                  kind="note"
+                  :entity-id="n.id"
+                  :title="n.title || 'Untitled'"
                   :to="{ path: '/', query: { note: n.id } }"
-                >
-                  <span class="line-clamp-2 text-[12px] font-medium leading-snug text-zinc-800">{{ n.title || 'Untitled' }}</span>
-                </NuxtLink>
+                  :share-enabled="n.shareEnabled ?? false"
+                  :share-token="n.shareToken ?? null"
+                  :busy="isTaskLinkedShareBusy('note', n.id)"
+                  @toggle="onTaskLinkedNoteShareToggle(n, $event)"
+                />
                 <button
                   v-if="isEditing"
                   type="button"
-                  class="shrink-0 rounded-[var(--ui-control-radius)] p-1 text-zinc-400 hover:bg-white hover:text-red-600"
+                  class="mt-0.5 shrink-0 rounded-[var(--ui-control-radius)] p-1 text-zinc-400 hover:bg-white hover:text-red-600"
                   aria-label="Unlink note"
                   @click="unlinkNote(n.id)"
                 >
@@ -1021,23 +1102,28 @@ function requestDeleteTask() {
                 + Link
               </button>
             </div>
-            <ul v-if="detail.linkedContacts.length" class="mt-3 flex flex-col gap-1">
+            <ul v-if="detail.linkedContacts.length" class="mt-3 flex flex-col gap-2">
               <li
                 v-for="c in detail.linkedContacts"
                 :key="c.id"
-                class="flex items-start justify-between gap-1 rounded-[var(--ui-control-radius)] bg-white px-2 py-1.5 ring-1 ring-zinc-950/[0.04]"
+                class="flex items-start gap-1"
               >
-                <NuxtLink
-                  class="flex min-w-0 flex-1 flex-col text-left hover:underline"
+                <ShareLinkedShareRow
+                  class="min-w-0 flex-1"
+                  kind="contact"
+                  :entity-id="c.id"
+                  :title="c.displayName"
+                  :subtitle="c.type"
                   :to="`/contacts/${c.id}`"
-                >
-                  <span class="line-clamp-2 text-[12px] font-medium leading-snug text-zinc-800">{{ c.displayName }}</span>
-                  <span class="text-[10px] font-medium uppercase tracking-wide text-zinc-400">{{ c.type }}</span>
-                </NuxtLink>
+                  :share-enabled="c.shareEnabled ?? false"
+                  :share-token="c.shareToken ?? null"
+                  :busy="isTaskLinkedShareBusy('contact', c.id)"
+                  @toggle="onTaskLinkedContactShareToggle(c, $event)"
+                />
                 <button
                   v-if="isEditing"
                   type="button"
-                  class="shrink-0 rounded-[var(--ui-control-radius)] p-1 text-zinc-400 hover:bg-white hover:text-red-600"
+                  class="mt-0.5 shrink-0 rounded-[var(--ui-control-radius)] p-1 text-zinc-400 hover:bg-white hover:text-red-600"
                   aria-label="Unlink contact"
                   @click="unlinkContact(c.id)"
                 >
@@ -1071,7 +1157,7 @@ function requestDeleteTask() {
                 :file="f"
                 :show-unlink="isEditing"
                 :show-delete="isEditing"
-                :show-share="isEditing"
+                :show-share="true"
                 @unlink="unlinkFile"
                 @delete="deleteFileEverywhere"
                 @toggle-share="(fileId, nextEnabled) => toggleFileShare(fileId, nextEnabled)"

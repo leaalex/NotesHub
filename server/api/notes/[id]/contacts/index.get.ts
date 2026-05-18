@@ -23,6 +23,8 @@ export default defineEventHandler(async (event) => {
       displayName: contacts.displayName,
       type: contacts.type,
       source: noteContacts.source,
+      shareEnabled: contacts.shareEnabled,
+      shareToken: contacts.shareToken,
     })
     .from(noteContacts)
     .innerJoin(contacts, eq(noteContacts.contactId, contacts.id))

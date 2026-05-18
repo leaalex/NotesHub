@@ -29,6 +29,7 @@ export default defineEventHandler(async (event) => {
       updatedAt: tasks.updatedAt,
       shareExpiresAt: tasks.shareExpiresAt,
       shareEnabled: tasks.shareEnabled,
+      shareIncludeLinks: tasks.shareIncludeLinks,
     })
     .from(tasks)
     .where(and(eq(tasks.shareToken, token), eq(tasks.shareEnabled, true)))
@@ -52,40 +53,48 @@ export default defineEventHandler(async (event) => {
     .where(eq(taskFieldValues.taskId, row.id))
     .orderBy(asc(taskFieldValues.position), asc(taskFieldValues.id))
 
-  const linkedNoteRows = await db
-    .select({
-      title: notes.title,
-      shareEnabled: notes.shareEnabled,
-      shareToken: notes.shareToken,
-    })
-    .from(noteTasks)
-    .innerJoin(notes, eq(noteTasks.noteId, notes.id))
-    .where(and(eq(noteTasks.taskId, row.id), eq(notes.userId, row.userId)))
-    .orderBy(notes.updatedAt)
+  const includeLinks = row.shareIncludeLinks !== false
 
-  const linkedContactRows = await db
-    .select({
-      displayName: contacts.displayName,
-      shareEnabled: contacts.shareEnabled,
-      shareToken: contacts.shareToken,
-    })
-    .from(contactTasks)
-    .innerJoin(contacts, eq(contactTasks.contactId, contacts.id))
-    .where(and(eq(contactTasks.taskId, row.id), eq(contacts.userId, row.userId)))
-    .orderBy(contacts.displayName)
+  const linkedNoteRows = includeLinks
+    ? await db
+        .select({
+          title: notes.title,
+          shareEnabled: notes.shareEnabled,
+          shareToken: notes.shareToken,
+        })
+        .from(noteTasks)
+        .innerJoin(notes, eq(noteTasks.noteId, notes.id))
+        .where(and(eq(noteTasks.taskId, row.id), eq(notes.userId, row.userId)))
+        .orderBy(notes.updatedAt)
+    : []
 
-  const linkedFileRows = await db
-    .select({
-      originalName: files.originalName,
-      mimeType: files.mimeType,
-      size: files.size,
-      shareEnabled: files.shareEnabled,
-      shareToken: files.shareToken,
-    })
-    .from(taskFiles)
-    .innerJoin(files, eq(taskFiles.fileId, files.id))
-    .where(and(eq(taskFiles.taskId, row.id), eq(files.userId, row.userId)))
-    .orderBy(files.updatedAt)
+  const linkedContactRows = includeLinks
+    ? await db
+        .select({
+          displayName: contacts.displayName,
+          shareEnabled: contacts.shareEnabled,
+          shareToken: contacts.shareToken,
+        })
+        .from(contactTasks)
+        .innerJoin(contacts, eq(contactTasks.contactId, contacts.id))
+        .where(and(eq(contactTasks.taskId, row.id), eq(contacts.userId, row.userId)))
+        .orderBy(contacts.displayName)
+    : []
+
+  const linkedFileRows = includeLinks
+    ? await db
+        .select({
+          originalName: files.originalName,
+          mimeType: files.mimeType,
+          size: files.size,
+          shareEnabled: files.shareEnabled,
+          shareToken: files.shareToken,
+        })
+        .from(taskFiles)
+        .innerJoin(files, eq(taskFiles.fileId, files.id))
+        .where(and(eq(taskFiles.taskId, row.id), eq(files.userId, row.userId)))
+        .orderBy(files.updatedAt)
+    : []
 
   const config = useRuntimeConfig()
   const base = (config.public.siteUrl as string).replace(/\/$/, '')

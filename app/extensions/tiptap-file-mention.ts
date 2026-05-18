@@ -21,27 +21,54 @@ export const FileMention = Node.create({
       mimeType: {
         default: '',
       },
+      href: {
+        default: null as string | null,
+        parseHTML: el => el.getAttribute('href'),
+      },
     }
   },
 
   parseHTML() {
-    return [{ tag: 'a[data-file-id]' }]
+    return [
+      { tag: 'a[data-file-id]' },
+      { tag: 'span[data-file-id]' },
+    ]
   },
 
   renderHTML({ node, HTMLAttributes }) {
     const fid = String(node.attrs.fileId ?? '')
     const name = String(node.attrs.displayName ?? '')
-    const href = fid ? `/files/${encodeURIComponent(fid)}` : '#'
+    const rawHref = node.attrs.href
+    let shareHref: string | null
+    if (rawHref !== null && rawHref !== undefined) {
+      const s = String(rawHref).trim()
+      shareHref = s.length > 0 ? s : null
+    }
+    else {
+      shareHref = fid ? `/files/${encodeURIComponent(fid)}` : null
+    }
     const kids: DOMOutputSpec[] = [lucidePaperclipIcon()]
     if (name)
       kids.push(['span', { class: 'min-w-0' }, name])
+    const chipClass =
+      'file-mention-chip inline-flex items-center gap-1 rounded-[var(--ui-control-radius)] bg-emerald-50 px-2 py-0.5 text-[12px] font-medium text-emerald-900 no-underline ring-1 ring-emerald-200/70'
+    if (shareHref) {
+      return [
+        'a',
+        mergeAttributes(HTMLAttributes, {
+          'data-file-id': fid,
+          href: shareHref,
+          class: chipClass,
+        }),
+        ...kids,
+      ]
+    }
     return [
-      'a',
+      'span',
       mergeAttributes(HTMLAttributes, {
         'data-file-id': fid,
-        href,
-        class:
-          'file-mention-chip inline-flex items-center gap-1 rounded-[var(--ui-control-radius)] bg-emerald-50 px-2 py-0.5 text-[12px] font-medium text-emerald-900 no-underline ring-1 ring-emerald-200/70',
+        'aria-disabled': 'true',
+        class: `${chipClass} pointer-events-none cursor-default opacity-90`,
       }),
       ...kids,
     ]

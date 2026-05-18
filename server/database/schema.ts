@@ -135,6 +135,9 @@ export const notes = sqliteTable(
       .notNull()
       .default(false),
     shareExpiresAt: integer('share_expires_at', { mode: 'timestamp_ms' }),
+    shareIncludeLinks: integer('share_include_links', { mode: 'boolean' })
+      .notNull()
+      .default(true),
     createdAt: integer('created_at', { mode: 'timestamp_ms' })
       .notNull()
       .default(sql`(strftime('%s','now') * 1000)`),
@@ -170,6 +173,9 @@ export const contacts = sqliteTable(
       .notNull()
       .default(false),
     shareExpiresAt: integer('share_expires_at', { mode: 'timestamp_ms' }),
+    shareIncludeLinks: integer('share_include_links', { mode: 'boolean' })
+      .notNull()
+      .default(true),
     createdAt: integer('created_at', { mode: 'timestamp_ms' })
       .notNull()
       .default(sql`(strftime('%s','now') * 1000)`),
@@ -262,6 +268,9 @@ export const files = sqliteTable(
       .notNull()
       .default(false),
     shareExpiresAt: integer('share_expires_at', { mode: 'timestamp_ms' }),
+    shareIncludeLinks: integer('share_include_links', { mode: 'boolean' })
+      .notNull()
+      .default(true),
     createdAt: integer('created_at', { mode: 'timestamp_ms' })
       .notNull()
       .default(sql`(strftime('%s','now') * 1000)`),
@@ -433,6 +442,9 @@ export const tasks = sqliteTable(
       .notNull()
       .default(false),
     shareExpiresAt: integer('share_expires_at', { mode: 'timestamp_ms' }),
+    shareIncludeLinks: integer('share_include_links', { mode: 'boolean' })
+      .notNull()
+      .default(true),
     createdAt: integer('created_at', { mode: 'timestamp_ms' })
       .notNull()
       .default(sql`(strftime('%s','now') * 1000)`),

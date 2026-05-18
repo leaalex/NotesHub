@@ -22,6 +22,7 @@ export default defineEventHandler(async (event) => {
     dueAt?: number | null
     completedAt?: number | null
     position?: number
+    shareIncludeLinks?: boolean
   }>(event)
 
   const [existing] = await db
@@ -84,6 +85,9 @@ export default defineEventHandler(async (event) => {
         ? { completedAt }
         : {}),
       ...(body.position !== undefined ? { position: body.position } : {}),
+      ...(body.shareIncludeLinks !== undefined
+        ? { shareIncludeLinks: body.shareIncludeLinks }
+        : {}),
       updatedAt: now,
     })
     .where(eq(tasks.id, id))

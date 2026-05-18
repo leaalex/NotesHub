@@ -18,6 +18,7 @@ export default defineEventHandler(async (event) => {
     orgName?: string
     note?: string
     folderId?: string | null
+    shareIncludeLinks?: boolean
   }>(event)
 
   const [existing] = await db
@@ -62,6 +63,9 @@ export default defineEventHandler(async (event) => {
       note,
       displayName,
       ...(body.folderId !== undefined ? { folderId: body.folderId } : {}),
+      ...(body.shareIncludeLinks !== undefined
+        ? { shareIncludeLinks: body.shareIncludeLinks }
+        : {}),
       updatedAt: new Date(),
     })
     .where(eq(contacts.id, id))

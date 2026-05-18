@@ -11,6 +11,7 @@ type AppFile = {
   shareEnabled: boolean
   shareToken: string | null
   shareUrl: string | null
+  shareIncludeLinks?: boolean
   downloadUrl: string
 }
 
@@ -26,13 +27,14 @@ type FileFieldRow = {
 
 type FileDetail = AppFile & {
   fields: FileFieldRow[]
-  linkedTasks?: { id: string, title: string, status: string, priority: string }[]
+  linkedTasks?: { id: string, title: string, status: string, priority: string, shareEnabled?: boolean, shareToken?: string | null }[]
 }
 
 const route = useRoute()
 const router = useRouter()
 const apiFetch = useRequestFetch()
 const toast = useToast()
+const { isBusy: isFileLinkedTaskShareBusy, toggleShare: toggleFileLinkedTaskShare } = useEntityShareToggle()
 const runtimeConfig = useRuntimeConfig()
 
 const listVersion = useState<number>('files:listVersion', () => 0)
@@ -162,6 +164,48 @@ async function disableFileShare() {
   }
 }
 
+async function toggleAttachmentFileShare(fid: string, nextEnabled: boolean) {
+  const current = fileId.value
+  if (!current || fid !== current || !fileDetail.value)
+    return
+  if (nextEnabled)
+    await enableFileShare()
+  else
+    await disableFileShare()
+}
+
+const fileShareIncludeLinks = ref(true)
+watch(
+  fileDetail,
+  (d) => {
+    fileShareIncludeLinks.value = d?.shareIncludeLinks ?? true
+  },
+  { immediate: true, deep: true },
+)
+
+async function onFileShareIncludeLinksChange(value: boolean) {
+  const id = fileId.value
+  const d = fileDetail.value
+  if (!id || !d)
+    return
+  const prev = d.shareIncludeLinks ?? true
+  fileShareIncludeLinks.value = value
+  d.shareIncludeLinks = value
+  try {
+    await apiFetch(`/api/files/${id}`, {
+      method: 'PATCH',
+      body: { shareIncludeLinks: value },
+    })
+  }
+  catch (e) {
+    console.error(e)
+    fileShareIncludeLinks.value = prev
+    if (fileDetail.value)
+      fileDetail.value.shareIncludeLinks = prev
+    toast.add({ title: 'Could not update share settings', color: 'error' })
+  }
+}
+
 async function copyFileShareLink() {
   const url = fileShareBannerUrl.value.trim()
   if (!url) {
@@ -209,11 +253,28 @@ async function confirmDeleteFile() {
   }
 }
 
+async function onFileLinkedTaskShareToggle(
+  t: NonNullable<FileDetail['linkedTasks']>[number],
+  nextEnabled: boolean,
+) {
+  const prevE = t.shareEnabled ?? false
+  const prevT = t.shareToken ?? null
+  try {
+    const r = await toggleFileLinkedTaskShare('task', t.id, nextEnabled)
+    t.shareEnabled = r.shareEnabled
+    t.shareToken = r.shareToken
+  }
+  catch {
+    t.shareEnabled = prevE
+    t.shareToken = prevT
+  }
+}
+
 async function refreshLinkedTasks() {
   const id = fileId.value
   if (!id || !fileDetail.value)
     return
-  fileDetail.value.linkedTasks = await apiFetch<{ id: string, title: string, status: string, priority: string }[]>(`/api/files/${id}/tasks`)
+  fileDetail.value.linkedTasks = await apiFetch<NonNullable<FileDetail['linkedTasks']>>(`/api/files/${id}/tasks`)
 }
 
 async function openLinkTasks() {
@@ -448,7 +509,7 @@ watch(
     Loading…
   </div>
   <main v-else-if="fileDetail" class="flex min-w-0 flex-1 flex-col p-4 sm:p-6">
-    <div class="overflow-hidden rounded-[var(--ui-panel-radius)] border border-zinc-100 bg-white ring-1 ring-zinc-950/[0.04]">
+    <div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--ui-panel-radius)] border border-zinc-100 bg-white ring-1 ring-zinc-950/[0.04]">
       <header class="flex shrink-0 flex-wrap items-start gap-3 border-b border-zinc-100/90 px-4 py-3 sm:px-6">
         <div class="min-w-0 flex-1">
           <template v-if="!isEditing">
@@ -487,16 +548,6 @@ watch(
             Share
           </UButton>
           <template v-else>
-            <UButton
-              size="xs"
-              variant="ghost"
-              color="neutral"
-              icon="i-lucide-copy"
-              class="rounded-[var(--ui-control-radius)] px-3"
-              @click="copyFileShareLink"
-            >
-              Copy link
-            </UButton>
             <UButton
               size="xs"
               color="error"
@@ -555,25 +606,47 @@ watch(
         v-if="fileShareBannerUrl"
         class="shrink-0 border-b border-emerald-100/90 bg-emerald-50/80 px-4 py-2 text-[11px] text-emerald-950 sm:px-6"
       >
-        <span class="font-semibold text-emerald-900">Shared · </span>
-        <span class="break-all font-mono text-emerald-900/90">{{ fileShareBannerUrl }}</span>
+        <div class="flex flex-wrap items-center gap-3">
+          <span class="flex min-w-0 flex-1 basis-full items-center gap-2 sm:basis-auto sm:flex-1">
+            <span class="shrink-0 font-semibold text-emerald-900">Shared ·</span>
+            <span class="min-w-0 break-all font-mono text-emerald-900/90">{{ fileShareBannerUrl }}</span>
+          </span>
+          <UButton
+            size="xs"
+            variant="ghost"
+            color="neutral"
+            icon="i-lucide-copy"
+            class="rounded-[var(--ui-control-radius)]"
+            @click="copyFileShareLink"
+          >
+            Copy
+          </UButton>
+          <USwitch
+            :model-value="fileShareIncludeLinks"
+            label="Include links"
+            size="xs"
+            @update:model-value="onFileShareIncludeLinksChange"
+          />
+        </div>
       </div>
 
-      <div class="px-3 pb-10 pt-2 sm:px-8">
-        <FilesFileAttachmentItem
-          v-if="attachmentFilePayload"
-          :file="attachmentFilePayload"
-          :show-share="false"
-          :show-delete="isEditing"
-          @delete="deleteFileEverywhere"
-        />
+      <div class="relative flex min-h-0 flex-1 overflow-hidden">
+        <div class="ui-scrollbar min-h-0 flex-1 overflow-y-auto px-3 pb-10 pt-2 sm:px-8">
+          <FilesFileAttachmentItem
+            v-if="attachmentFilePayload"
+            :file="attachmentFilePayload"
+            :show-share="true"
+            :show-delete="isEditing"
+            @delete="deleteFileEverywhere"
+            @toggle-share="toggleAttachmentFileShare"
+          />
 
-        <div class="mt-6">
-          <div>
-            <UiSectionLabel>
-              Description
-            </UiSectionLabel>
-            <div class="mt-3">
+          <div class="mt-6">
+            <div>
+              <UiSectionLabel>
+                Description
+              </UiSectionLabel>
+              <div class="mt-3">
               <p v-if="!isEditing" class="whitespace-pre-wrap text-[13px] text-zinc-900">
                 {{ viewDash(draftDescription) }}
               </p>
@@ -672,12 +745,29 @@ watch(
               </template>
             </div>
           </div>
+          </div>
 
-          <div class="mt-6 rounded-[var(--ui-control-radius)] border border-zinc-100 bg-white p-4">
+          <div class="mt-8 rounded-[var(--ui-control-radius)] border border-zinc-200/80 bg-white/70 p-4">
+            <p class="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+              Preview
+            </p>
+            <div v-if="selectedFileIsImage" class="mt-3">
+              <img :src="fileDetail.downloadUrl" :alt="previewAlt()" class="max-h-[24rem] w-full rounded-[var(--ui-control-radius)] object-contain ring-1 ring-zinc-200/80">
+            </div>
+            <div v-else class="mt-3 text-sm text-zinc-600">
+              Preview is unavailable for this format. Use Download to open the file locally.
+            </div>
+          </div>
+        </div>
+
+        <aside
+          class="ui-scrollbar hidden w-[17rem] shrink-0 overflow-y-auto border-l border-zinc-100/90 bg-white/20 px-3 py-5 xl:flex xl:flex-col xl:gap-0"
+        >
+          <div class="mt-8 shrink-0 border-t border-zinc-100/80 pt-5 xl:mt-0 xl:border-t-0 xl:pt-0">
             <div class="flex items-center justify-between gap-2">
-              <p class="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+              <UiSectionLabel>
                 Linked tasks
-              </p>
+              </UiSectionLabel>
               <button
                 v-if="isEditing"
                 type="button"
@@ -687,19 +777,28 @@ watch(
                 + Link
               </button>
             </div>
-            <ul v-if="(fileDetail.linkedTasks ?? []).length" class="mt-3 space-y-2">
+            <ul v-if="(fileDetail.linkedTasks ?? []).length" class="mt-3 flex flex-col gap-2">
               <li
                 v-for="t in fileDetail.linkedTasks"
                 :key="t.id"
-                class="flex items-center justify-between gap-2 rounded-[var(--ui-control-radius)] bg-white px-3 py-2 text-[13px] ring-1 ring-zinc-950/[0.04]"
+                class="flex items-start gap-1"
               >
-                <NuxtLink :to="`/tasks/${t.id}`" class="min-w-0 flex-1 font-medium text-zinc-800 hover:underline">
-                  {{ t.title || 'Untitled' }}
-                </NuxtLink>
+                <ShareLinkedShareRow
+                  class="min-w-0 flex-1"
+                  kind="task"
+                  :entity-id="t.id"
+                  :title="t.title || 'Untitled'"
+                  :subtitle="`${t.status.replaceAll('_', ' ')} · ${t.priority}`"
+                  :to="`/tasks/${t.id}`"
+                  :share-enabled="t.shareEnabled ?? false"
+                  :share-token="t.shareToken ?? null"
+                  :busy="isFileLinkedTaskShareBusy('task', t.id)"
+                  @toggle="onFileLinkedTaskShareToggle(t, $event)"
+                />
                 <button
                   v-if="isEditing"
                   type="button"
-                  class="shrink-0 rounded-[var(--ui-control-radius)] p-1 text-zinc-400 hover:text-red-600"
+                  class="mt-0.5 shrink-0 rounded-[var(--ui-control-radius)] p-1 text-zinc-400 hover:text-red-600"
                   aria-label="Unlink task"
                   @click="unlinkTaskFromFile(t.id)"
                 >
@@ -707,23 +806,11 @@ watch(
                 </button>
               </li>
             </ul>
-            <p v-else class="mt-3 text-[13px] text-zinc-400">
+            <p v-else class="mt-3 text-[11px] leading-relaxed text-zinc-400">
               No linked tasks.
             </p>
           </div>
-        </div>
-
-        <div class="mt-8 rounded-[var(--ui-control-radius)] border border-zinc-200/80 bg-white/70 p-4">
-          <p class="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
-            Preview
-          </p>
-          <div v-if="selectedFileIsImage" class="mt-3">
-            <img :src="fileDetail.downloadUrl" :alt="previewAlt()" class="max-h-[24rem] w-full rounded-[var(--ui-control-radius)] object-contain ring-1 ring-zinc-200/80">
-          </div>
-          <div v-else class="mt-3 text-sm text-zinc-600">
-            Preview is unavailable for this format. Use Download to open the file locally.
-          </div>
-        </div>
+        </aside>
       </div>
     </div>
   </main>

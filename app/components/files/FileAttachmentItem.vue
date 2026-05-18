@@ -114,29 +114,25 @@ function confirmDelete() {
       </div>
     </div>
 
-    <div class="mt-3 flex flex-wrap gap-1.5">
-      <UButton
-        v-if="showShare"
-        size="xs"
-        variant="ghost"
-        color="neutral"
-        class="rounded-[var(--ui-control-radius)]"
-        :icon="file.shareEnabled ? 'i-lucide-link-2-off' : 'i-lucide-link'"
-        @click="emit('toggleShare', file.id, !file.shareEnabled)"
-      >
-        {{ file.shareEnabled ? 'Stop share' : 'Share' }}
-      </UButton>
+    <div class="mt-3 flex flex-wrap items-center gap-1.5">
       <UButton
         v-if="showShare && file.shareEnabled && file.shareUrl"
         size="xs"
         variant="ghost"
         color="neutral"
+        square
         icon="i-lucide-copy"
         class="rounded-[var(--ui-control-radius)]"
+        :aria-label="'Copy public link'"
         @click="copyShareUrl"
-      >
-        Copy link
-      </UButton>
+      />
+      <USwitch
+        v-if="showShare"
+        :model-value="file.shareEnabled"
+        size="xs"
+        :aria-label="`Share file ${displayName}`"
+        @update:model-value="emit('toggleShare', file.id, $event)"
+      />
       <UButton
         v-if="showUnlink"
         size="xs"
