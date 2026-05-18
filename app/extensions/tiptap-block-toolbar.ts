@@ -143,16 +143,55 @@ function applyStyle(editor: Editor, block: BlockRange, kind: StyleKind) {
   }
 }
 
-const STYLE_ITEMS: { kind: StyleKind; label: string }[] = [
-  { kind: 'paragraph', label: 'Text' },
-  { kind: 'h1', label: 'Heading 1' },
-  { kind: 'h2', label: 'Heading 2' },
-  { kind: 'h3', label: 'Heading 3' },
-  { kind: 'bullet', label: 'Bullet list' },
-  { kind: 'ordered', label: 'Numbered list' },
-  { kind: 'task', label: 'Task list' },
-  { kind: 'quote', label: 'Quote' },
-  { kind: 'code', label: 'Code block' },
+const STYLE_SVG_WRAPPER
+  = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+
+const STYLE_ITEMS: { kind: StyleKind; label: string; icon: string }[] = [
+  {
+    kind: 'paragraph',
+    label: 'Text',
+    icon: '<span class="text-[13px] font-semibold leading-none select-none" aria-hidden="true">¶</span>',
+  },
+  {
+    kind: 'h1',
+    label: 'Heading 1',
+    icon: '<span class="text-[9px] font-bold leading-none tracking-tight select-none" aria-hidden="true">H1</span>',
+  },
+  {
+    kind: 'h2',
+    label: 'Heading 2',
+    icon: '<span class="text-[9px] font-bold leading-none tracking-tight select-none" aria-hidden="true">H2</span>',
+  },
+  {
+    kind: 'h3',
+    label: 'Heading 3',
+    icon: '<span class="text-[9px] font-bold leading-none tracking-tight select-none" aria-hidden="true">H3</span>',
+  },
+  {
+    kind: 'bullet',
+    label: 'Bullet list',
+    icon: `${STYLE_SVG_WRAPPER}<line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>`,
+  },
+  {
+    kind: 'ordered',
+    label: 'Numbered list',
+    icon: `${STYLE_SVG_WRAPPER}<line x1="10" x2="21" y1="6" y2="6"/><line x1="10" x2="21" y1="12" y2="12"/><line x1="10" x2="21" y1="18" y2="18"/><path d="M4 6h1v4"/><path d="M4 10h2"/><path d="M4 14h2"/><path d="M4 18h4"/></svg>`,
+  },
+  {
+    kind: 'task',
+    label: 'Task list',
+    icon: `${STYLE_SVG_WRAPPER}<rect x="3" y="5" width="6" height="6" rx="1"/><path d="m5 8 2 2 3-3"/><line x1="11" x2="21" y1="8" y2="8"/><line x1="11" x2="21" y1="12" y2="12"/><line x1="11" x2="21" y1="16" y2="16"/></svg>`,
+  },
+  {
+    kind: 'quote',
+    label: 'Quote',
+    icon: `${STYLE_SVG_WRAPPER}<path d="M7 7H5a2 2 0 0 0-2 2v6h4V9h2"/><path d="M17 7h-2a2 2 0 0 0-2 2v6h4V9h2"/></svg>`,
+  },
+  {
+    kind: 'code',
+    label: 'Code block',
+    icon: `${STYLE_SVG_WRAPPER}<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>`,
+  },
 ]
 
 export const BlockToolbar = Extension.create({
@@ -208,12 +247,13 @@ export const BlockToolbar = Extension.create({
 
           const menu = document.createElement('div')
           menu.className
-            = 'pointer-events-auto hidden min-w-[220px] rounded-[var(--ui-panel-radius)] border border-zinc-200/90 bg-white/95 py-1.5 backdrop-blur-xl ring-1 ring-zinc-950/[0.04]'
+            = 'pointer-events-auto hidden flex flex-row items-center gap-px rounded-[var(--ui-control-radius)] border border-zinc-200/90 bg-white p-0.5 ring-1 ring-zinc-950/[0.04]'
           root.appendChild(menu)
 
           document.body.appendChild(root)
 
           let menuOpen = false
+          let menuOpenBySelection = false
           let hoverBlock: BlockRange | null = null
           let raf = 0
           let hideTimer: ReturnType<typeof setTimeout> | undefined
@@ -239,16 +279,68 @@ export const BlockToolbar = Extension.create({
 
           function closeMenu() {
             menuOpen = false
+            menuOpenBySelection = false
             menu.classList.add('hidden')
             menu.replaceChildren()
           }
 
-          function positionMenuNearToolbar() {
-            const pillRect = pill.getBoundingClientRect()
+          function positionMenuOverSelection() {
+            const sel = pmView.state.selection
+            if (sel.empty)
+              return
+
             menu.style.position = 'fixed'
-            menu.style.left = `${Math.round(pillRect.right + 8)}px`
-            menu.style.top = `${Math.round(pillRect.top)}px`
             menu.style.zIndex = '200'
+
+            const pad = 8
+            const offsetAbove = 8
+
+            function place() {
+              const s = pmView.state.selection
+              if (s.empty)
+                return
+              const start = pmView.coordsAtPos(s.from)
+              const end = pmView.coordsAtPos(s.to)
+              const m = menu.getBoundingClientRect()
+              const midX = (start.left + end.left) / 2
+              let left = Math.round(midX - m.width / 2)
+              left = Math.max(pad, Math.min(left, window.innerWidth - pad - m.width))
+              const topEdge = Math.min(start.top, end.top)
+              const bottomEdge = Math.max(start.bottom, end.bottom)
+              let top = Math.round(topEdge - m.height - offsetAbove)
+              if (top < pad)
+                top = Math.round(bottomEdge + offsetAbove)
+
+              menu.style.left = `${left}px`
+              menu.style.top = `${top}px`
+            }
+
+            place()
+            requestAnimationFrame(place)
+          }
+
+          function positionMenuNearToolbar() {
+            if (menuOpenBySelection) {
+              positionMenuOverSelection()
+              return
+            }
+
+            const pillRect = pill.getBoundingClientRect()
+            const pad = 8
+            menu.style.position = 'fixed'
+            menu.style.zIndex = '200'
+            menu.style.left = `${Math.round(pillRect.left)}px`
+            menu.style.top = `${Math.round(pillRect.bottom + 4)}px`
+
+            requestAnimationFrame(() => {
+              const m = menu.getBoundingClientRect()
+              if (m.right > window.innerWidth - pad) {
+                menu.style.left = `${Math.round(Math.max(pad, window.innerWidth - pad - m.width))}px`
+              }
+              if (m.bottom > window.innerHeight - pad) {
+                menu.style.top = `${Math.round(pillRect.top - m.height - 4)}px`
+              }
+            })
           }
 
           function openMenu(block: BlockRange) {
@@ -258,9 +350,11 @@ export const BlockToolbar = Extension.create({
             STYLE_ITEMS.forEach(item => {
               const btn = document.createElement('button')
               btn.type = 'button'
-              btn.textContent = item.label
+              btn.title = item.label
+              btn.setAttribute('aria-label', item.label)
+              btn.innerHTML = item.icon
               btn.className
-                = 'flex w-full px-3 py-2 text-left text-[13px] font-medium tracking-tight text-zinc-700 hover:bg-zinc-50'
+                = 'flex size-7 shrink-0 items-center justify-center rounded-[var(--ui-control-radius)] text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900'
               btn.addEventListener('mousedown', e => {
                 e.preventDefault()
                 applyStyle(editor, block, item.kind)
@@ -281,7 +375,8 @@ export const BlockToolbar = Extension.create({
           function scheduleHideToolbar() {
             clearTimeout(hideTimer)
             hideTimer = setTimeout(() => {
-              if (!pointerOverToolbar && !menuOpen && !dragActive)
+              const hasSel = !editor.state.selection.empty
+              if (!pointerOverToolbar && !menuOpen && !dragActive && !hasSel)
                 hideToolbar()
             }, 160)
           }
@@ -294,7 +389,14 @@ export const BlockToolbar = Extension.create({
             if (root.style.display === 'none')
               return false
             const r = root.getBoundingClientRect()
-            return clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom
+            if (clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom)
+              return true
+            if (menuOpen && !menu.classList.contains('hidden')) {
+              const m = menu.getBoundingClientRect()
+              if (clientX >= m.left && clientX <= m.right && clientY >= m.top && clientY <= m.bottom)
+                return true
+            }
+            return false
           }
 
           function onGlobalPointerMove(e: MouseEvent) {
@@ -456,11 +558,16 @@ export const BlockToolbar = Extension.create({
               return
             if (menuOpen)
               closeMenu()
-            else openMenu(hoverBlock)
+            else {
+              menuOpenBySelection = false
+              openMenu(hoverBlock)
+            }
           })
 
           function onDocMouseDown(ev: MouseEvent) {
             if (!menuOpen)
+              return
+            if (menuOpenBySelection)
               return
             const t = ev.target as Node
             if (!menu.contains(t) && !menuBtn.contains(t))
@@ -487,6 +594,23 @@ export const BlockToolbar = Extension.create({
               const docChanged = currentView.state.doc !== prevState.doc
               if (selChanged || docChanged)
                 scheduleSync(selFrom)
+
+              const sel = currentView.state.selection
+              if (!sel.empty) {
+                const block = topLevelBlockNear(currentView.state.doc, sel.from)
+                if (block) {
+                  if (!menuOpen) {
+                    menuOpenBySelection = true
+                    openMenu(block)
+                  }
+                  else if (menuOpenBySelection) {
+                    requestAnimationFrame(() => positionMenuOverSelection())
+                  }
+                }
+              }
+              else if (menuOpenBySelection) {
+                closeMenu()
+              }
             },
             destroy() {
               cancelAnimationFrame(raf)

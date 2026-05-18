@@ -124,7 +124,7 @@ const editor = useEditor({
   editorProps: {
     attributes: {
       class:
-        'notes-prose-editor relative z-[1] min-h-[min(60vh,28rem)] w-full max-w-none px-1 py-6 text-[17px] leading-[1.65] tracking-[-0.01em] text-zinc-800 antialiased outline-none focus:outline-none sm:text-[17px]',
+        'notes-prose-editor relative z-[1] min-h-[min(60vh,28rem)] w-full max-w-none px-1 py-6 text-[14px] leading-[1.35] tracking-[-0.01em] text-zinc-800 antialiased outline-none focus:outline-none sm:text-[14px]',
     },
   },
   onUpdate: ({ editor: ed }) => {
