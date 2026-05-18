@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import type { Ref } from 'vue'
+import type { Editor } from '@tiptap/core'
+import { unref } from 'vue'
 import { watchDebounced } from '@vueuse/core'
 import { debouncedSchedule } from '#shared/debounced-schedule'
 import { EMPTY_TIPTAP_DOC_JSON } from '#shared/tiptap-empty-doc'
@@ -99,6 +102,21 @@ const linkedFiles = ref<AppFile[]>([])
 const showLinkContact = ref(false)
 const linkContactQuery = ref('')
 const noteFileInput = ref<HTMLInputElement | null>(null)
+
+const noteEditorRef = ref<{
+  tiptapEditor: Ref<Editor | undefined> | Editor | undefined
+} | null>(null)
+
+/** `defineExpose` may give a Ref or an already unwrapped Editor depending on Vue/runtime access path. */
+const tiptapEditorForToolbar = computed(() => {
+  const inst = noteEditorRef.value
+  if (!inst?.tiptapEditor)
+    return null
+  const ed = unref(inst.tiptapEditor as Ref<Editor | undefined>)
+  if (ed && !ed.isDestroyed)
+    return ed
+  return null
+})
 
 const route = useRoute()
 const router = useRouter()
@@ -960,26 +978,38 @@ function tableRowClasses(n: NoteList) {
         </div>
 
         <div class="relative flex min-h-0 flex-1 overflow-hidden">
-          <div class="ui-scrollbar relative min-h-0 flex-1 overflow-y-auto px-3 pb-10 pt-2 sm:px-8">
-            <ClientOnly>
-              <NotesLexicalNoteEditor
-                :note-key="selectedNoteId || 'none'"
-                :note-id="selectedNoteId || undefined"
-                :model-value="content"
-                :read-only="!isEditing"
-                :placeholder="isEditing ? 'Start writing…' : ''"
-                class="mx-auto min-h-full max-w-[42rem]"
-                @update:model-value="onEditorUpdate"
-                @update:excerpt="onExcerptUpdate"
-                @update:outline="onOutlineUpdate"
-                @mention:file="onMentionFile"
-              />
-              <template #fallback>
-                <div class="flex min-h-[40vh] items-center justify-center text-sm text-zinc-400">
-                  Loading editor…
-                </div>
-              </template>
-            </ClientOnly>
+          <div class="ui-scrollbar relative flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
+            <div
+              v-if="isEditing && tiptapEditorForToolbar"
+              class="sticky top-0 z-10 shrink-0 border-b border-zinc-100 bg-white/95 [backdrop-filter:blur(6px)]"
+            >
+              <div class="px-3 py-1 pb-2 pt-1 sm:px-8">
+                <NotesTiptapFormatToolbar :editor="tiptapEditorForToolbar" />
+              </div>
+            </div>
+            <div class="min-h-0 flex-1 px-3 pb-10 pt-2 sm:px-8">
+              <ClientOnly>
+                <NotesLexicalNoteEditor
+                  ref="noteEditorRef"
+                  :note-key="selectedNoteId || 'none'"
+                  :note-id="selectedNoteId || undefined"
+                  :model-value="content"
+                  :read-only="!isEditing"
+                  :placeholder="isEditing ? 'Start writing…' : ''"
+                  :embed-top-toolbar="false"
+                  class="min-h-full w-full"
+                  @update:model-value="onEditorUpdate"
+                  @update:excerpt="onExcerptUpdate"
+                  @update:outline="onOutlineUpdate"
+                  @mention:file="onMentionFile"
+                />
+                <template #fallback>
+                  <div class="flex min-h-[40vh] items-center justify-center text-sm text-zinc-400">
+                    Loading editor…
+                  </div>
+                </template>
+              </ClientOnly>
+            </div>
           </div>
 
           <aside

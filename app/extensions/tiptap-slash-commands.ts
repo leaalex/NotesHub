@@ -55,13 +55,6 @@ function getItems(query: string): SlashCommandItem[] {
       },
     },
     {
-      title: 'Task list',
-      keywords: ['todo', 'checkbox'],
-      command: ({ editor, range }) => {
-        editor.chain().focus().deleteRange(range).toggleTaskList().run()
-      },
-    },
-    {
       title: 'Quote',
       keywords: ['blockquote', 'quotation'],
       command: ({ editor, range }) => {

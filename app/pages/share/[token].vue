@@ -69,7 +69,7 @@ function scrollShareToHeading(id: string) {
                   :model-value="data.content || EMPTY_TIPTAP_DOC_JSON"
                   read-only
                   placeholder=""
-                  class="mx-auto max-w-[42rem]"
+                  class="w-full"
                   @update:outline="onShareOutline"
                 />
                 <template #fallback>

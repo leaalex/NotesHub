@@ -67,7 +67,7 @@ export const AtMentions = Extension.create<AtMentionsOptions>({
   name: 'atMentions',
 
   addOptions() {
-    return { onPickFile: (_fileId: string) => {} }
+    return { onPickFile: (_fileId: string) => { } }
   },
 
   addProseMirrorPlugins() {

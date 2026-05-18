@@ -1,4 +1,6 @@
+import type { DOMOutputSpec } from '@tiptap/pm/model'
 import { Node, mergeAttributes } from '@tiptap/core'
+import { lucideUserIcon } from '~/extensions/mention-chip-lucide-icons'
 
 export const ContactMention = Node.create({
   name: 'contactMention',
@@ -37,21 +39,24 @@ export const ContactMention = Node.create({
     const cid = String(node.attrs.contactId ?? '')
     const name = String(node.attrs.displayName ?? '')
     const href = cid ? `/contacts/${encodeURIComponent(cid)}` : '#'
+    const kids: DOMOutputSpec[] = [lucideUserIcon()]
+    if (name)
+      kids.push(['span', { class: 'min-w-0' }, name])
     return [
       'a',
       mergeAttributes(HTMLAttributes, {
         'data-contact-id': cid,
         href,
         class:
-          'contact-mention-chip rounded-[var(--ui-control-radius)] bg-zinc-100 px-2 py-0.5 text-[12px] font-medium text-zinc-700 no-underline',
+          'contact-mention-chip inline-flex items-center gap-1 rounded-[var(--ui-control-radius)] bg-zinc-100 px-2 py-0.5 text-[12px] font-medium text-zinc-800 no-underline ring-1 ring-zinc-200/80',
       }),
-      `@${name}`,
+      ...kids,
     ]
   },
 
   renderText({ node }) {
-    const name = node.attrs.displayName ?? ''
-    return `@${name}`
+    const name = String(node.attrs.displayName ?? '')
+    return name || 'Contact'
   },
 
   addKeyboardShortcuts() {
