@@ -17,7 +17,22 @@ function listTopLevelBlocks(doc: PMNode): BlockRange[] {
 }
 
 function topLevelBlockNear(doc: PMNode, pos: number): BlockRange | null {
-  const $pos = doc.resolve(pos)
+  const safePos = Math.max(0, Math.min(pos, doc.content.size))
+  const $pos = doc.resolve(safePos)
+
+  // Boundary position between top-level blocks: depth === 0.
+  // posAtCoords returns such positions when the cursor is in the CSS margin
+  // gap between paragraphs. Grab the nearest neighbour instead of returning null.
+  if ($pos.depth === 0) {
+    const before = $pos.nodeBefore
+    const after = $pos.nodeAfter
+    if (before)
+      return { from: safePos - before.nodeSize, to: safePos }
+    if (after)
+      return { from: safePos, to: safePos + after.nodeSize }
+    return null
+  }
+
   for (let d = $pos.depth; d > 0; d--) {
     if ($pos.node(d - 1).type.name === 'doc')
       return { from: $pos.before(d), to: $pos.after(d) }
@@ -205,6 +220,7 @@ export const BlockToolbar = Extension.create({
       new Plugin({
         key: pluginKey,
         view(pmView: EditorView) {
+          // ── DOM structure ──────────────────────────────────────────────────
           const root = document.createElement('div')
           root.className
             = 'note-block-toolbar pointer-events-none fixed z-[190] flex flex-col gap-1 opacity-0 transition-opacity duration-150'
@@ -231,18 +247,10 @@ export const BlockToolbar = Extension.create({
           pill.appendChild(grip)
           pill.appendChild(menuBtn)
 
+          // hoverRow contains only pill — no DOM bridge
           const hoverRow = document.createElement('div')
-          hoverRow.className
-            = 'flex flex-row items-center pointer-events-none'
-
-          const bridge = document.createElement('div')
-          bridge.setAttribute('aria-hidden', 'true')
-          bridge.title = ''
-          bridge.className
-            = 'note-block-toolbar__bridge pointer-events-auto shrink-0 cursor-default bg-transparent'
-
+          hoverRow.className = 'flex flex-row items-center pointer-events-none'
           hoverRow.appendChild(pill)
-          hoverRow.appendChild(bridge)
           root.appendChild(hoverRow)
 
           const menu = document.createElement('div')
@@ -252,17 +260,22 @@ export const BlockToolbar = Extension.create({
 
           document.body.appendChild(root)
 
+          // ── State ──────────────────────────────────────────────────────────
           let menuOpen = false
           let menuOpenBySelection = false
+          // Anchor rect for the virtual corridor between menu and its origin
+          let menuAnchorRect: DOMRect | null = null
           let hoverBlock: BlockRange | null = null
           let raf = 0
           let hideTimer: ReturnType<typeof setTimeout> | undefined
-          let pointerOverToolbar = false
+          let lastX = 0
+          let lastY = 0
 
           let dragActive = false
           let dragSrc: BlockRange | null = null
           let indicator: HTMLDivElement | null = null
 
+          // ── Indicator (drag line) ──────────────────────────────────────────
           function hideIndicator() {
             indicator?.remove()
             indicator = null
@@ -277,11 +290,29 @@ export const BlockToolbar = Extension.create({
             return indicator
           }
 
+          // ── Menu helpers ───────────────────────────────────────────────────
           function closeMenu() {
             menuOpen = false
             menuOpenBySelection = false
+            menuAnchorRect = null
             menu.classList.add('hidden')
             menu.replaceChildren()
+          }
+
+          /**
+           * Build a synthetic DOMRect spanning the current text selection,
+           * used as the anchor for the virtual corridor.
+           */
+          function computeSelectionAnchorRect(): DOMRect {
+            const sel = pmView.state.selection
+            const start = pmView.coordsAtPos(sel.from)
+            const end = pmView.coordsAtPos(sel.to)
+            const pad = 4
+            const left = Math.min(start.left, end.left) - pad
+            const top = Math.min(start.top, end.top)
+            const right = Math.max(start.right, end.right) + pad
+            const bottom = Math.max(start.bottom, end.bottom)
+            return new DOMRect(left, top, right - left, bottom - top)
           }
 
           function positionMenuOverSelection() {
@@ -313,6 +344,9 @@ export const BlockToolbar = Extension.create({
 
               menu.style.left = `${left}px`
               menu.style.top = `${top}px`
+
+              // Keep anchor rect in sync so the corridor is always accurate
+              menuAnchorRect = computeSelectionAnchorRect()
             }
 
             place()
@@ -326,6 +360,7 @@ export const BlockToolbar = Extension.create({
             }
 
             const pillRect = pill.getBoundingClientRect()
+            menuAnchorRect = pillRect // corridor target is the pill itself
             const pad = 8
             menu.style.position = 'fixed'
             menu.style.zIndex = '200'
@@ -362,6 +397,10 @@ export const BlockToolbar = Extension.create({
               })
               menu.appendChild(btn)
             })
+            // Set initial anchor before positioning so the corridor is ready
+            menuAnchorRect = menuOpenBySelection
+              ? computeSelectionAnchorRect()
+              : pill.getBoundingClientRect()
             positionMenuNearToolbar()
           }
 
@@ -372,12 +411,78 @@ export const BlockToolbar = Extension.create({
             closeMenu()
           }
 
+          // ── Virtual hit-test (three separate functions) ────────────────────
+          /**
+           * ACTIVATION — works even when toolbar is hidden.
+           * Editor area extended 60px left to cover the pill's position.
+           */
+          function isPointerOverEditorArea(x: number, y: number): boolean {
+            const r = pmView.dom.getBoundingClientRect()
+            return x >= r.left - 60 && x <= r.right && y >= r.top && y <= r.bottom
+          }
+
+          /**
+           * RETENTION for pill — only meaningful when pill is visible.
+           * Covers the pill rect and a virtual corridor connecting pill to block.
+           */
+          function isPointerInVisibleToolbar(x: number, y: number): boolean {
+            if (root.style.display === 'none')
+              return false
+
+            const p = pill.getBoundingClientRect()
+            if (x >= p.left && x <= p.right && y >= p.top && y <= p.bottom)
+              return true
+
+            // Virtual corridor: pill ↔ current block
+            if (hoverBlock) {
+              const br = blockDomRect(pmView, hoverBlock)
+              if (br) {
+                const cy1 = Math.min(p.top, br.top)
+                const cy2 = Math.max(p.bottom, br.bottom)
+                if (x >= p.right && x <= br.left + 4 && y >= cy1 && y <= cy2)
+                  return true
+              }
+            }
+            return false
+          }
+
+          /**
+           * RETENTION for menu — only meaningful when menu is open.
+           * Covers the menu rect and a virtual corridor to the anchor (selection or pill).
+           */
+          function isPointerInOpenMenu(x: number, y: number): boolean {
+            if (!menuOpen || menu.classList.contains('hidden'))
+              return false
+
+            const m = menu.getBoundingClientRect()
+            if (x >= m.left && x <= m.right && y >= m.top && y <= m.bottom)
+              return true
+
+            if (menuAnchorRect) {
+              const a = menuAnchorRect
+              const minX = Math.min(m.left, a.left) - 4
+              const maxX = Math.max(m.right, a.right) + 4
+              const minY = Math.min(m.bottom, a.top)
+              const maxY = Math.max(m.top, a.bottom)
+              if (x >= minX && x <= maxX && y >= minY && y <= maxY)
+                return true
+            }
+            return false
+          }
+
+          // ── Hide scheduling ────────────────────────────────────────────────
           function scheduleHideToolbar() {
             clearTimeout(hideTimer)
             hideTimer = setTimeout(() => {
-              const hasSel = !editor.state.selection.empty
-              if (!pointerOverToolbar && !menuOpen && !dragActive && !hasSel)
-                hideToolbar()
+              if (dragActive || menuOpen || !editor.state.selection.empty)
+                return
+              if (isPointerOverEditorArea(lastX, lastY))
+                return
+              if (isPointerInVisibleToolbar(lastX, lastY))
+                return
+              if (isPointerInOpenMenu(lastX, lastY))
+                return
+              hideToolbar()
             }, 160)
           }
 
@@ -385,44 +490,15 @@ export const BlockToolbar = Extension.create({
             clearTimeout(hideTimer)
           }
 
-          function pointerInsideToolbarHud(clientX: number, clientY: number): boolean {
-            if (root.style.display === 'none')
-              return false
-            const r = root.getBoundingClientRect()
-            if (clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom)
-              return true
-            if (menuOpen && !menu.classList.contains('hidden')) {
-              const m = menu.getBoundingClientRect()
-              if (clientX >= m.left && clientX <= m.right && clientY >= m.top && clientY <= m.bottom)
-                return true
-            }
-            return false
-          }
-
-          function onGlobalPointerMove(e: MouseEvent) {
-            if (dragActive)
-              return
-            if (pointerInsideToolbarHud(e.clientX, e.clientY)) {
-              pointerOverToolbar = true
-              cancelHideToolbar()
-            }
-          }
-
+          // ── Layout ────────────────────────────────────────────────────────
           function layoutToolbarHud(blockRect: DOMRect) {
             const gapPx = 6
-            const overlapIntoEditorPx = 22
-            const minBridgePx = 32
             const pillW = pill.offsetWidth || 48
             const pillH = pill.offsetHeight || 28
             const rootLeft = Math.round(Math.max(4, blockRect.left - pillW - gapPx))
             const rootTop = Math.round(Math.max(4, blockRect.top + blockRect.height / 2 - pillH / 2))
             root.style.left = `${rootLeft}px`
             root.style.top = `${rootTop}px`
-
-            const spanToBlockEdge = blockRect.left - rootLeft - pillW
-            const bridgeW = Math.max(minBridgePx, spanToBlockEdge + overlapIntoEditorPx)
-            bridge.style.width = `${Math.round(bridgeW)}px`
-            bridge.style.minHeight = `${Math.round(Math.max(pillH, blockRect.height))}px`
 
             if (menuOpen)
               positionMenuNearToolbar()
@@ -444,13 +520,18 @@ export const BlockToolbar = Extension.create({
             cancelAnimationFrame(raf)
             raf = requestAnimationFrame(() => {
               if (!editor.isEditable || editor.isDestroyed) {
-                hideToolbar()
+                // Never kill an open menu when editability changes
+                if (!menuOpen)
+                  hideToolbar()
                 return
               }
 
               const block = topLevelBlockNear(pmView.state.doc, selPos)
               if (!block) {
-                hideToolbar()
+                // Boundary position with no neighbours (empty doc).
+                // Never close an open menu or discard an active selection.
+                if (!menuOpen && editor.state.selection.empty)
+                  hideToolbar()
                 return
               }
 
@@ -461,34 +542,44 @@ export const BlockToolbar = Extension.create({
             })
           }
 
-          function onMouseMove(e: MouseEvent) {
+          // ── Single unified mouse-move handler ─────────────────────────────
+          /**
+           * Replaces:
+           *   - pmView.dom mousemove (onMouseMove)
+           *   - pmView.dom mouseleave (onMouseLeave)
+           *   - document mousemove for global pointer tracking (onGlobalPointerMove)
+           *   - root mouseenter / mouseleave
+           *
+           * One handler, one source of truth.
+           */
+          function onDocMouseMove(e: MouseEvent) {
             if (dragActive)
               return
-            cancelHideToolbar()
-            const coords = pmView.posAtCoords({ left: e.clientX, top: e.clientY })
-            if (!coords) {
-              if (!menuOpen && !pointerOverToolbar)
-                scheduleHideToolbar()
+
+            lastX = e.clientX
+            lastY = e.clientY
+
+            // Activation: cursor over editor area — always update pill position,
+            // even when toolbar is currently hidden.
+            if (isPointerOverEditorArea(e.clientX, e.clientY)) {
+              cancelHideToolbar()
+              const coords = pmView.posAtCoords({ left: e.clientX, top: e.clientY })
+              if (coords)
+                scheduleSync(coords.pos)
               return
             }
-            scheduleSync(coords.pos)
+
+            // Retention: cursor is over visible pill, its corridor, or open menu.
+            if (isPointerInVisibleToolbar(e.clientX, e.clientY)
+              || isPointerInOpenMenu(e.clientX, e.clientY)) {
+              cancelHideToolbar()
+              return
+            }
+
+            scheduleHideToolbar()
           }
 
-          function onMouseLeave() {
-            if (!dragActive && !menuOpen)
-              scheduleHideToolbar()
-          }
-
-          root.addEventListener('mouseenter', () => {
-            pointerOverToolbar = true
-            cancelHideToolbar()
-          })
-          root.addEventListener('mouseleave', () => {
-            pointerOverToolbar = false
-            if (!menuOpen && !dragActive)
-              scheduleHideToolbar()
-          })
-
+          // ── Drag handlers ─────────────────────────────────────────────────
           function onDragMouseMove(e: MouseEvent) {
             if (!dragActive)
               return
@@ -564,6 +655,7 @@ export const BlockToolbar = Extension.create({
             }
           })
 
+          // Close plus-menu on outside click (bubble-menu closes via update())
           function onDocMouseDown(ev: MouseEvent) {
             if (!menuOpen)
               return
@@ -574,10 +666,10 @@ export const BlockToolbar = Extension.create({
               closeMenu()
           }
 
+          // ── Register listeners ─────────────────────────────────────────────
           document.addEventListener('mousedown', onDocMouseDown)
-          document.addEventListener('mousemove', onGlobalPointerMove, { passive: true })
-          pmView.dom.addEventListener('mousemove', onMouseMove)
-          pmView.dom.addEventListener('mouseleave', onMouseLeave)
+          // Single unified move handler — no pmView.dom listeners for hover
+          document.addEventListener('mousemove', onDocMouseMove, { passive: true })
 
           scheduleSync(pmView.state.selection.from)
 
@@ -609,18 +701,16 @@ export const BlockToolbar = Extension.create({
                 }
               }
               else if (menuOpenBySelection) {
-                closeMenu()
+                closeMenu() // also resets menuAnchorRect
               }
             },
             destroy() {
               cancelAnimationFrame(raf)
               clearTimeout(hideTimer)
               document.removeEventListener('mousedown', onDocMouseDown)
-              document.removeEventListener('mousemove', onGlobalPointerMove)
+              document.removeEventListener('mousemove', onDocMouseMove)
               document.removeEventListener('mousemove', onDragMouseMove)
               document.removeEventListener('mouseup', onDragMouseUp)
-              pmView.dom.removeEventListener('mousemove', onMouseMove)
-              pmView.dom.removeEventListener('mouseleave', onMouseLeave)
               hideIndicator()
               root.remove()
             },

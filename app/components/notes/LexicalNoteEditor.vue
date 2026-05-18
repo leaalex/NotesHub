@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { Editor, JSONContent } from '@tiptap/core'
-import Link from '@tiptap/extension-link'
 import Placeholder from '@tiptap/extension-placeholder'
 import TaskItem from '@tiptap/extension-task-item'
 import TaskList from '@tiptap/extension-task-list'
@@ -96,18 +95,18 @@ const editor = useEditor({
   extensions: [
     StarterKit.configure({
       heading: { levels: [1, 2, 3] },
+      link: {
+        openOnClick: props.readOnly,
+        autolink: true,
+        linkOnPaste: true,
+        HTMLAttributes: {
+          class:
+            'font-medium text-zinc-700 underline decoration-zinc-300 underline-offset-[3px] transition-colors hover:text-zinc-900 hover:decoration-zinc-400',
+        },
+      },
     }),
     TaskList,
     TaskItem.configure({ nested: true }),
-    Link.configure({
-      openOnClick: props.readOnly,
-      autolink: true,
-      linkOnPaste: true,
-      HTMLAttributes: {
-        class:
-          'font-medium text-zinc-700 underline decoration-zinc-300 underline-offset-[3px] transition-colors hover:text-zinc-900 hover:decoration-zinc-400',
-      },
-    }),
     Placeholder.configure({
       placeholder: props.placeholder,
     }),
